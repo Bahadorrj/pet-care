@@ -5,6 +5,10 @@ from app.core.auth import hash_password
 from app.models.user import User
 
 
+class EmailAlreadyRegisteredError(Exception):
+    """Raised when creating a user with an email that already exists."""
+
+
 class UserService:
     @staticmethod
     def get_by_email(db: Session, email: str) -> User | None:
@@ -12,6 +16,10 @@ class UserService:
 
     @staticmethod
     def create(db: Session, email: str, password: str) -> User:
+        # Pre-check keeps the session usable on duplicate (an IntegrityError
+        # from commit would poison the session for the rest of the request).
+        if UserService.get_by_email(db, email) is not None:
+            raise EmailAlreadyRegisteredError(email)
         user = User(email=email, password_hash=hash_password(password))
         db.add(user)
         db.commit()

@@ -81,5 +81,6 @@ def current_user(
     user_id = decode_access_token(credentials.credentials)
     user = db.get(User, user_id)
     if user is None:
-        raise HTTPException(status_code=401, detail="user_not_found")
+        # Uniform detail with token errors: no user enumeration.
+        raise HTTPException(status_code=401, detail="invalid_token")
     return user

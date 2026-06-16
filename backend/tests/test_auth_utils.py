@@ -20,7 +20,7 @@ from app.core.auth import (
     create_access_token,
     decode_access_token,
 )
-from app.services.user import UserService
+from app.services.user import EmailAlreadyRegisteredError, UserService
 
 
 # ---------------------------------------------------------------------------
@@ -147,3 +147,14 @@ def test_user_service_create_and_get_by_email(db_session):
 def test_user_service_get_by_email_missing_returns_none(db_session):
     result = UserService.get_by_email(db_session, "nobody@example.com")
     assert result is None
+
+
+def test_user_service_create_duplicate_email_raises_and_session_usable(db_session):
+    email = f"dup-{uuid.uuid4()}@example.com"
+    UserService.create(db_session, email=email, password="plaintext123")
+
+    with pytest.raises(EmailAlreadyRegisteredError):
+        UserService.create(db_session, email=email, password="other123")
+
+    # Session must remain usable after the duplicate attempt (no poisoning).
+    assert UserService.get_by_email(db_session, email) is not None
