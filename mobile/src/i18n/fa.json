@@ -1,0 +1,15 @@
+{
+  "app.name": "پت‌کر",
+  "home.signin_signup": "ورود / ثبت‌نام",
+  "home.profile": "پروفایل",
+  "auth.email": "ایمیل",
+  "auth.password": "رمز عبور",
+  "auth.signin": "ورود",
+  "auth.signup": "ثبت‌نام",
+  "auth.no_account": "حساب ندارید؟ ثبت‌نام کنید",
+  "auth.has_account": "قبلاً ثبت‌نام کرده‌اید؟ وارد شوید",
+  "auth.error.invalid_credentials": "ایمیل یا رمز عبور اشتباه است",
+  "auth.error.email_taken": "این ایمیل قبلاً ثبت شده است",
+  "auth.error.weak_password": "رمز عبور باید حداقل ۸ کاراکتر باشد",
+  "auth.error.network": "خطای شبکه. دوباره تلاش کنید"
+}
