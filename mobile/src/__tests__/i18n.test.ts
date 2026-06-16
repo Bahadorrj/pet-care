@@ -68,7 +68,6 @@ describe('i18n – RTL configuration applied at module init', () => {
 
   beforeAll(() => {
     jest.isolateModules(() => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
       const { I18nManager } = require('react-native') as typeof import('react-native');
       allowRTLSpy = jest.spyOn(I18nManager, 'allowRTL');
       forceRTLSpy = jest.spyOn(I18nManager, 'forceRTL');
@@ -77,6 +76,10 @@ describe('i18n – RTL configuration applied at module init', () => {
       // after the spies are attached.
       require('../i18n/index');
     });
+  });
+
+  afterAll(() => {
+    jest.restoreAllMocks();
   });
 
   test('I18nManager.allowRTL was called with true', () => {

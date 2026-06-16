@@ -10,21 +10,28 @@ import fa from './fa.json';
 I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 
-i18n.use(initReactI18next).init({
-  lng: 'fa',
-  fallbackLng: 'fa',
-  // Disable key separators so dotted keys like "auth.error.network" are
-  // treated as literal flat keys rather than nested object paths.
-  keySeparator: false,
-  nsSeparator: false,
-  resources: {
-    fa: {
-      translation: fa,
+i18n
+  .use(initReactI18next)
+  .init({
+    lng: 'fa',
+    fallbackLng: 'fa',
+    // Disable key separators so dotted keys like "auth.error.network" are
+    // treated as literal flat keys rather than nested object paths.
+    keySeparator: false,
+    nsSeparator: false,
+    resources: {
+      fa: {
+        translation: fa,
+      },
     },
-  },
-  interpolation: {
-    escapeValue: false,
-  },
-});
+    interpolation: {
+      escapeValue: false,
+    },
+  })
+  .catch((err) => {
+    // With in-memory resources init resolves synchronously; this guards against
+    // silent failure if a loader/plugin is added later.
+    console.error('[i18n] init failed:', err);
+  });
 
 export default i18n;
