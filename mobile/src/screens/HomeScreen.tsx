@@ -37,8 +37,8 @@ export default function HomeScreen() {
           source={logo}
           style={styles.logo}
           resizeMode="contain"
-          accessibilityRole="image"
-          accessibilityLabel={t('app.name')}
+          // Decorative — the app name Text below already conveys this to screen readers.
+          accessible={false}
         />
         <Text style={styles.appName}>{t('app.name')}</Text>
       </View>

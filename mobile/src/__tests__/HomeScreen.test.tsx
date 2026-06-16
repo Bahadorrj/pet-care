@@ -80,4 +80,10 @@ describe('HomeScreen – authenticated state', () => {
     await render(<HomeScreen />);
     expect(screen.queryByText('ورود / ثبت‌نام')).toBeNull();
   });
+
+  test('pressing the profile button does not navigate (stub, no action yet)', async () => {
+    await render(<HomeScreen />);
+    fireEvent.press(screen.getByText('پروفایل'));
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });
