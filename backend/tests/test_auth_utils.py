@@ -99,8 +99,11 @@ def test_token_payload_contains_sub_and_exp():
 def test_decode_tampered_token_raises_401():
     user_id = str(uuid.uuid4())
     token = create_access_token(user_id)
-    # Flip the last character to tamper with the signature
-    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+    # Corrupt the first char of the signature segment. (Flipping the token's
+    # last char is unreliable: base64url padding can decode to the same bytes.)
+    header, payload, signature = token.split(".")
+    signature = ("X" if signature[0] != "X" else "Y") + signature[1:]
+    tampered = f"{header}.{payload}.{signature}"
     with pytest.raises(HTTPException) as exc_info:
         decode_access_token(tampered)
     assert exc_info.value.status_code == 401
