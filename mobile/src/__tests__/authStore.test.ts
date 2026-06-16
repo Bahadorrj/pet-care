@@ -22,14 +22,17 @@ jest.mock('expo-secure-store', () => ({
 
 const mockedSecureStore = SecureStoreMock as jest.Mocked<typeof SecureStoreMock>;
 
-// Helper: load a fresh store instance, wait for module-level hydrate to settle
+// Flush all pending microtasks (hydrate awaits several SecureStore promises).
+const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
+
+// Helper: load a fresh store instance, wait for module-level hydrate to settle.
 async function loadFreshStore() {
   let store: typeof import('../store/authStore');
   jest.isolateModules(() => {
     store = require('../store/authStore');
   });
-  // Let the module-level hydrate() promise resolve
-  await Promise.resolve();
+  // Let the module-level hydrate() promise (and its awaits) fully settle.
+  await flushPromises();
   return store!;
 }
 
@@ -92,9 +95,9 @@ describe('authStore – hydrate', () => {
       return Promise.resolve(null);
     });
 
+    // No explicit hydrate() call — the module-level auto-hydration on load
+    // (settled inside loadFreshStore) is what must restore the session.
     const { useAuthStore } = await loadFreshStore();
-    // Wait for module-level hydrate to finish
-    await useAuthStore.getState().hydrate();
 
     const state = useAuthStore.getState();
     expect(state.token).toBe('stored-tok');
@@ -107,7 +110,6 @@ describe('authStore – hydrate', () => {
     mockedSecureStore.getItemAsync.mockResolvedValue(null);
 
     const { useAuthStore } = await loadFreshStore();
-    await useAuthStore.getState().hydrate();
 
     const state = useAuthStore.getState();
     expect(state.token).toBeNull();
