@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1A1A1A',
     backgroundColor: '#FFFFFF',
+    textAlign: 'auto',
   },
   errorText: {
     color: '#C0392B',
