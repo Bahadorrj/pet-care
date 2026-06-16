@@ -53,10 +53,16 @@ his dog acts strange and get a clear answer: "go to vet now" or "monitor and wai
 | Local storage | SQLite via WatermelonDB or expo-sqlite | Offline-first pet profiles and reminders |
 | Notifications | Notifee (local only) | No FCM dependency — avoids Iran FCM unreliability |
 | Calendar | date-fns-jalali | Shamsi dates required from day one |
-| Backend | FastAPI + PostgreSQL | Developer expertise, async, scales to AI later |
+| Backend | FastAPI (SQLite now, PostgreSQL deferred) | Developer expertise, async, scales to AI later. SQLite for now with DB-agnostic models — see ADR-0004 |
 | Hosting | Arvan Cloud or Iran-accessible VPS | Accessible from Iran without restrictions |
-| Auth | JWT via FastAPI | Stateless, no third-party dependency |
+| Auth | JWT via PyJWT | Stateless, no third-party dependency — see ADR-0005 |
+| Packaging (backend) | `uv` + `pyproject.toml` + `uv.lock` | Reproducible, fast — see ADR-0007 |
 | Content | Bundled JSON in app + optional background sync | Offline-first knowledge base |
+
+> **Note:** Some original choices below have since been refined. Architecture
+> Decision Records in `docs/ard/` are authoritative where they differ:
+> ADR-0004 (SQLite now, PostgreSQL deferred), ADR-0005 (PyJWT, not python-jose),
+> ADR-0006 (bcrypt directly, not passlib), ADR-0007 (`uv`, not pip).
 
 ---
 
@@ -70,12 +76,12 @@ npm run android            # Run on Android emulator or device
 npm run build:android      # Build release APK for Cafe Bazaar / Myket
 npm test                   # Run Jest tests
 
-# Backend (FastAPI)
+# Backend (FastAPI) — uv-managed, see ADR-0007
 cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload   # Development server
-pytest                          # Run test suite
-alembic upgrade head            # Apply database migrations
+uv sync                              # Install deps from uv.lock
+uv run python run.py                 # Development server
+uv run pytest                        # Run test suite
+uv run alembic upgrade head          # Apply database migrations
 ```
 
 ---
@@ -220,7 +226,7 @@ async def create_pet(
 - No snapshot tests — they break too often on RTL layout changes
 
 **Backend (Pytest):**
-- Test all API endpoints with real PostgreSQL — no database mocks
+- Test all API endpoints against a real database (SQLite now — see ADR-0004) — no database mocks
 - Cover: auth flows, pet CRUD, reminder scheduling
 - Coverage target: 80% on core routes
 
@@ -233,7 +239,7 @@ async def create_pet(
 - Use `start`/`end` (never `left`/`right`) in React Native StyleSheet
 - Keep symptom guide and hazard content accessible without login
 - Store all timestamps as UTC in the database; convert to Jalali at the display layer
-- Test against real PostgreSQL, not mocks
+- Test against a real database (SQLite now — ADR-0004), not mocks
 
 **Ask first:**
 - Adding a new pet species (multiplies content effort significantly)

@@ -50,9 +50,15 @@ or login succeeds → JWT persists across restarts → home screen reflects auth
 | API client | axios |
 | i18n | react-i18next + `i18n/fa.json` |
 | Calendar | date-fns-jalali (imported now; not yet used in this layer) |
-| Backend | FastAPI + PostgreSQL |
-| Auth | JWT via `python-jose`, bcrypt via `passlib` |
+| Backend | FastAPI + SQLite now (PostgreSQL deferred — ADR-0004) |
+| Auth | JWT via PyJWT (ADR-0005), bcrypt directly (ADR-0006) |
+| Packaging (backend) | `uv` + `pyproject.toml` + `uv.lock` (ADR-0007) |
 | Migrations | Alembic |
+
+> **Note:** This layer was implemented with refinements to the original stack.
+> The ADRs in `docs/ard/` are authoritative: ADR-0004 (SQLite now), ADR-0005
+> (PyJWT, not python-jose), ADR-0006 (bcrypt directly, not passlib),
+> ADR-0007 (`uv`, not pip).
 
 ---
 
@@ -65,12 +71,12 @@ npm install
 npx expo run:android     # Build and run on Android emulator or device
 npm test                 # Jest test suite
 
-# Backend
+# Backend — uv-managed, see ADR-0007
 cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload   # Dev server (port 8000)
-pytest                          # Full test suite
-alembic upgrade head            # Apply migrations
+uv sync                              # Install deps from uv.lock
+uv run python run.py                 # Dev server (port 8000)
+uv run pytest                        # Full test suite
+uv run alembic upgrade head          # Apply migrations
 ```
 
 ---
@@ -149,12 +155,19 @@ Errors:   401 if token missing or invalid
 
 ## Database Schema
 
+The schema below shows the PostgreSQL target shape. The current implementation
+runs on SQLite (ADR-0004) with **DB-agnostic** types: the UUID is stored as
+`String(36)` and generated in Python (`uuid.uuid4()`), and `created_at` is a
+timezone-aware UTC `DateTime`. No engine-specific SQL (`gen_random_uuid()`,
+`TIMESTAMPTZ`) is used in code.
+
 ```sql
+-- PostgreSQL target (implemented today on SQLite, see ADR-0004)
 CREATE TABLE users (
-  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),  -- impl: String(36), uuid4() in Python
   email        TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()           -- impl: timezone-aware UTC DateTime
 );
 ```
 
@@ -248,7 +261,7 @@ async def register(body: RegisterRequest, db: Session = Depends(get_db)):
 - `authStore`: login sets token + email; logout clears both; token persists (mock SecureStore)
 - No snapshot tests
 
-### Backend (Pytest + real PostgreSQL)
+### Backend (Pytest + real database — SQLite now, see ADR-0004)
 - `POST /auth/register`: success 201, duplicate email 400, malformed email 422, short password 422
 - `POST /auth/login`: success 200, wrong password 401, unknown email 401
 - `GET /auth/me`: valid JWT → user data, no token → 401, expired token → 401
