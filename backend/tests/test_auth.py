@@ -1,8 +1,8 @@
 """Full contract tests for /auth endpoints."""
 from datetime import datetime, timedelta, timezone
 
+import jwt
 import pytest
-from jose import jwt
 
 from app.core.config import settings
 
@@ -119,3 +119,37 @@ def test_me_expired_token_returns_401(client):
     token = _expired_token()
     r = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert r.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Fix 3: Email normalization (case-insensitive deduplication)
+# ---------------------------------------------------------------------------
+
+
+def test_register_mixed_case_email_then_lowercase_returns_400(client):
+    """Registering Alice@Example.com then alice@example.com must be a duplicate."""
+    r1 = register(client, email="Alice@Example.com")
+    assert r1.status_code == 201
+    r2 = register(client, email="alice@example.com")
+    assert r2.status_code == 400
+    assert r2.json()["detail"] == "email_already_registered"
+
+
+def test_login_with_different_case_email_returns_200(client):
+    """Register lowercase, login with mixed case — must succeed."""
+    register(client, email="testcase@example.com")
+    r = login(client, email="TestCase@Example.com")
+    assert r.status_code == 200
+    assert "access_token" in r.json()
+
+
+# ---------------------------------------------------------------------------
+# Fix 4: Password/email length bounds
+# ---------------------------------------------------------------------------
+
+
+def test_register_73_char_password_returns_422(client):
+    """A 73-char password exceeds bcrypt's 72-byte limit — must be 422, not 500."""
+    long_password = "a" * 73
+    r = register(client, password=long_password)
+    assert r.status_code == 422

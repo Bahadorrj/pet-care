@@ -8,9 +8,9 @@ dependencies = [
     "sqlalchemy>=2.0.51",
     "pydantic-settings>=2.14.1",
     "alembic>=1.18.4",
-    "python-jose[cryptography]>=3.5.0",
     "bcrypt>=5.0.0",
     "email-validator>=2.3.0",
+    "pyjwt>=2.9.0",
 ]
 
 [dependency-groups]

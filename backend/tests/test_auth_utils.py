@@ -5,9 +5,9 @@ Written FIRST per TDD — all tests must fail before implementation exists.
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import jwt
 import pytest
 from fastapi import HTTPException
-from jose import jwt
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 

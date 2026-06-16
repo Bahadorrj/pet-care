@@ -1,7 +1,10 @@
 import os
+import secrets
 
 # Must be set before app modules are imported so pydantic-settings can validate.
-os.environ.setdefault("SECRET_KEY", "dev-only-not-secret")
+# Use an ephemeral random key as fallback so no usable secret is committed.
+# Migrations don't sign JWTs, so a per-invocation random key is safe here.
+os.environ.setdefault("SECRET_KEY", secrets.token_urlsafe(32))
 
 from logging.config import fileConfig
 

@@ -8,9 +8,9 @@ and changed the wrap-bug detection API), so we use bcrypt directly.
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
+import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -32,6 +32,11 @@ def hash_password(plain: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     """Return True if *plain* matches *hashed*."""
     return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+
+# Dummy hash used by the login handler to perform a constant-time bcrypt verify
+# even when the email is not found, preventing timing-based account enumeration.
+_DUMMY_PASSWORD_HASH = hash_password("dummy-timing-guard-not-a-real-password")
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +64,7 @@ def decode_access_token(token: str) -> str:
         if not sub:
             raise HTTPException(status_code=401, detail="invalid_token")
         return sub
-    except JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(status_code=401, detail="invalid_token")
 
 
