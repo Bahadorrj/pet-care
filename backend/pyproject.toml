@@ -1,3 +1,28 @@
+[project]
+name = "petcare-backend"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.137.1",
+    "uvicorn[standard]>=0.49.0",
+    "sqlalchemy>=2.0.51",
+    "pydantic-settings>=2.14.1",
+    "alembic>=1.18.4",
+    "python-jose[cryptography]>=3.5.0",
+    "bcrypt>=5.0.0",
+    "email-validator>=2.3.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.0",
+    "pytest-cov>=7.1.0",
+    "httpx>=0.28.1",
+]
+
+[tool.uv]
+package = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
