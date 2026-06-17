@@ -1,16 +1,12 @@
 import React from 'react';
-import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
+import Button from '../components/ui/Button';
 import { useAuthStore } from '../store/authStore';
+import { colors, fonts, radius, shadow, spacing, typography } from '../theme/theme';
 import type { RootNavigationProp } from '../navigation/RootNavigator';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -30,74 +26,77 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
-      {/* Brand block — centred in the top half */}
+      {/* Brand block — optically centred in the upper two-thirds */}
       <View style={styles.brand}>
-        <Image
-          testID="home-logo"
-          source={logo}
-          style={styles.logo}
-          resizeMode="contain"
-          // Decorative — the app name Text below already conveys this to screen readers.
-          accessible={false}
-        />
+        <View style={styles.logoHalo}>
+          <Image
+            testID="home-logo"
+            source={logo}
+            style={styles.logo}
+            resizeMode="contain"
+            // Decorative — the app name Text below conveys this to screen readers.
+            accessible={false}
+          />
+        </View>
         <Text style={styles.appName}>{t('app.name')}</Text>
+        <Text style={styles.tagline}>{t('home.tagline')}</Text>
       </View>
 
-      {/* CTA button — pinned near the bottom */}
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleButtonPress}
-        accessibilityRole="button"
-        activeOpacity={0.75}
-      >
-        <Text style={styles.buttonLabel}>
-          {isAuthenticated ? t('home.profile') : t('home.signin_signup')}
-        </Text>
-      </TouchableOpacity>
+      {/* CTA — pinned near the bottom for thumb reach */}
+      <View style={styles.footer}>
+        <Button
+          variant={isAuthenticated ? 'secondary' : 'primary'}
+          label={isAuthenticated ? t('home.profile') : t('home.signin_signup')}
+          onPress={handleButtonPress}
+        />
+      </View>
     </SafeAreaView>
   );
 }
 
-const ACCENT = '#4A7C59'; // calm forest green — unobtrusive, not loud
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FAFAF8',
-    paddingStart: 24,
-    paddingEnd: 24,
+    backgroundColor: colors.bg,
+    paddingHorizontal: spacing.xl,
   },
   brand: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  logoHalo: {
+    width: 132,
+    height: 132,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xl,
+    ...shadow.card,
+  },
   logo: {
-    width: 96,
-    height: 96,
-    marginBottom: 16,
+    width: 76,
+    height: 76,
   },
   appName: {
-    fontSize: 28,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontSize: typography.display.fontSize,
+    lineHeight: typography.display.lineHeight,
+    fontFamily: fonts.bold,
+    color: colors.ink,
     textAlign: 'center',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
-  button: {
-    marginBottom: 32,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: ACCENT,
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  buttonLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: ACCENT,
+  tagline: {
+    marginTop: spacing.sm,
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
     textAlign: 'center',
+    maxWidth: 280,
+  },
+  footer: {
+    paddingBottom: spacing.xxl,
   },
 });

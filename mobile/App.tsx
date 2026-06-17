@@ -2,6 +2,7 @@
 import './src/i18n';
 
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -10,10 +11,17 @@ import { useAuthStore } from './src/store/authStore';
 
 export default function App() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  // Vazirmatn — the app's typeface. Keys must match the family names in theme.ts.
+  const [fontsLoaded] = useFonts({
+    'Vazirmatn-Regular': require('./assets/fonts/Vazirmatn-Regular.ttf'),
+    'Vazirmatn-Medium': require('./assets/fonts/Vazirmatn-Medium.ttf'),
+    'Vazirmatn-SemiBold': require('./assets/fonts/Vazirmatn-SemiBold.ttf'),
+    'Vazirmatn-Bold': require('./assets/fonts/Vazirmatn-Bold.ttf'),
+  });
 
-  // Wait for the persisted session to load before first render so an
-  // authenticated user never sees a flash of guest UI on launch.
-  if (!hasHydrated) {
+  // Hold the first render until both the persisted session and the fonts are
+  // ready, so the user never sees a flash of guest UI or unstyled system text.
+  if (!hasHydrated || !fontsLoaded) {
     return null;
   }
 

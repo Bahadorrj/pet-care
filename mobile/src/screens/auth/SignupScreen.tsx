@@ -4,8 +4,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,8 +11,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
+import Button from '../../components/ui/Button';
+import TextField from '../../components/ui/TextField';
 import { register as apiRegister } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
+import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
 import type { RootNavigationProp } from '../../navigation/RootNavigator';
 
 export default function SignupScreen() {
@@ -60,66 +61,69 @@ export default function SignupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['bottom']}>
       <KeyboardAvoidingView
         style={styles.inner}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <View style={styles.form}>
-          <Text style={styles.title}>{t('auth.signup')}</Text>
+          <View style={styles.header}>
+            <Text style={styles.title}>{t('auth.signup')}</Text>
+            <Text style={styles.subtitle}>{t('auth.signup_subtitle')}</Text>
+          </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder={t('auth.email')}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoCorrect={false}
-            accessibilityLabel={t('auth.email')}
-          />
+          <View style={styles.fields}>
+            <TextField
+              placeholder={t('auth.email')}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoCorrect={false}
+              invalid={error !== ''}
+              accessibilityLabel={t('auth.email')}
+            />
 
-          <TextInput
-            style={styles.input}
-            placeholder={t('auth.password')}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            accessibilityLabel={t('auth.password')}
-          />
+            <TextField
+              placeholder={t('auth.password')}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              invalid={error !== ''}
+              accessibilityLabel={t('auth.password')}
+            />
+          </View>
 
-          {error !== '' && <Text style={styles.errorText}>{error}</Text>}
+          {error !== '' && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
 
-          <TouchableOpacity
+          <Button
             testID="signup-submit"
-            style={[styles.button, isSubmitting && styles.buttonDisabled]}
+            label={t('auth.signup')}
             onPress={handleSubmit}
+            loading={isSubmitting}
             disabled={isSubmitting}
-            accessibilityRole="button"
-            activeOpacity={0.75}
-          >
-            <Text style={styles.buttonLabel}>{t('auth.signup')}</Text>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
+          <Button
+            variant="ghost"
+            label={t('auth.has_account')}
             onPress={() => navigation.navigate('Signin')}
-            accessibilityRole="button"
             style={styles.link}
-          >
-            <Text style={styles.linkText}>{t('auth.has_account')}</Text>
-          </TouchableOpacity>
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-const ACCENT = '#4A7C59';
-
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FAFAF8',
+    backgroundColor: colors.bg,
   },
   inner: {
     flex: 1,
@@ -127,56 +131,44 @@ const styles = StyleSheet.create({
   form: {
     flex: 1,
     justifyContent: 'center',
-    paddingStart: 24,
-    paddingEnd: 24,
+    paddingHorizontal: spacing.xl,
+  },
+  header: {
+    marginBottom: spacing.xxl,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    textAlign: 'center',
-    marginBottom: 32,
+    fontSize: typography.display.fontSize,
+    lineHeight: typography.display.lineHeight,
+    fontFamily: fonts.bold,
+    color: colors.ink,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#C8C8C4',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingStart: 16,
-    paddingEnd: 16,
-    marginBottom: 16,
-    fontSize: 16,
-    color: '#1A1A1A',
-    backgroundColor: '#FFFFFF',
-    textAlign: 'auto',
+  subtitle: {
+    marginTop: spacing.xs,
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+  },
+  fields: {
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  errorBanner: {
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
   },
   errorText: {
-    color: '#C0392B',
-    fontSize: 14,
-    marginBottom: 12,
+    color: colors.danger,
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.regular,
     textAlign: 'center',
   },
-  button: {
-    backgroundColor: ACCENT,
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonLabel: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
   link: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  linkText: {
-    color: ACCENT,
-    fontSize: 14,
+    marginTop: spacing.sm,
+    alignSelf: 'center',
   },
 });
