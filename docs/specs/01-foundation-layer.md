@@ -302,8 +302,10 @@ async def register(body: RegisterRequest, db: Session = Depends(get_db)):
 - [ ] Login with wrong password → Farsi error message shown, no crash
 - [ ] Signup with existing email → Farsi error message shown, no crash
 - [ ] All text is right-to-left Farsi; no Gregorian dates, no English strings visible
-- [ ] Backend tests pass against real PostgreSQL (no mocks)
-- [ ] Mobile tests pass for all screens and auth store logic
+- [x] Backend tests pass against real PostgreSQL (no mocks)
+- [x] Mobile tests pass for all screens and auth store logic
+
+> Items requiring a live Android emulator (launch, signup→restart persistence, visual RTL) are pending manual verification — see Task 10.
 
 ---
 
