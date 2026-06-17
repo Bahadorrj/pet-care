@@ -11,6 +11,21 @@ foundation everything else will be added on top of.
 
 ---
 
+## Status: ✅ Complete (2026-06-17)
+
+All tasks (T1–T10) implemented and committed on `feat/01-foundation-backend`. Verified by automated
+suites: backend `pytest` 28/28 green (auth router 100% coverage), mobile `npm test` 38/38 green,
+`tsc --noEmit` 0 errors. A whole-branch review (opus) found and fixed one Critical defect — `App.tsx`
+shipped as the Expo scaffold, leaving the navigator/i18n/hydration wiring as dead code; now wired with
+a regression test. One Minor item is deferred by decision (password `max_length` is in characters, not
+bcrypt's 72 **bytes** — see `backend/app/schemas/auth.py`).
+
+**Remaining (manual, requires an Android emulator/device — not runnable in CI):** the on-device
+walkthrough below (boxes marked _manual_). Run `cd backend && uv run python run.py`, then
+`cd mobile && npx expo run:android`, and walk the spec's Success Criteria.
+
+---
+
 ## Architecture Decisions
 
 - **Backend first, then mobile integration.** Mobile screens will have their API client wired
@@ -195,10 +210,10 @@ the full backend test suite covering success paths and all error cases.
 
 ### Checkpoint 1: Backend complete
 
-- [ ] `uvicorn app.main:app --reload` starts cleanly
-- [ ] `pytest` → all tests green, 100% coverage on auth router
-- [ ] `alembic upgrade head` → `users` table exists
-- [ ] Register + login + /me work via `curl` or Postman against the local server
+- [x] backend server starts cleanly (`uv run python run.py`; uvicorn entry, ADR-0007)
+- [x] `pytest` → all tests green, 100% coverage on auth router
+- [x] `alembic upgrade head` → `users` table exists
+- [x] Register + login + /me work via `curl` or Postman against the local server
 
 ---
 
@@ -336,11 +351,11 @@ right-to-left automatically.
 
 ### Checkpoint 2: Mobile scaffolding complete
 
-- [ ] `npx expo run:android` → app launches, navigator renders (even if screens are stubs)
-- [ ] `npx tsc --noEmit` → 0 errors
-- [ ] `npm test` → i18n + authStore + apiClient tests all green
-- [ ] Auth store hydrates from SecureStore correctly (manual test: set a fake token in store,
-      restart app, confirm `isAuthenticated` is true)
+- [ ] _(manual)_ `npx expo run:android` → app launches, navigator renders (even if screens are stubs)
+- [x] `npx tsc --noEmit` → 0 errors
+- [x] `npm test` → i18n + authStore + apiClient tests all green
+- [x] Auth store hydrates from SecureStore correctly (covered by `authStore.test.ts` hydration tests;
+      on-device restart check remains _manual_)
 
 ---
 
@@ -415,9 +430,9 @@ inline in Farsi. Loading state disables the submit button during the request.
 
 ### Checkpoint 3: Screens complete
 
-- [ ] `npm test` → all mobile tests green
-- [ ] `npx tsc --noEmit` → 0 errors
-- [ ] Manual end-to-end: fresh install → branded home → signup → JWT stored → restart → still
+- [x] `npm test` → all mobile tests green
+- [x] `npx tsc --noEmit` → 0 errors
+- [ ] _(manual)_ End-to-end: fresh install → branded home → signup → JWT stored → restart → still
       authenticated; login with wrong password → Farsi error shown
 
 ---
@@ -434,15 +449,15 @@ networking, SecureStore on emulator). Document the final `API_BASE_URL` value fo
 emulator dev (`http://10.0.2.2:8000`).
 
 **Acceptance criteria:**
-- [ ] All 10 success criteria in `docs/specs/01-foundation-layer.md` pass manually
-- [ ] CORS is configured on the backend to accept requests from the Android emulator
-- [ ] `.env.example` documents `API_BASE_URL` and `SECRET_KEY`
-- [ ] No English strings visible in the app UI
+- [ ] _(manual)_ All 10 success criteria in `docs/specs/01-foundation-layer.md` pass manually
+- [x] CORS is configured on the backend to accept requests from the Android emulator
+- [x] `.env.example` documents `API_BASE_URL` and `SECRET_KEY` (mobile uses Expo's `EXPO_PUBLIC_API_BASE_URL`)
+- [x] No English strings visible in the app UI (all strings via `i18n/fa.json`; verified by i18n tests)
 
 **Verification:**
-- [ ] Walk through every bullet in the spec's **Success Criteria** section, check each one off
-- [ ] `pytest` → still green after any backend changes
-- [ ] `npm test` → still green after any mobile changes
+- [ ] _(manual)_ Walk through every bullet in the spec's **Success Criteria** section, check each one off
+- [x] `pytest` → still green after any backend changes
+- [x] `npm test` → still green after any mobile changes
 
 **Dependencies:** Tasks 1–9 (all complete)
 
@@ -458,12 +473,12 @@ emulator dev (`http://10.0.2.2:8000`).
 
 ### Final Checkpoint
 
-- [ ] `pytest` → all backend tests green, 100% auth router coverage
-- [ ] `npm test` → all mobile tests green
-- [ ] `npx tsc --noEmit` → 0 errors
-- [ ] `npx expo run:android` → app launches without red screen
-- [ ] Manual walkthrough: all success criteria from spec checked off
-- [ ] No hardcoded strings, no `left`/`right` in StyleSheet, no secrets in repo
+- [x] `pytest` → all backend tests green, 100% auth router coverage
+- [x] `npm test` → all mobile tests green (38/38)
+- [x] `npx tsc --noEmit` → 0 errors
+- [ ] _(manual)_ `npx expo run:android` → app launches without red screen
+- [ ] _(manual)_ Walkthrough: all success criteria from spec checked off
+- [x] No hardcoded strings, no `left`/`right` in StyleSheet, no secrets in repo
 
 ---
 
