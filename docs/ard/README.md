@@ -41,3 +41,4 @@ relevant ADR. Every ADR ends with an explicit **Guardrails** section
 | [0010](0010-jalali-ui-utc-storage.md) | Jalali (Shamsi) UI dates, UTC in storage | Accepted | — |
 | [0011](0011-guest-first-no-login-wall.md) | Guest-first access; no login wall on knowledge | Accepted | — |
 | [0012](0012-zustand-securestore-auth-state.md) | Zustand + expo-secure-store for mobile auth | Accepted | — |
+| [0013](0013-async-sqlalchemy-aiosqlite.md) | Async SQLAlchemy over aiosqlite; Alembic stays sync | Accepted | — |
