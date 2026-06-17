@@ -1,6 +1,4 @@
 """CORS middleware tests — verifies the API accepts cross-origin requests from the mobile client."""
-import pytest
-
 
 ORIGIN = "http://10.0.2.2:8000"
 
