@@ -1,8 +1,8 @@
 # Spec: Async API Layer (aiosqlite)
 
-Status: **DRAFT — awaiting approval**
+Status: **Implemented**
 Owner: backend
-Related ADR: `docs/ard/0013-async-sqlalchemy-aiosqlite.md` (to be added during implementation)
+Related ADR: `docs/ard/0013-async-sqlalchemy-aiosqlite.md`
 
 ## Objective
 

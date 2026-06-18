@@ -1,6 +1,6 @@
 # Implementation Plan: Async API Layer (aiosqlite)
 
-Status: **DRAFT — awaiting approval**
+Status: **Implemented**
 Spec: `docs/specs/02-async-api-layer.md`
 ADR: `docs/ard/0013-async-sqlalchemy-aiosqlite.md`
 
