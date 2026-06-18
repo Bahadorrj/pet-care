@@ -14,5 +14,9 @@
   "auth.error.invalid_credentials": "ایمیل یا رمز عبور اشتباه است",
   "auth.error.email_taken": "این ایمیل قبلاً ثبت شده است",
   "auth.error.weak_password": "رمز عبور باید حداقل ۸ کاراکتر باشد",
-  "auth.error.network": "خطای شبکه. دوباره تلاش کنید"
+  "auth.error.network": "خطای شبکه. دوباره تلاش کنید",
+  "tab.home": "خانه",
+  "tab.profile": "پروفایل",
+  "profile.signin_prompt": "برای ذخیره و همگام‌سازی وارد شوید",
+  "profile.logout": "خروج"
 }
