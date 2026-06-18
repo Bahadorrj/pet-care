@@ -7,9 +7,9 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 import pytest
+import pytest_asyncio
 from fastapi import HTTPException
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # conftest.py sets SECRET_KEY env var before app imports
 from app.core.config import settings
@@ -28,19 +28,19 @@ from app.services.user import EmailAlreadyRegisteredError, UserService
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
-def db_session():
-    """In-memory SQLite session for UserService round-trip tests."""
-    engine = create_engine(
-        "sqlite:///:memory:", connect_args={"check_same_thread": False}
+@pytest_asyncio.fixture()
+async def db_session():
+    """In-memory async SQLite session for UserService round-trip tests."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:", connect_args={"check_same_thread": False}
     )
-    Base.metadata.create_all(engine)
-    Session = sessionmaker(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    Session = async_sessionmaker(bind=engine, expire_on_commit=False)
     db = Session()
     yield db
-    db.close()
-    Base.metadata.drop_all(engine)
-    engine.dispose()
+    await db.close()
+    await engine.dispose()
 
 
 # ---------------------------------------------------------------------------
@@ -134,30 +134,30 @@ def test_decode_garbage_token_raises_401():
 # ---------------------------------------------------------------------------
 
 
-def test_user_service_create_and_get_by_email(db_session):
+async def test_user_service_create_and_get_by_email(db_session):
     email = f"test-{uuid.uuid4()}@example.com"
-    user = UserService.create(db_session, email=email, password="plaintext123")
+    user = await UserService.create(db_session, email=email, password="plaintext123")
 
     assert user.email == email
     assert user.password_hash != "plaintext123"
     assert verify_password("plaintext123", user.password_hash)
 
-    fetched = UserService.get_by_email(db_session, email)
+    fetched = await UserService.get_by_email(db_session, email)
     assert fetched is not None
     assert fetched.id == user.id
 
 
-def test_user_service_get_by_email_missing_returns_none(db_session):
-    result = UserService.get_by_email(db_session, "nobody@example.com")
+async def test_user_service_get_by_email_missing_returns_none(db_session):
+    result = await UserService.get_by_email(db_session, "nobody@example.com")
     assert result is None
 
 
-def test_user_service_create_duplicate_email_raises_and_session_usable(db_session):
+async def test_user_service_create_duplicate_email_raises_and_session_usable(db_session):
     email = f"dup-{uuid.uuid4()}@example.com"
-    UserService.create(db_session, email=email, password="plaintext123")
+    await UserService.create(db_session, email=email, password="plaintext123")
 
     with pytest.raises(EmailAlreadyRegisteredError):
-        UserService.create(db_session, email=email, password="other123")
+        await UserService.create(db_session, email=email, password="other123")
 
     # Session must remain usable after the duplicate attempt (no poisoning).
-    assert UserService.get_by_email(db_session, email) is not None
+    assert await UserService.get_by_email(db_session, email) is not None

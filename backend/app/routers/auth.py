@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import _DUMMY_PASSWORD_HASH, create_access_token, current_user, verify_password
 from app.core.database import get_db
@@ -11,17 +11,17 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", status_code=201, response_model=TokenResponse)
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     try:
-        user = UserService.create(db, email=body.email, password=body.password)
+        user = await UserService.create(db, email=body.email, password=body.password)
     except EmailAlreadyRegisteredError:
         raise HTTPException(status_code=400, detail="email_already_registered")
     return TokenResponse(access_token=create_access_token(user.id))
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, db: Session = Depends(get_db)):
-    user = UserService.get_by_email(db, body.email)
+async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+    user = await UserService.get_by_email(db, body.email)
     candidate_hash = user.password_hash if user is not None else _DUMMY_PASSWORD_HASH
     password_ok = verify_password(body.password, candidate_hash)
     if user is None or not password_ok:

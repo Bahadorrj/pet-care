@@ -1,5 +1,6 @@
 """Thin UserService for creating and fetching users."""
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import hash_password
 from app.models.user import User
@@ -11,17 +12,18 @@ class EmailAlreadyRegisteredError(Exception):
 
 class UserService:
     @staticmethod
-    def get_by_email(db: Session, email: str) -> User | None:
-        return db.query(User).filter(User.email == email).first()
+    async def get_by_email(db: AsyncSession, email: str) -> User | None:
+        result = await db.execute(select(User).where(User.email == email))
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def create(db: Session, email: str, password: str) -> User:
+    async def create(db: AsyncSession, email: str, password: str) -> User:
         # Pre-check keeps the session usable on duplicate (an IntegrityError
         # from commit would poison the session for the rest of the request).
-        if UserService.get_by_email(db, email) is not None:
+        if await UserService.get_by_email(db, email) is not None:
             raise EmailAlreadyRegisteredError(email)
         user = User(email=email, password_hash=hash_password(password))
         db.add(user)
-        db.commit()
-        db.refresh(user)
+        await db.commit()
+        await db.refresh(user)
         return user

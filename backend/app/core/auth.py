@@ -11,7 +11,7 @@ import bcrypt
 import jwt
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -73,9 +73,9 @@ def decode_access_token(token: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def current_user(
+async def current_user(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Resolve the authenticated User from a Bearer token.
 
@@ -84,7 +84,7 @@ def current_user(
     from app.models.user import User  # local import avoids circular
 
     user_id = decode_access_token(credentials.credentials)
-    user = db.get(User, user_id)
+    user = await db.get(User, user_id)
     if user is None:
         # Uniform detail with token errors: no user enumeration.
         raise HTTPException(status_code=401, detail="invalid_token")
