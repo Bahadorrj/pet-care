@@ -40,7 +40,7 @@ export default function SignupScreen() {
     try {
       const res = await apiRegister(email, password);
       await storeLogin(res.access_token, email);
-      navigation.navigate('Profile');
+      navigation.navigate('ProfileMain');
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;

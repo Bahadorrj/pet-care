@@ -58,7 +58,7 @@ describe('SigninScreen – happy path', () => {
     await waitFor(() => {
       expect(mockAuthApi.login).toHaveBeenCalledWith('user@example.com', 'secret123');
       expect(mockLogin).toHaveBeenCalledWith('tok', 'user@example.com');
-      expect(mockNavigate).toHaveBeenCalledWith('Profile');
+      expect(mockNavigate).toHaveBeenCalledWith('ProfileMain');
     });
   });
 });
@@ -138,7 +138,7 @@ describe('SigninScreen – loading state', () => {
     });
 
     // After act() drains, navigate should have been called.
-    expect(mockNavigate).toHaveBeenCalledWith('Profile');
+    expect(mockNavigate).toHaveBeenCalledWith('ProfileMain');
   });
 });
 

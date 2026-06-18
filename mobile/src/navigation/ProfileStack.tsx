@@ -8,7 +8,7 @@ import SignupScreen from '../screens/auth/SignupScreen';
 import { colors } from '../theme/theme';
 
 export type ProfileStackParamList = {
-  Profile: undefined;
+  ProfileMain: undefined;
   Signin: undefined;
   Signup: undefined;
 };
@@ -29,7 +29,7 @@ export default function ProfileStack() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="ProfileMain" component={ProfileScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Signin" component={SigninScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
     </Stack.Navigator>

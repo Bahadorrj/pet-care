@@ -40,7 +40,7 @@ export default function SigninScreen() {
     try {
       const res = await apiLogin(email, password);
       await storeLogin(res.access_token, email);
-      navigation.navigate('Profile');
+      navigation.navigate('ProfileMain');
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError(t('auth.error.invalid_credentials'));

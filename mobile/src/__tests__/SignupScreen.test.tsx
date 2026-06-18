@@ -57,7 +57,7 @@ describe('SignupScreen – happy path', () => {
     await waitFor(() => {
       expect(mockAuthApi.register).toHaveBeenCalledWith('new@example.com', 'password123');
       expect(mockLogin).toHaveBeenCalledWith('tok2', 'new@example.com');
-      expect(mockNavigate).toHaveBeenCalledWith('Profile');
+      expect(mockNavigate).toHaveBeenCalledWith('ProfileMain');
     });
   });
 });
