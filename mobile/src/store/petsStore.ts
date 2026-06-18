@@ -1,7 +1,7 @@
 import { create } from 'zustand';
-import { insertPet, updatePet, deletePet, listPets } from '../db/pets';
+import { insertPet, updatePet, deletePet, listPets, getPet } from '../db/pets';
 import { savePhoto, deletePhoto } from '../lib/petPhoto';
-import type { Pet } from '../db/types';
+import type { Pet, Species } from '../db/types';
 
 type PetInput = Omit<Pet, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -12,11 +12,13 @@ interface PetsState {
   remove: (id: string) => Promise<void>;
 }
 
+const VALID_SPECIES: readonly Species[] = ['dog', 'cat', 'bird', 'rabbit', 'other'];
+
 // Validate before touching the db or filesystem so a rejected input leaves no
 // orphaned photo file or partial row. Throws translation keys the UI surfaces.
 function validate(input: PetInput): void {
   if (!input.name.trim()) throw new Error('pets.error.name_required');
-  if (!input.species) throw new Error('pets.error.species_required');
+  if (!VALID_SPECIES.includes(input.species)) throw new Error('pets.error.species_required');
 }
 
 export const usePetsStore = create<PetsState>((set) => ({
@@ -36,7 +38,7 @@ export const usePetsStore = create<PetsState>((set) => ({
   update: async (id, input) => {
     validate(input);
 
-    const prev = listPets().find((p) => p.id === id) ?? null;
+    const prev = getPet(id);
     const prevPhoto = prev?.photoUri ?? null;
 
     let photoUri = input.photoUri;
@@ -53,10 +55,9 @@ export const usePetsStore = create<PetsState>((set) => ({
   },
 
   remove: async (id) => {
-    const prev = listPets().find((p) => p.id === id) ?? null;
-    await deletePhoto(prev?.photoUri ?? null);
-
+    const p = getPet(id);
     deletePet(id);
+    if (p?.photoUri) await deletePhoto(p.photoUri);
     set({ pets: listPets() });
   },
 }));

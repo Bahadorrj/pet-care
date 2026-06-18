@@ -33,6 +33,8 @@ const db = {
       return;
     }
   },
+  // Ignores the SQL string; always returns all rows sorted created_at DESC.
+  // Valid only while listPets() is the single getAllSync query in the codebase.
   getAllSync() {
     return [...rows].sort((a, b) =>
       a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0,

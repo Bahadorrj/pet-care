@@ -242,6 +242,23 @@ describe('petsStore – add', () => {
     expect(mockedSavePhoto).not.toHaveBeenCalled();
     expect(usePetsStore.getState().pets).toHaveLength(0);
   });
+
+  test('throws species_required and writes no row for a non-empty invalid species', async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await expect(
+      usePetsStore.getState().add({
+        name: 'Rex',
+        species: 'dragon' as never,
+        gender: null,
+        photoUri: null,
+        notes: null,
+      }),
+    ).rejects.toThrow('pets.error.species_required');
+
+    expect(mockedSavePhoto).not.toHaveBeenCalled();
+    expect(usePetsStore.getState().pets).toHaveLength(0);
+  });
 });
 
 describe('petsStore – update', () => {
@@ -365,6 +382,35 @@ describe('petsStore – update', () => {
     expect(mockedDeletePhoto).not.toHaveBeenCalled();
     // unchanged
     expect(usePetsStore.getState().pets[0].name).toBe('Rex');
+  });
+
+  test('bumps updatedAt and preserves createdAt', async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await usePetsStore.getState().add({
+      name: 'Rex',
+      species: 'dog',
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+    const before = usePetsStore.getState().pets[0];
+    const originalCreatedAt = before.createdAt;
+    const originalUpdatedAt = before.updatedAt;
+
+    jest.advanceTimersByTime(5000); // move clock forward 5 s
+
+    await usePetsStore.getState().update(before.id, {
+      name: 'Rex Updated',
+      species: 'dog',
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+
+    const after = usePetsStore.getState().pets[0];
+    expect(after.createdAt).toBe(originalCreatedAt);
+    expect(after.updatedAt > originalUpdatedAt).toBe(true);
   });
 });
 
