@@ -1,5 +1,7 @@
 // Import for side effects: initialises i18next and forces RTL layout before render.
 import './src/i18n';
+// Import for side effects: opens the SQLite db and creates the pets table.
+import './src/db';
 
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';

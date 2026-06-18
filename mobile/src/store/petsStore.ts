@@ -1,0 +1,62 @@
+import { create } from 'zustand';
+import { insertPet, updatePet, deletePet, listPets } from '../db/pets';
+import { savePhoto, deletePhoto } from '../lib/petPhoto';
+import type { Pet } from '../db/types';
+
+type PetInput = Omit<Pet, 'id' | 'createdAt' | 'updatedAt'>;
+
+interface PetsState {
+  pets: Pet[];
+  add: (input: PetInput) => Promise<void>;
+  update: (id: string, input: PetInput) => Promise<void>;
+  remove: (id: string) => Promise<void>;
+}
+
+// Validate before touching the db or filesystem so a rejected input leaves no
+// orphaned photo file or partial row. Throws translation keys the UI surfaces.
+function validate(input: PetInput): void {
+  if (!input.name.trim()) throw new Error('pets.error.name_required');
+  if (!input.species) throw new Error('pets.error.species_required');
+}
+
+export const usePetsStore = create<PetsState>((set) => ({
+  // Read the persisted pets synchronously at module load.
+  pets: listPets(),
+
+  add: async (input) => {
+    validate(input);
+
+    // Copy the picked temp file into app storage; persist the stored path.
+    const photoUri = input.photoUri ? await savePhoto(input.photoUri) : null;
+
+    insertPet({ ...input, photoUri });
+    set({ pets: listPets() });
+  },
+
+  update: async (id, input) => {
+    validate(input);
+
+    const prev = listPets().find((p) => p.id === id) ?? null;
+    const prevPhoto = prev?.photoUri ?? null;
+
+    let photoUri = input.photoUri;
+    // The photo changed if the incoming uri differs from the stored path.
+    if (photoUri !== prevPhoto) {
+      // A non-null new uri is a freshly-picked temp file → copy into storage.
+      photoUri = photoUri ? await savePhoto(photoUri) : null;
+      // Remove the old stored file once the new one is in place.
+      await deletePhoto(prevPhoto);
+    }
+
+    updatePet(id, { ...input, photoUri });
+    set({ pets: listPets() });
+  },
+
+  remove: async (id) => {
+    const prev = listPets().find((p) => p.id === id) ?? null;
+    await deletePhoto(prev?.photoUri ?? null);
+
+    deletePet(id);
+    set({ pets: listPets() });
+  },
+}));
