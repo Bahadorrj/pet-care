@@ -41,4 +41,3 @@ Auth specifics worth preserving: login does a constant-time bcrypt verify agains
 ## Conventions
 
 - Architectural decisions live in `docs/ard/` (ADRs) and act as guardrails. When changing a decision, add a new ADR and reconcile the spec — don't silently diverge.
-- After modifying code, run `graphify update .` from the repo root to keep `graphify-out/` current.
