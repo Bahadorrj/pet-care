@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import PetsListScreen from '../screens/pets/PetsListScreen';
+import PetDetailScreen from '../screens/pets/PetDetailScreen';
 import PetFormScreen from '../screens/pets/PetFormScreen';
 import { colors } from '../theme/theme';
 
@@ -29,8 +30,8 @@ export default function PetsStack() {
       }}
     >
       <Stack.Screen name="PetsList" component={PetsListScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="PetDetail" component={PetDetailScreen} />
       <Stack.Screen name="PetForm" component={PetFormScreen} />
-      {/* PetDetail screen is registered in Task 7 */}
     </Stack.Navigator>
   );
 }
