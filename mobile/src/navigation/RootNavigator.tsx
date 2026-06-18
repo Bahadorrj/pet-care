@@ -6,10 +6,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
 import ProfileStack from './ProfileStack';
+import PetsStack from './PetsStack';
 import { colors } from '../theme/theme';
 
 export type RootTabParamList = {
   Home: undefined;
+  Pets: undefined;
   Profile: undefined;
 };
 
@@ -34,6 +36,14 @@ export default function RootNavigator() {
         options={{
           tabBarLabel: t('tab.home'),
           tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name="Pets"
+        component={PetsStack}
+        options={{
+          tabBarLabel: t('tab.pets'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="paw-outline" color={color} size={size} />,
         }}
       />
       <Tab.Screen

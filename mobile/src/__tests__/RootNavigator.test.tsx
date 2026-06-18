@@ -31,6 +31,11 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn(),
 }));
 
+// petsStore calls listPets() (SQLite) at module load — mock to avoid native db access.
+jest.mock('../store/petsStore', () => ({
+  usePetsStore: jest.fn().mockReturnValue([]),
+}));
+
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
 import '../i18n';
 import { useAuthStore } from '../store/authStore';
@@ -57,9 +62,23 @@ describe('RootNavigator', () => {
     await waitFor(() => expect(screen.getByText('خانه')).toBeTruthy());
   });
 
+  test('renders the Pets tab label in Farsi', async () => {
+    renderNavigator();
+    await waitFor(() => expect(screen.getByText('حیوانات من')).toBeTruthy());
+  });
+
   test('renders the Profile tab label in Farsi', async () => {
     renderNavigator();
     await waitFor(() => expect(screen.getByText('پروفایل')).toBeTruthy());
+  });
+
+  test('renders 3 tabs total', async () => {
+    renderNavigator();
+    await waitFor(() => {
+      expect(screen.getByText('خانه')).toBeTruthy();
+      expect(screen.getByText('حیوانات من')).toBeTruthy();
+      expect(screen.getByText('پروفایل')).toBeTruthy();
+    });
   });
 
   test('Home tab is active by default (home-logo testID is present)', async () => {
