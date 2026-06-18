@@ -16,11 +16,11 @@ import TextField from '../../components/ui/TextField';
 import { login as apiLogin } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
-import type { RootNavigationProp } from '../../navigation/RootNavigator';
+import type { ProfileNavigationProp } from '../../navigation/ProfileStack';
 
 export default function SigninScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation<RootNavigationProp>();
+  const navigation = useNavigation<ProfileNavigationProp>();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +40,7 @@ export default function SigninScreen() {
     try {
       const res = await apiLogin(email, password);
       await storeLogin(res.access_token, email);
-      navigation.navigate('Home');
+      navigation.navigate('Profile');
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         setError(t('auth.error.invalid_credentials'));

@@ -25,7 +25,7 @@ Requires `EXPO_PUBLIC_API_BASE_URL` in `.env` (default `http://10.0.2.2:8000`, t
 
 ## Architecture
 
-Single native-stack navigator (`src/navigation/RootNavigator.tsx`) over three screens: `Home`, `Signin`, `Signup`. `RootStackParamList` is the typed route contract — extend it when adding screens.
+Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with two tabs: `Home` (HomeScreen) and `Profile` (ProfileStack). `RootTabParamList` is the root typed contract. `ProfileStack` is a native stack inside the Profile tab hosting `Profile`, `Signin`, and `Signup` screens; `ProfileStackParamList` / `ProfileNavigationProp` are the typed contracts for that stack.
 
 **Auth & session** — `src/store/authStore.ts` is a Zustand store holding the JWT + email, persisted to `expo-secure-store`. It hydrates **asynchronously** at module load; `App.tsx` gates first render on `hasHydrated` (and `fontsLoaded`) so guest UI never flashes. `login`/`logout` write SecureStore *before* mutating in-memory state so the two never disagree.
 

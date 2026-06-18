@@ -1,40 +1,49 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 
 import HomeScreen from '../screens/HomeScreen';
-import SigninScreen from '../screens/auth/SigninScreen';
-import SignupScreen from '../screens/auth/SignupScreen';
+import ProfileStack from './ProfileStack';
 import { colors } from '../theme/theme';
 
-export type RootStackParamList = {
+export type RootTabParamList = {
   Home: undefined;
-  Signin: undefined;
-  Signup: undefined;
+  Profile: undefined;
 };
 
-export type RootNavigationProp = NativeStackNavigationProp<RootStackParamList>;
+export type RootTabNavigationProp = BottomTabNavigationProp<RootTabParamList>;
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Tab = createBottomTabNavigator<RootTabParamList>();
 
 export default function RootNavigator() {
+  const { t } = useTranslation();
   return (
-    <Stack.Navigator
-      // Minimal chrome: blend the header into the canvas, drop the divider
-      // shadow, and hide the title so each screen owns its own heading. The
-      // native back button stays (and is RTL-aware automatically).
+    <Tab.Navigator
       screenOptions={{
-        headerShadowVisible: false,
-        headerStyle: { backgroundColor: colors.bg },
-        headerTintColor: colors.ink,
-        headerTitle: '',
-        headerBackButtonDisplayMode: 'minimal',
-        contentStyle: { backgroundColor: colors.bg },
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.inkMuted,
+        tabBarStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Signin" component={SigninScreen} />
-      <Stack.Screen name="Signup" component={SignupScreen} />
-    </Stack.Navigator>
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: t('tab.home'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        options={{
+          tabBarLabel: t('tab.profile'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" color={color} size={size} />,
+        }}
+      />
+    </Tab.Navigator>
   );
 }

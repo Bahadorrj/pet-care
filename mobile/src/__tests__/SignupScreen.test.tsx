@@ -45,7 +45,7 @@ beforeEach(() => {
 });
 
 describe('SignupScreen – happy path', () => {
-  test('calls register(), store login(), and navigates Home on success', async () => {
+  test('calls register(), store login(), and navigates Profile on success', async () => {
     mockAuthApi.register.mockResolvedValueOnce({ access_token: 'tok2', token_type: 'bearer' });
 
     const { getByPlaceholderText, getByTestId } = await render(<SignupScreen />);
@@ -57,7 +57,7 @@ describe('SignupScreen – happy path', () => {
     await waitFor(() => {
       expect(mockAuthApi.register).toHaveBeenCalledWith('new@example.com', 'password123');
       expect(mockLogin).toHaveBeenCalledWith('tok2', 'new@example.com');
-      expect(mockNavigate).toHaveBeenCalledWith('Home');
+      expect(mockNavigate).toHaveBeenCalledWith('Profile');
     });
   });
 });

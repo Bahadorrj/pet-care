@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 describe('SigninScreen – happy path', () => {
-  test('calls login(), store login(), and navigates Home on success', async () => {
+  test('calls login(), store login(), and navigates Profile on success', async () => {
     mockAuthApi.login.mockResolvedValueOnce({ access_token: 'tok', token_type: 'bearer' });
 
     const { getByPlaceholderText, getByTestId } = await render(<SigninScreen />);
@@ -58,7 +58,7 @@ describe('SigninScreen – happy path', () => {
     await waitFor(() => {
       expect(mockAuthApi.login).toHaveBeenCalledWith('user@example.com', 'secret123');
       expect(mockLogin).toHaveBeenCalledWith('tok', 'user@example.com');
-      expect(mockNavigate).toHaveBeenCalledWith('Home');
+      expect(mockNavigate).toHaveBeenCalledWith('Profile');
     });
   });
 });
@@ -138,7 +138,7 @@ describe('SigninScreen – loading state', () => {
     });
 
     // After act() drains, navigate should have been called.
-    expect(mockNavigate).toHaveBeenCalledWith('Home');
+    expect(mockNavigate).toHaveBeenCalledWith('Profile');
   });
 });
 

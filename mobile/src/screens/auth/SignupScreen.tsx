@@ -16,11 +16,11 @@ import TextField from '../../components/ui/TextField';
 import { register as apiRegister } from '../../api/auth';
 import { useAuthStore } from '../../store/authStore';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
-import type { RootNavigationProp } from '../../navigation/RootNavigator';
+import type { ProfileNavigationProp } from '../../navigation/ProfileStack';
 
 export default function SignupScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation<RootNavigationProp>();
+  const navigation = useNavigation<ProfileNavigationProp>();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,7 +40,7 @@ export default function SignupScreen() {
     try {
       const res = await apiRegister(email, password);
       await storeLogin(res.access_token, email);
-      navigation.navigate('Home');
+      navigation.navigate('Profile');
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
