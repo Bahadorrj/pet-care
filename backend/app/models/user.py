@@ -16,7 +16,7 @@ class User(Base):
         default=lambda: str(uuid.uuid4()),
     )
     email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
-    username: Mapped[str | None] = mapped_column(String(30), unique=True, nullable=True)
+    username: Mapped[str] = mapped_column(String(30), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),

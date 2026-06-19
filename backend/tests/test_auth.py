@@ -13,10 +13,14 @@ from app.core.config import settings
 
 VALID_EMAIL = "user@example.com"
 VALID_PASSWORD = "securepassword123"
+VALID_USERNAME = "test_user1"
 
 
-async def register(client, email=VALID_EMAIL, password=VALID_PASSWORD):
-    return await client.post("/auth/register", json={"email": email, "password": password})
+async def register(client, email=VALID_EMAIL, password=VALID_PASSWORD, username=VALID_USERNAME):
+    return await client.post(
+        "/auth/register",
+        json={"email": email, "password": password, "username": username},
+    )
 
 
 async def login(client, email=VALID_EMAIL, password=VALID_PASSWORD):
@@ -41,6 +45,43 @@ async def test_register_new_user_returns_201_with_token(client):
     body = r.json()
     assert "access_token" in body
     assert body["token_type"] == "bearer"
+    # TokenResponse now includes username and email
+    assert body["username"] == VALID_USERNAME
+    assert body["email"] == VALID_EMAIL
+
+
+# ---------------------------------------------------------------------------
+# Username-specific tests (Task 2)
+# ---------------------------------------------------------------------------
+
+
+async def test_register_username_stored_lowercase(client):
+    """Send mixed-case username Bob_1 — stored and returned as bob_1."""
+    r = await register(client, username="Bob_1")
+    assert r.status_code == 201
+    body = r.json()
+    assert body["username"] == "bob_1"
+
+
+async def test_register_duplicate_username_case_insensitive_returns_400(client):
+    """Register Bob then bob — second must be 400 username_already_registered."""
+    r1 = await register(client, username="Bob")
+    assert r1.status_code == 201
+    r2 = await register(client, email="other@example.com", username="bob")
+    assert r2.status_code == 400
+    assert r2.json()["detail"] == "username_already_registered"
+
+
+async def test_register_username_too_short_returns_422(client):
+    """Username 'ab' is only 2 chars — must be rejected with 422."""
+    r = await register(client, username="ab")
+    assert r.status_code == 422
+
+
+async def test_register_username_invalid_char_returns_422(client):
+    """Username 'bad!' contains '!' — must be rejected with 422."""
+    r = await register(client, username="bad!")
+    assert r.status_code == 422
 
 
 async def test_register_duplicate_email_returns_400(client):
@@ -103,6 +144,7 @@ async def test_me_with_valid_token_returns_200_with_user(client):
     body = r.json()
     assert "id" in body
     assert body["email"] == VALID_EMAIL
+    assert body["username"] == VALID_USERNAME
 
 
 async def test_me_no_header_returns_401(client):

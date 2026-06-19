@@ -19,9 +19,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Add username column (nullable, unique) to users table."""
-    op.add_column('users', sa.Column('username', sa.String(length=30), nullable=True))
+    """Add username column (not-null, unique) to users table."""
     with op.batch_alter_table('users') as batch_op:
+        batch_op.add_column(sa.Column('username', sa.String(length=30), nullable=False))
         batch_op.create_unique_constraint('uq_users_username', ['username'])
 
 

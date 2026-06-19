@@ -136,7 +136,7 @@ def test_decode_garbage_token_raises_401():
 
 async def test_user_service_create_and_get_by_email(db_session):
     email = f"test-{uuid.uuid4()}@example.com"
-    user = await UserService.create(db_session, email=email, password="plaintext123")
+    user = await UserService.create(db_session, email=email, password="plaintext123", username="svcuser1")
 
     assert user.email == email
     assert user.password_hash != "plaintext123"
@@ -154,10 +154,10 @@ async def test_user_service_get_by_email_missing_returns_none(db_session):
 
 async def test_user_service_create_duplicate_email_raises_and_session_usable(db_session):
     email = f"dup-{uuid.uuid4()}@example.com"
-    await UserService.create(db_session, email=email, password="plaintext123")
+    await UserService.create(db_session, email=email, password="plaintext123", username="svcuser2")
 
     with pytest.raises(EmailAlreadyRegisteredError):
-        await UserService.create(db_session, email=email, password="other123")
+        await UserService.create(db_session, email=email, password="other123", username="svcuser3")
 
     # Session must remain usable after the duplicate attempt (no poisoning).
     assert await UserService.get_by_email(db_session, email) is not None
