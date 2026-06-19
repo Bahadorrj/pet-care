@@ -3,7 +3,9 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 
+import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
 import { colors, fonts, spacing, typography } from '../../theme/theme';
 import type { PetsNavigationProp } from '../../navigation/PetsStack';
@@ -32,7 +34,7 @@ export default function PetsListScreen() {
   const renderItem = useCallback(
     ({ item }: { item: Pet }) => (
       <Pressable
-        style={styles.row}
+        style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
         onPress={() => navigation.navigate('PetDetail', { petId: item.id })}
         accessibilityRole="button"
       >
@@ -55,7 +57,15 @@ export default function PetsListScreen() {
   if (pets.length === 0) {
     return (
       <SafeAreaView style={styles.root}>
-        <Text style={styles.emptyText}>{t('pets.empty')}</Text>
+        <View style={styles.empty}>
+          <Ionicons name="paw-outline" size={56} color={colors.inkFaint} />
+          <Text style={styles.emptyText}>{t('pets.empty')}</Text>
+          <Button
+            label={t('pets.add')}
+            onPress={() => navigation.navigate('PetForm', {})}
+            style={styles.emptyButton}
+          />
+        </View>
       </SafeAreaView>
     );
   }
@@ -88,6 +98,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  rowPressed: {
+    backgroundColor: colors.surfaceSunken,
+  },
   thumbnail: {
     width: 48,
     height: 48,
@@ -110,15 +123,22 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     marginTop: spacing.xs,
   },
-  emptyText: {
+  empty: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    gap: spacing.lg,
+  },
+  emptyText: {
     fontSize: typography.body.fontSize,
     lineHeight: typography.body.lineHeight,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
     textAlign: 'center',
-    textAlignVertical: 'center',
-    paddingHorizontal: spacing.xl,
+  },
+  emptyButton: {
+    alignSelf: 'stretch',
   },
   addButton: {
     paddingStart: spacing.md,

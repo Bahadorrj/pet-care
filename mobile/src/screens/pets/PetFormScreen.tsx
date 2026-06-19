@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
-    gap: spacing.md,
+    gap: spacing.lg,
   },
   fieldGroup: {
     gap: spacing.sm,
@@ -254,12 +254,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   chip: {
+    minHeight: 44,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   chipSelected: {
     backgroundColor: colors.primarySoft,

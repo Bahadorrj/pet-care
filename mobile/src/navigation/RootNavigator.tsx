@@ -27,7 +27,7 @@ export default function RootNavigator() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.inkMuted,
-        tabBarStyle: { backgroundColor: colors.bg },
+        tabBarStyle: { backgroundColor: colors.bg, borderTopWidth: 0, elevation: 0 },
       }}
     >
       <Tab.Screen

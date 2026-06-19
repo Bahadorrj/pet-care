@@ -97,7 +97,7 @@ export default function PetDetailScreen() {
             onPress={handleDelete}
             accessibilityRole="button"
             accessibilityLabel={t('pets.delete')}
-            style={styles.deleteButton}
+            style={({ pressed }) => [styles.deleteButton, pressed && styles.deleteButtonPressed]}
           >
             <Text style={styles.deleteText}>{t('pets.delete')}</Text>
           </Pressable>
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   photo: {
     width: 120,
     height: 120,
-    borderRadius: radius.lg,
+    borderRadius: radius.pill,
     alignSelf: 'center',
   },
   name: {
@@ -158,8 +158,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     backgroundColor: colors.dangerSoft,
   },
+  deleteButtonPressed: {
+    opacity: 0.7,
+  },
   deleteText: {
     fontSize: typography.bodyLg.fontSize,
+    lineHeight: typography.bodyLg.lineHeight,
     fontFamily: fonts.semibold,
     color: colors.danger,
   },
