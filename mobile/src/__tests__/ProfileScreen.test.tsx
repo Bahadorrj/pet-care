@@ -23,10 +23,11 @@ jest.mock('expo-secure-store', () => ({
 }));
 
 const mockNavigate = jest.fn();
+const mockGoBack = jest.fn();
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
 }));
 
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
@@ -36,6 +37,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 
 beforeEach(() => {
   mockNavigate.mockClear();
+  mockGoBack.mockClear();
   // Reset to guest state before each test.
   useAuthStore.setState({ isAuthenticated: false, token: null, email: null, username: null });
 });
@@ -86,5 +88,16 @@ describe('ProfileScreen – logged in', () => {
     await render(<ProfileScreen />);
     fireEvent.press(screen.getByText('خروج'));
     expect(mockLogout).toHaveBeenCalledTimes(1);
+  });
+
+  test('renders the change username button', async () => {
+    await render(<ProfileScreen />);
+    expect(screen.getByText('تغییر نام کاربری')).toBeTruthy();
+  });
+
+  test('pressing the change username button navigates to ChangeUsername', async () => {
+    await render(<ProfileScreen />);
+    fireEvent.press(screen.getByText('تغییر نام کاربری'));
+    expect(mockNavigate).toHaveBeenCalledWith('ChangeUsername');
   });
 });

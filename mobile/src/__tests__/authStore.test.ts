@@ -94,6 +94,35 @@ describe('authStore – logout', () => {
   });
 });
 
+describe('authStore – setUsername', () => {
+  test('persists to SecureStore and updates in-memory username', async () => {
+    const { useAuthStore } = await loadFreshStore();
+
+    // Seed logged-in state
+    await useAuthStore.getState().login('tok123', 'user@example.com', 'olddoe');
+    jest.clearAllMocks();
+    mockedSecureStore.setItemAsync.mockResolvedValue(undefined);
+
+    await useAuthStore.getState().setUsername('newdoe');
+
+    expect(mockedSecureStore.setItemAsync).toHaveBeenCalledWith('auth_username', 'newdoe');
+    expect(useAuthStore.getState().username).toBe('newdoe');
+  });
+
+  test('if SecureStore write throws, in-memory state is NOT updated', async () => {
+    const { useAuthStore } = await loadFreshStore();
+    await useAuthStore.getState().login('tok', 'u@e.com', 'old');
+    jest.clearAllMocks();
+
+    mockedSecureStore.setItemAsync.mockRejectedValueOnce(new Error('disk full'));
+
+    await expect(useAuthStore.getState().setUsername('next')).rejects.toThrow('disk full');
+
+    // State should remain unchanged because persist runs before set()
+    expect(useAuthStore.getState().username).toBe('old');
+  });
+});
+
 describe('authStore – hydrate', () => {
   test('with stored token → isAuthenticated=true, hasHydrated=true, username restored', async () => {
     mockedSecureStore.getItemAsync.mockImplementation((key: string) => {

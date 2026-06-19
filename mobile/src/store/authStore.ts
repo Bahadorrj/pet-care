@@ -16,6 +16,7 @@ interface AuthState {
   login: (token: string, email: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
+  setUsername: (username: string) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -40,6 +41,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     await SecureStore.deleteItemAsync(EMAIL_KEY);
     await SecureStore.deleteItemAsync(USERNAME_KEY);
     set({ token: null, email: null, username: null, isAuthenticated: false, hasHydrated: true });
+  },
+
+  setUsername: async (username: string) => {
+    // Persist first — in-memory state must never disagree with what is stored.
+    await SecureStore.setItemAsync(USERNAME_KEY, username);
+    set({ username });
   },
 
   hydrate: async () => {

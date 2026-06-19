@@ -29,6 +29,12 @@ export default function ProfileScreen() {
         <Text style={styles.username}>@{username}</Text>
       )}
       <Text style={styles.email}>{email}</Text>
+      <Button
+        variant="secondary"
+        label={t('profile.change_username')}
+        onPress={() => navigation.navigate('ChangeUsername')}
+        style={styles.changeUsernameBtn}
+      />
       <Button variant="secondary" label={t('profile.logout')} onPress={() => logout()} />
     </SafeAreaView>
   );
@@ -57,6 +63,9 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: 'center',
     marginBottom: spacing.xs,
+  },
+  changeUsernameBtn: {
+    marginBottom: spacing.md,
   },
   email: {
     fontSize: typography.bodyLg.fontSize,

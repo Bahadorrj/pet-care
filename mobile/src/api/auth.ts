@@ -7,6 +7,12 @@ export interface AuthResponse {
   email: string;
 }
 
+export interface UserResponse {
+  id: string;
+  email: string;
+  username: string;
+}
+
 export async function register(
   email: string,
   password: string,
@@ -28,5 +34,10 @@ export async function login(
     email,
     password,
   });
+  return res.data;
+}
+
+export async function changeUsername(username: string): Promise<UserResponse> {
+  const res = await client.patch<UserResponse>('/auth/me', { username });
   return res.data;
 }
