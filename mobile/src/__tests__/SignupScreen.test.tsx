@@ -2,9 +2,10 @@
  * SignupScreen tests
  *
  * Verifies:
- * - Happy path: register() called with correct creds, store login called, navigate Home
+ * - Happy path: register() called with correct creds+username, store login called, navigate Profile
  * - 400 error: email-taken Farsi message shown, no navigation
- * - 422 error: weak-password Farsi message shown
+ * - 422 error: invalid-username Farsi message shown (422 covers both invalid username and weak password)
+ * - Username field: rendered and submitted
  * - Link: pressing has_account link navigates to Signin
  *
  * Note: RNTL v14 fireEvent is async — all fireEvent calls must be awaited.
@@ -41,22 +42,34 @@ beforeEach(() => {
   mockNavigate.mockClear();
   mockLogin.mockClear();
   mockAuthApi.register.mockReset();
-  useAuthStore.setState({ login: mockLogin, isAuthenticated: false, token: null, email: null });
+  useAuthStore.setState({ login: mockLogin, isAuthenticated: false, token: null, email: null, username: null });
 });
 
 describe('SignupScreen – happy path', () => {
-  test('calls register(), store login(), and navigates Profile on success', async () => {
-    mockAuthApi.register.mockResolvedValueOnce({ access_token: 'tok2', token_type: 'bearer' });
+  test('renders username field', async () => {
+    const { getByPlaceholderText } = await render(<SignupScreen />);
+    // The username field should be present (placeholder is the Farsi label)
+    expect(getByPlaceholderText('نام کاربری')).toBeTruthy();
+  });
+
+  test('calls register() with username, store login() with username, and navigates Profile on success', async () => {
+    mockAuthApi.register.mockResolvedValueOnce({
+      access_token: 'tok2',
+      token_type: 'bearer',
+      username: 'johndoe',
+      email: 'new@example.com',
+    });
 
     const { getByPlaceholderText, getByTestId } = await render(<SignupScreen />);
 
+    await fireEvent.changeText(getByPlaceholderText('نام کاربری'), 'johndoe');
     await fireEvent.changeText(getByPlaceholderText('ایمیل'), 'new@example.com');
     await fireEvent.changeText(getByPlaceholderText('رمز عبور'), 'password123');
     await fireEvent.press(getByTestId('signup-submit'));
 
     await waitFor(() => {
-      expect(mockAuthApi.register).toHaveBeenCalledWith('new@example.com', 'password123');
-      expect(mockLogin).toHaveBeenCalledWith('tok2', 'new@example.com');
+      expect(mockAuthApi.register).toHaveBeenCalledWith('new@example.com', 'password123', 'johndoe');
+      expect(mockLogin).toHaveBeenCalledWith('tok2', 'new@example.com', 'johndoe');
       expect(mockNavigate).toHaveBeenCalledWith('ProfileMain');
     });
   });
@@ -72,6 +85,7 @@ describe('SignupScreen – 400 error', () => {
 
     const { getByPlaceholderText, getByTestId, getByText } = await render(<SignupScreen />);
 
+    await fireEvent.changeText(getByPlaceholderText('نام کاربری'), 'johndoe');
     await fireEvent.changeText(getByPlaceholderText('ایمیل'), 'taken@example.com');
     await fireEvent.changeText(getByPlaceholderText('رمز عبور'), 'password123');
     await fireEvent.press(getByTestId('signup-submit'));
@@ -84,7 +98,7 @@ describe('SignupScreen – 400 error', () => {
 });
 
 describe('SignupScreen – 422 error', () => {
-  test('shows weak-password Farsi message on 422', async () => {
+  test('shows invalid-username Farsi message on 422', async () => {
     const err = Object.assign(new Error('Unprocessable'), {
       isAxiosError: true,
       response: { status: 422 },
@@ -93,12 +107,13 @@ describe('SignupScreen – 422 error', () => {
 
     const { getByPlaceholderText, getByTestId, getByText } = await render(<SignupScreen />);
 
+    await fireEvent.changeText(getByPlaceholderText('نام کاربری'), 'bad!');
     await fireEvent.changeText(getByPlaceholderText('ایمیل'), 'user@example.com');
     await fireEvent.changeText(getByPlaceholderText('رمز عبور'), 'short');
     await fireEvent.press(getByTestId('signup-submit'));
 
     await waitFor(() => {
-      expect(getByText('رمز عبور باید حداقل ۸ کاراکتر باشد')).toBeTruthy();
+      expect(getByText('نام کاربری باید ۳ تا ۳۰ کاراکتر و فقط شامل حروف، اعداد یا زیرخط باشد')).toBeTruthy();
     });
     expect(mockNavigate).not.toHaveBeenCalled();
   });

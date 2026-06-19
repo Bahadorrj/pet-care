@@ -39,7 +39,7 @@ export default function SigninScreen() {
     setIsSubmitting(true);
     try {
       const res = await apiLogin(email, password);
-      await storeLogin(res.access_token, email);
+      await storeLogin(res.access_token, res.email, res.username);
       navigation.navigate('ProfileMain');
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 401) {

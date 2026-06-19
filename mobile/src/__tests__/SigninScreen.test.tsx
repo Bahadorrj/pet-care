@@ -42,12 +42,17 @@ beforeEach(() => {
   mockNavigate.mockClear();
   mockLogin.mockClear();
   mockAuthApi.login.mockReset();
-  useAuthStore.setState({ login: mockLogin, isAuthenticated: false, token: null, email: null });
+  useAuthStore.setState({ login: mockLogin, isAuthenticated: false, token: null, email: null, username: null });
 });
 
 describe('SigninScreen – happy path', () => {
-  test('calls login(), store login(), and navigates Profile on success', async () => {
-    mockAuthApi.login.mockResolvedValueOnce({ access_token: 'tok', token_type: 'bearer' });
+  test('calls login(), store login() with username, and navigates Profile on success', async () => {
+    mockAuthApi.login.mockResolvedValueOnce({
+      access_token: 'tok',
+      token_type: 'bearer',
+      username: 'johndoe',
+      email: 'user@example.com',
+    });
 
     const { getByPlaceholderText, getByTestId } = await render(<SigninScreen />);
 
@@ -57,7 +62,7 @@ describe('SigninScreen – happy path', () => {
 
     await waitFor(() => {
       expect(mockAuthApi.login).toHaveBeenCalledWith('user@example.com', 'secret123');
-      expect(mockLogin).toHaveBeenCalledWith('tok', 'user@example.com');
+      expect(mockLogin).toHaveBeenCalledWith('tok', 'user@example.com', 'johndoe');
       expect(mockNavigate).toHaveBeenCalledWith('ProfileMain');
     });
   });
@@ -109,7 +114,7 @@ describe('SigninScreen – loading state', () => {
     // loginCalled counts how many times the API is invoked.
     // The promise never resolves during the assertion window so the
     // handler stays in-flight, letting us verify the ref guard blocks re-entry.
-    let resolveLogin!: (val: { access_token: string; token_type: 'bearer' }) => void;
+    let resolveLogin!: (val: import('../api/auth').AuthResponse) => void;
     mockAuthApi.login.mockImplementation(
       () => new Promise((resolve) => { resolveLogin = resolve; }),
     );
@@ -134,7 +139,7 @@ describe('SigninScreen – loading state', () => {
       expect(mockAuthApi.login).toHaveBeenCalledTimes(1);
 
       // Resolve so the component can finish cleanly.
-      resolveLogin({ access_token: 'tok', token_type: 'bearer' });
+      resolveLogin({ access_token: 'tok', token_type: 'bearer', username: 'johndoe', email: 'user@example.com' });
     });
 
     // After act() drains, navigate should have been called.

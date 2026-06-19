@@ -12,7 +12,7 @@ import type { ProfileNavigationProp } from '../navigation/ProfileStack';
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<ProfileNavigationProp>();
-  const { isAuthenticated, email, logout } = useAuthStore();
+  const { isAuthenticated, email, username, logout } = useAuthStore();
 
   if (!isAuthenticated) {
     return (
@@ -25,6 +25,9 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
+      {username != null && (
+        <Text style={styles.username}>@{username}</Text>
+      )}
       <Text style={styles.email}>{email}</Text>
       <Button variant="secondary" label={t('profile.logout')} onPress={() => logout()} />
     </SafeAreaView>
@@ -46,6 +49,14 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     textAlign: 'center',
     marginBottom: spacing.xxl,
+  },
+  username: {
+    fontSize: typography.bodyLg.fontSize,
+    lineHeight: typography.bodyLg.lineHeight,
+    fontFamily: fonts.bold,
+    color: colors.ink,
+    textAlign: 'center',
+    marginBottom: spacing.xs,
   },
   email: {
     fontSize: typography.bodyLg.fontSize,

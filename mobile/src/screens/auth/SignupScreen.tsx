@@ -22,6 +22,7 @@ export default function SignupScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<ProfileNavigationProp>();
 
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -38,8 +39,8 @@ export default function SignupScreen() {
     setError('');
     setIsSubmitting(true);
     try {
-      const res = await apiRegister(email, password);
-      await storeLogin(res.access_token, email);
+      const res = await apiRegister(email, password, username);
+      await storeLogin(res.access_token, res.email, res.username);
       navigation.navigate('ProfileMain');
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -47,7 +48,9 @@ export default function SignupScreen() {
         if (status === 400) {
           setError(t('auth.error.email_taken'));
         } else if (status === 422) {
-          setError(t('auth.error.weak_password'));
+          // 422 from register can mean invalid username format OR weak password.
+          // We surface a single combined message covering both field constraints.
+          setError(t('auth.error.invalid_username'));
         } else {
           setError(t('auth.error.network'));
         }
@@ -73,6 +76,16 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.fields}>
+            <TextField
+              placeholder={t('auth.username')}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              invalid={error !== ''}
+              accessibilityLabel={t('auth.username')}
+            />
+
             <TextField
               placeholder={t('auth.email')}
               value={email}

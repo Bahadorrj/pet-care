@@ -37,7 +37,7 @@ import ProfileScreen from '../screens/ProfileScreen';
 beforeEach(() => {
   mockNavigate.mockClear();
   // Reset to guest state before each test.
-  useAuthStore.setState({ isAuthenticated: false, token: null, email: null });
+  useAuthStore.setState({ isAuthenticated: false, token: null, email: null, username: null });
 });
 
 describe('ProfileScreen – logged out', () => {
@@ -61,7 +61,12 @@ describe('ProfileScreen – logged out', () => {
 
 describe('ProfileScreen – logged in', () => {
   beforeEach(() => {
-    useAuthStore.setState({ isAuthenticated: true, token: 'tok', email: 'user@example.com' });
+    useAuthStore.setState({ isAuthenticated: true, token: 'tok', email: 'user@example.com', username: 'johndoe' });
+  });
+
+  test('renders @username above email', async () => {
+    await render(<ProfileScreen />);
+    expect(screen.getByText('@johndoe')).toBeTruthy();
   });
 
   test('renders the user email', async () => {
@@ -76,7 +81,7 @@ describe('ProfileScreen – logged in', () => {
 
   test('pressing the logout button calls store logout()', async () => {
     const mockLogout = jest.fn().mockResolvedValue(undefined);
-    useAuthStore.setState({ isAuthenticated: true, token: 'tok', email: 'user@example.com', logout: mockLogout });
+    useAuthStore.setState({ isAuthenticated: true, token: 'tok', email: 'user@example.com', username: 'johndoe', logout: mockLogout });
 
     await render(<ProfileScreen />);
     fireEvent.press(screen.getByText('خروج'));
