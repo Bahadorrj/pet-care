@@ -152,6 +152,13 @@ async def test_user_service_get_by_email_missing_returns_none(db_session):
     assert result is None
 
 
+async def test_get_by_username_is_case_insensitive(db_session):
+    await UserService.create(db_session, email="bob@example.com", password="pass123", username="bob_1")
+
+    fetched = await UserService.get_by_username(db_session, "BOB_1")
+    assert fetched is not None, "get_by_username should find 'bob_1' when queried as 'BOB_1'"
+
+
 async def test_user_service_create_duplicate_email_raises_and_session_usable(db_session):
     email = f"dup-{uuid.uuid4()}@example.com"
     await UserService.create(db_session, email=email, password="plaintext123", username="svcuser2")

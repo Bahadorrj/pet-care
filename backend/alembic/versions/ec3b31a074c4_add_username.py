@@ -20,6 +20,8 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Add username column (not-null, unique) to users table."""
+    # Assumes zero existing rows in `users`; nullable=False with no server_default
+    # would fail on a table with pre-existing rows. Safe for this project (no users yet).
     with op.batch_alter_table('users') as batch_op:
         batch_op.add_column(sa.Column('username', sa.String(length=30), nullable=False))
         batch_op.create_unique_constraint('uq_users_username', ['username'])
