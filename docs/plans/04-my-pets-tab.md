@@ -72,7 +72,7 @@ types, add all new Farsi strings, and write ADR-0015. No components yet.
       `pets.field.name`/`species`/`gender`/`notes`/`photo`, `pets.species.{dog,cat,bird,rabbit,other}`,
       `pets.gender.{male,female}`, `pets.error.name_required`, `pets.error.species_required`
       added to `fa.json`.
-- [ ] `docs/ard/0015-mobile-sqlite-local-store.md` written (file already stubbed at repo root).
+- [ ] `docs/adr/0015-mobile-sqlite-local-store.md` written (file already stubbed at repo root).
 
 **Verification:**
 - [ ] `npx tsc --noEmit` → 0 errors; `npm test` still green.
@@ -80,7 +80,7 @@ types, add all new Farsi strings, and write ADR-0015. No components yet.
 
 **Dependencies:** None
 **Files:** `mobile/package.json`, `mobile/package-lock.json`, `mobile/src/i18n/fa.json`,
-`mobile/src/db/pets.ts` (type exports) or a `types.ts`, `docs/ard/0015-mobile-sqlite-local-store.md`
+`mobile/src/db/pets.ts` (type exports) or a `types.ts`, `docs/adr/0015-mobile-sqlite-local-store.md`
 **Scope:** S
 
 ---

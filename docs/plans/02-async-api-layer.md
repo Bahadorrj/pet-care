@@ -2,7 +2,7 @@
 
 Status: **Implemented**
 Spec: `docs/specs/02-async-api-layer.md`
-ADR: `docs/ard/0013-async-sqlalchemy-aiosqlite.md`
+ADR: `docs/adr/0013-async-sqlalchemy-aiosqlite.md`
 
 ## Overview
 
@@ -181,7 +181,7 @@ index row is correct, and run `graphify update .`.
 - [ ] `uv run pytest` still green.
 
 **Dependencies:** Task 6
-**Files:** `docs/specs/02-async-api-layer.md`, `docs/ard/0013-async-sqlalchemy-aiosqlite.md` (+ graphify-out, generated)
+**Files:** `docs/specs/02-async-api-layer.md`, `docs/adr/0013-async-sqlalchemy-aiosqlite.md` (+ graphify-out, generated)
 **Scope:** S
 
 ### Checkpoint: Complete

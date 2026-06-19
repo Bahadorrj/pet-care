@@ -2,7 +2,7 @@
 
 Status: **DRAFT — awaiting approval**
 Owner: mobile
-Related ADR: `docs/ard/0014-bottom-tab-navigation.md` (to be added during implementation)
+Related ADR: `docs/adr/0014-bottom-tab-navigation.md` (to be added during implementation)
 
 ## Objective
 

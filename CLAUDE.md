@@ -12,7 +12,7 @@ Quick setup: `docs/running-the-app.md` covers the full local stack (all dependen
 
 ## Documentation & Decisions
 
-- Architecture decisions live in `docs/ard/` (ADRs); reconcile the spec when changing a decision
+- Architecture decisions live in `docs/adr/` (ADRs); reconcile the spec when changing a decision
 - Codebase questions: use `graphify query "<question>"` (scoped subgraph) or `graphify path "A" "B"` for relationships instead of grep/raw browsing
 - For large codebase review: `graphify update .` after code changes (AST-only, no API cost)
 

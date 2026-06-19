@@ -56,7 +56,7 @@ or login succeeds → JWT persists across restarts → home screen reflects auth
 | Migrations | Alembic |
 
 > **Note:** This layer was implemented with refinements to the original stack.
-> The ADRs in `docs/ard/` are authoritative: ADR-0004 (SQLite now), ADR-0005
+> The ADRs in `docs/adr/` are authoritative: ADR-0004 (SQLite now), ADR-0005
 > (PyJWT, not python-jose), ADR-0006 (bcrypt directly, not passlib),
 > ADR-0007 (`uv`, not pip).
 

@@ -40,4 +40,4 @@ Auth specifics worth preserving: login does a constant-time bcrypt verify agains
 
 ## Conventions
 
-- Architectural decisions live in `docs/ard/` (ADRs) and act as guardrails. When changing a decision, add a new ADR and reconcile the spec — don't silently diverge.
+- Architectural decisions live in `docs/adr/` (ADRs) and act as guardrails. When changing a decision, add a new ADR and reconcile the spec — don't silently diverge.

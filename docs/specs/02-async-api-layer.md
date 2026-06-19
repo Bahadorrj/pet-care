@@ -2,7 +2,7 @@
 
 Status: **Implemented**
 Owner: backend
-Related ADR: `docs/ard/0013-async-sqlalchemy-aiosqlite.md`
+Related ADR: `docs/adr/0013-async-sqlalchemy-aiosqlite.md`
 
 ## Objective
 
@@ -77,7 +77,7 @@ backend/
 docs/                            → repo-root docs (NOT under backend/)
   specs/02-async-api-layer.md    → this spec
   plans/02-async-api-layer.md    → implementation plan
-  ard/0013-async-sqlalchemy-aiosqlite.md  → ADR
+  adr/0013-async-sqlalchemy-aiosqlite.md  → ADR
 ```
 
 ## Code Style

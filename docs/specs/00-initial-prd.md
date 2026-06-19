@@ -60,7 +60,7 @@ his dog acts strange and get a clear answer: "go to vet now" or "monitor and wai
 | Content | Bundled JSON in app + optional background sync | Offline-first knowledge base |
 
 > **Note:** Some original choices below have since been refined. Architecture
-> Decision Records in `docs/ard/` are authoritative where they differ:
+> Decision Records in `docs/adr/` are authoritative where they differ:
 > ADR-0004 (SQLite now, PostgreSQL deferred), ADR-0005 (PyJWT, not python-jose),
 > ADR-0006 (bcrypt directly, not passlib), ADR-0007 (`uv`, not pip).
 

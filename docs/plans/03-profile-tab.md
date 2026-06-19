@@ -50,14 +50,14 @@ navigation decision. No component changes yet.
 **Acceptance criteria:**
 - [ ] `@react-navigation/bottom-tabs` in `mobile/package.json` and installed.
 - [ ] `tab.home`, `tab.profile`, `profile.signin_prompt`, `profile.logout` added to `src/i18n/fa.json`.
-- [ ] `docs/ard/0014-bottom-tab-navigation.md` written.
+- [ ] `docs/adr/0014-bottom-tab-navigation.md` written.
 
 **Verification:**
 - [ ] `npx tsc --noEmit` → 0 errors; `npm test` still green (no behavior changed).
 - [ ] Manual: keys resolve (no missing-key warnings) once used in Task 2/3.
 
 **Dependencies:** None
-**Files:** `mobile/package.json`, `mobile/package-lock.json`, `mobile/src/i18n/fa.json`, `docs/ard/0014-bottom-tab-navigation.md`
+**Files:** `mobile/package.json`, `mobile/package-lock.json`, `mobile/src/i18n/fa.json`, `docs/adr/0014-bottom-tab-navigation.md`
 **Scope:** S
 
 ---

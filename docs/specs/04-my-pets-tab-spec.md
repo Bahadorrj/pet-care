@@ -76,7 +76,7 @@ mobile/src/
 Edited: `navigation/RootNavigator.tsx` (insert tab between Home and Profile),
 `i18n/fa.json` (new keys), `App.tsx` (gate first render on DB init alongside
 `hasHydrated`/`fontsLoaded`).
-New ADR: `docs/ard/0015-mobile-sqlite-local-store.md` (write in PLAN phase).
+New ADR: `docs/adr/0015-mobile-sqlite-local-store.md` (write in PLAN phase).
 
 ## Data Model
 
@@ -171,7 +171,7 @@ birthdate/age or any field beyond the table above; multi-photo galleries.
 2. **id = UUID** (`expo-crypto.randomUUID()`), stored as `TEXT PRIMARY KEY`.
 3. **DB init gated in `App.tsx`** — open DB + create table before first render,
    alongside `hasHydrated`/`fontsLoaded`.
-4. **ADR-0015** (`docs/ard/0015-mobile-sqlite-local-store.md`) to be written in
+4. **ADR-0015** (`docs/adr/0015-mobile-sqlite-local-store.md`) to be written in
    the PLAN phase, then referenced from `mobile/CLAUDE.md`.
 ```
 
