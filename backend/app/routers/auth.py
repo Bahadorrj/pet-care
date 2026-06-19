@@ -4,8 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import _DUMMY_PASSWORD_HASH, create_access_token, current_user, verify_password
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
-from app.services.user import EmailAlreadyRegisteredError, UsernameAlreadyRegisteredError, UserService
+from app.schemas.auth import ChangeUsernameRequest, LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from app.services.user import EmailAlreadyRegisteredError, UsernameAlreadyRegisteredError, UsernameTakenError, UserService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -33,4 +33,17 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 def me(user: User = Depends(current_user)):
+    return UserResponse(id=user.id, email=user.email, username=user.username)
+
+
+@router.patch("/me", response_model=UserResponse)
+async def change_username(
+    body: ChangeUsernameRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(current_user),
+):
+    try:
+        user = await UserService.change_username(db, user, body.username)
+    except UsernameTakenError:
+        raise HTTPException(status_code=409, detail="username_taken")
     return UserResponse(id=user.id, email=user.email, username=user.username)

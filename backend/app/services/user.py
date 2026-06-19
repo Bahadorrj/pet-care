@@ -14,6 +14,10 @@ class UsernameAlreadyRegisteredError(Exception):
     """Raised when creating a user with a username that already exists."""
 
 
+class UsernameTakenError(Exception):
+    """Raised when changing to a username already held by a different user."""
+
+
 class UserService:
     @staticmethod
     async def get_by_email(db: AsyncSession, email: str) -> User | None:
@@ -24,6 +28,16 @@ class UserService:
     async def get_by_username(db: AsyncSession, username: str) -> User | None:
         result = await db.execute(select(User).where(User.username == username.lower()))
         return result.scalar_one_or_none()
+
+    @staticmethod
+    async def change_username(db: AsyncSession, user: User, username: str) -> User:
+        existing = await UserService.get_by_username(db, username)
+        if existing is not None and existing.id != user.id:
+            raise UsernameTakenError(username)
+        user.username = username.lower()
+        await db.commit()
+        await db.refresh(user)
+        return user
 
     @staticmethod
     async def create(db: AsyncSession, email: str, password: str, username: str) -> User:

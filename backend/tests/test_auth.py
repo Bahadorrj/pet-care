@@ -195,3 +195,70 @@ async def test_register_73_char_password_returns_422(client):
     long_password = "a" * 73
     r = await register(client, password=long_password)
     assert r.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# PATCH /auth/me — change username (Task 4)
+# ---------------------------------------------------------------------------
+
+
+async def test_change_username_happy_path(client):
+    """Authenticated PATCH with a valid new username → 200, lowercased in response."""
+    r_reg = await register(client)
+    token = r_reg.json()["access_token"]
+    r = await client.patch(
+        "/auth/me",
+        json={"username": "NewName_2"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["username"] == "newname_2"
+    assert "id" in body
+    assert "email" in body
+
+
+async def test_change_username_taken_by_other_user_returns_409(client):
+    """PATCH to a username already held by another user → 409 username_taken."""
+    # Register two users
+    await register(client, email="user1@example.com", username="user_one")
+    r2 = await register(client, email="user2@example.com", username="user_two")
+    token2 = r2.json()["access_token"]
+    # user2 tries to steal user1's username
+    r = await client.patch(
+        "/auth/me",
+        json={"username": "user_one"},
+        headers={"Authorization": f"Bearer {token2}"},
+    )
+    assert r.status_code == 409
+    assert r.json()["detail"] == "username_taken"
+
+
+async def test_change_username_unauthenticated_returns_401(client):
+    """PATCH /auth/me without a token → 401."""
+    r = await client.patch("/auth/me", json={"username": "whatever"})
+    assert r.status_code == 401
+
+
+async def test_change_username_invalid_too_short_returns_422(client):
+    """Username 'ab' (2 chars) is invalid → 422."""
+    r_reg = await register(client)
+    token = r_reg.json()["access_token"]
+    r = await client.patch(
+        "/auth/me",
+        json={"username": "ab"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 422
+
+
+async def test_change_username_invalid_bad_chars_returns_422(client):
+    """Username 'bad!' contains invalid char → 422."""
+    r_reg = await register(client)
+    token = r_reg.json()["access_token"]
+    r = await client.patch(
+        "/auth/me",
+        json={"username": "bad!"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 422

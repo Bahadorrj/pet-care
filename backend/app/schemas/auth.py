@@ -17,6 +17,15 @@ class RegisterRequest(BaseModel):
         return v.lower()
 
 
+class ChangeUsernameRequest(BaseModel):
+    username: str = Field(pattern=r"^[a-zA-Z0-9_]{3,30}$")
+
+    @field_validator("username", mode="after")
+    @classmethod
+    def normalize_username(cls, v: str) -> str:
+        return v.lower()
+
+
 class LoginRequest(BaseModel):
     email: EmailStr = Field(max_length=254)
     password: str = Field(max_length=72)
