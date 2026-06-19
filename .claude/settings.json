@@ -22,6 +22,8 @@
     ]
   },
   "enabledPlugins": {
-    "agent-skills@addy-agent-skills": true
+    "agent-skills@addy-agent-skills": true,
+    "playwright@claude-plugins-official": true,
+    "expo@claude-plugins-official": true
   }
 }
