@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-19T00:00:00Z",
+  "title": "Design System: پت‌کر (PetCare)",
+  "extensions": {
+    "colorMeta": {
+      "garden-confident": {
+        "role": "primary",
+        "displayName": "Garden Confident",
+        "canonical": "oklch(0.48 0.13 152)",
+        "tonalRamp": ["#061810", "#0C2E1E", "#124030", "#185F42", "#1F7A55", "#2D9A6D", "#5BBB93", "#A5DCCA"]
+      },
+      "garden-pressed": {
+        "role": "primary",
+        "displayName": "Garden Pressed",
+        "canonical": "oklch(0.38 0.13 152)",
+        "tonalRamp": ["#061810", "#0C2E1E", "#124030", "#185F42", "#1F7A55", "#2D9A6D", "#5BBB93", "#A5DCCA"]
+      },
+      "garden-soft": {
+        "role": "primary",
+        "displayName": "Garden Soft",
+        "canonical": "oklch(0.94 0.04 152)",
+        "tonalRamp": ["#061810", "#0C2E1E", "#124030", "#185F42", "#1F7A55", "#2D9A6D", "#5BBB93", "#A5DCCA"]
+      },
+      "warm-paper": {
+        "role": "neutral",
+        "displayName": "Warm Paper",
+        "canonical": "oklch(0.965 0.006 85)",
+        "tonalRamp": ["#2E2D28", "#4A4942", "#67655D", "#858379", "#A8A79E", "#C8C7BE", "#EFEEE8", "#F6F5F1"]
+      },
+      "white-surface": {
+        "role": "neutral",
+        "displayName": "White Surface",
+        "canonical": "oklch(1.00 0.00 0)",
+        "tonalRamp": ["#2E2D28", "#4A4942", "#67655D", "#858379", "#A8A79E", "#C8C7BE", "#EFEEE8", "#FFFFFF"]
+      },
+      "sunken-well": {
+        "role": "neutral",
+        "displayName": "Sunken Well",
+        "canonical": "oklch(0.94 0.008 85)",
+        "tonalRamp": ["#2E2D28", "#4A4942", "#67655D", "#858379", "#A8A79E", "#C8C7BE", "#EFEEE8", "#F6F5F1"]
+      },
+      "warm-ink": {
+        "role": "neutral",
+        "displayName": "Warm Ink",
+        "canonical": "oklch(0.18 0.008 85)",
+        "tonalRamp": ["#0A0A08", "#1A1A17", "#2E2D28", "#454540", "#5E5D56", "#73726B", "#A8A79E", "#D2D0C6"]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "canonical": "oklch(0.50 0.01 85)",
+        "tonalRamp": ["#0A0A08", "#1A1A17", "#2E2D28", "#454540", "#5E5D56", "#73726B", "#A8A79E", "#D2D0C6"]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Ink Faint",
+        "canonical": "oklch(0.70 0.008 85)",
+        "tonalRamp": ["#0A0A08", "#1A1A17", "#2E2D28", "#454540", "#5E5D56", "#73726B", "#A8A79E", "#D2D0C6"]
+      },
+      "border-gentle": {
+        "role": "neutral",
+        "displayName": "Border Gentle",
+        "canonical": "oklch(0.90 0.009 85)",
+        "tonalRamp": ["#2E2D28", "#4A4942", "#67655D", "#858379", "#A8A79E", "#C8C7BE", "#D2D0C6", "#E4E2DA"]
+      },
+      "border-firm": {
+        "role": "neutral",
+        "displayName": "Border Firm",
+        "canonical": "oklch(0.86 0.01 85)",
+        "tonalRamp": ["#2E2D28", "#4A4942", "#67655D", "#858379", "#A8A79E", "#C8C7BE", "#D2D0C6", "#E4E2DA"]
+      },
+      "alert-brick": {
+        "role": "error",
+        "displayName": "Alert Brick",
+        "canonical": "oklch(0.44 0.18 25)",
+        "tonalRamp": ["#3A0B09", "#641411", "#8E1C15", "#B4231C", "#D04B44", "#E07472", "#EEA09D", "#FBEAE8"]
+      },
+      "alert-soft": {
+        "role": "error",
+        "displayName": "Alert Soft",
+        "canonical": "oklch(0.96 0.02 25)",
+        "tonalRamp": ["#3A0B09", "#641411", "#8E1C15", "#B4231C", "#D04B44", "#E07472", "#EEA09D", "#FBEAE8"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "App name on HomeScreen. Used once per session; never on interior screens." },
+      "title": { "displayName": "Title", "purpose": "Screen-level headings and the pet name in PetDetailScreen. One per screen." },
+      "body-lg": { "displayName": "Body Large", "purpose": "Pet names in list rows, button labels. The primary workhorse size for tap-target text." },
+      "body": { "displayName": "Body", "purpose": "Form labels, metadata values, secondary prose. The reading weight." },
+      "label": { "displayName": "Label", "purpose": "Field key labels above inputs and in detail views. Never all-caps with tracking." },
+      "caption": { "displayName": "Caption", "purpose": "Secondary metadata: species in list rows, formatted Jalali timestamps. Always Ink Muted color." }
+    },
+    "shadows": [
+      {
+        "name": "card-lift",
+        "value": "shadowColor: #1A1A17, offset: 0 8px, opacity: 0.06, blur: 16px (iOS) / elevation: 3 (Android)",
+        "purpose": "Applied to the home screen logo halo and any element that genuinely floats above the canvas. Very diffuse — atmosphere, not structure."
+      },
+      {
+        "name": "button-glow",
+        "value": "shadowColor: #1F7A55, offset: 0 6px, opacity: 0.18, blur: 12px (iOS) / elevation: 4 (Android)",
+        "purpose": "Applied only to primary action buttons. The emerald tint connects the shadow to the accent color — reserved for the highest-priority interactive element."
+      }
+    ],
+    "motion": [
+      {
+        "name": "press-scale",
+        "value": "transform: [{ scale: 0.98 }]",
+        "purpose": "Applied to all Pressable buttons on press state. A micro-response that signals touch without animating layout. Duration: immediate (no timing needed at this scale)."
+      }
+    ],
+    "breakpoints": []
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call to action. Used for affirmative, irreversible, or primary flow actions (افزودن, ذخیره).",
+      "html": "<button class=\"ds-btn-primary\" dir=\"rtl\">افزودن حیوان خانگی</button>",
+      "css": ".ds-btn-primary { display: flex; align-items: center; justify-content: center; min-height: 54px; padding: 0 24px; background: #1F7A55; color: #FFFFFF; font-size: 17px; font-weight: 600; font-family: system-ui, sans-serif; border: none; border-radius: 14px; cursor: pointer; box-shadow: 0 6px 12px rgba(31, 122, 85, 0.18); transition: background 0.1s ease, transform 0.1s ease; } .ds-btn-primary:hover { background: #195F42; } .ds-btn-primary:active { background: #185F42; transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid #1F7A55; outline-offset: 3px; } .ds-btn-primary:disabled { opacity: 0.45; pointer-events: none; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Reversible or secondary actions (ویرایش, بازگشت). Shares dimensions with Primary for consistent touch target size.",
+      "html": "<button class=\"ds-btn-secondary\" dir=\"rtl\">ویرایش</button>",
+      "css": ".ds-btn-secondary { display: flex; align-items: center; justify-content: center; min-height: 54px; padding: 0 24px; background: transparent; color: #1F7A55; font-size: 17px; font-weight: 600; font-family: system-ui, sans-serif; border: 1.5px solid #1F7A55; border-radius: 14px; cursor: pointer; transition: background 0.1s ease, transform 0.1s ease; } .ds-btn-secondary:hover { background: #E7F1EB; } .ds-btn-secondary:active { background: #E7F1EB; transform: scale(0.98); } .ds-btn-secondary:focus-visible { outline: 2px solid #1F7A55; outline-offset: 3px; } .ds-btn-secondary:disabled { opacity: 0.45; pointer-events: none; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Tertiary text links and in-flow actions (انصراف). No fill, no border — the label alone is the affordance.",
+      "html": "<button class=\"ds-btn-ghost\" dir=\"rtl\">انصراف</button>",
+      "css": ".ds-btn-ghost { display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; background: transparent; color: #1F7A55; font-size: 17px; font-weight: 600; font-family: system-ui, sans-serif; border: none; border-radius: 10px; cursor: pointer; transition: background 0.1s ease; } .ds-btn-ghost:hover { background: #EFEEE8; } .ds-btn-ghost:focus-visible { outline: 2px solid #1F7A55; outline-offset: 3px; } .ds-btn-ghost:disabled { opacity: 0.45; pointer-events: none; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "Single-line text input. Border lifts to Garden Confident on focus; lifts to Alert Brick on invalid state.",
+      "html": "<div class=\"ds-field-wrap\" dir=\"rtl\"><input class=\"ds-field\" type=\"text\" placeholder=\"ایمیل\" /></div>",
+      "css": ".ds-field-wrap { background: #FFFFFF; border: 1.5px solid #E4E2DA; border-radius: 14px; padding: 0 16px; direction: rtl; } .ds-field-wrap:focus-within { border-color: #1F7A55; } .ds-field-wrap.is-invalid { border-color: #B4231C; } .ds-field { width: 100%; padding: 14px 0; font-size: 17px; font-family: system-ui, sans-serif; color: #1A1A17; background: transparent; border: none; outline: none; direction: rtl; } .ds-field::placeholder { color: #A8A79E; }"
+    },
+    {
+      "name": "Text Field (Invalid)",
+      "kind": "input",
+      "refersTo": "text-field-invalid",
+      "description": "Error state. Border color shifts to Alert Brick. Pair with an inline error message below.",
+      "html": "<div class=\"ds-field-wrap-invalid\" dir=\"rtl\"><input class=\"ds-field-invalid\" type=\"text\" value=\"invalid@\" /></div><p class=\"ds-field-error\" dir=\"rtl\">ایمیل یا رمز عبور اشتباه است</p>",
+      "css": ".ds-field-wrap-invalid { background: #FFFFFF; border: 1.5px solid #B4231C; border-radius: 14px; padding: 0 16px; direction: rtl; } .ds-field-invalid { width: 100%; padding: 14px 0; font-size: 17px; font-family: system-ui, sans-serif; color: #1A1A17; background: transparent; border: none; outline: none; direction: rtl; } .ds-field-error { font-size: 13px; color: #B4231C; background: #FBEAE8; border-radius: 8px; padding: 8px 12px; margin-top: 6px; direction: rtl; font-family: system-ui, sans-serif; }"
+    },
+    {
+      "name": "Pet List Row",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The app's primary repeating unit. Notebook-style: a 1px separator divides rows rather than card borders. Thumbnail is omitted when no photo exists.",
+      "html": "<div class=\"ds-pet-list\" dir=\"rtl\"><div class=\"ds-pet-row\"><div class=\"ds-pet-thumb\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4.5 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5-4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5 4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.34 14.86c-.87-1.02-1.6-1.89-2.48-2.91-.46-.54-1.05-1.08-1.75-1.32-.7.24-1.28.78-1.75 1.32-.88 1.02-1.61 1.89-2.48 2.91C7.57 16.17 6 17.62 6.3 19.65c.29 1.02 1.02 2.03 2.33 2.32.73.16 1.5.01 2.28-.19.77-.2 1.53-.47 2.27-.68.73.21 1.5.48 2.27.68.78.2 1.55.35 2.28.19 1.31-.29 2.04-1.3 2.33-2.32.3-2.03-1.27-3.48-2.72-4.79z\" fill=\"#A8A79E\"/></svg></div><div class=\"ds-pet-info\"><span class=\"ds-pet-name\">گوگول</span><span class=\"ds-pet-species\">سگ</span></div></div><div class=\"ds-pet-row\"><div class=\"ds-pet-thumb\" style=\"background:#E7F1EB\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4.5 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5-4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5 4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.34 14.86c-.87-1.02-1.6-1.89-2.48-2.91-.46-.54-1.05-1.08-1.75-1.32-.7.24-1.28.78-1.75 1.32-.88 1.02-1.61 1.89-2.48 2.91C7.57 16.17 6 17.62 6.3 19.65c.29 1.02 1.02 2.03 2.33 2.32.73.16 1.5.01 2.28-.19.77-.2 1.53-.47 2.27-.68.73.21 1.5.48 2.27.68.78.2 1.55.35 2.28.19 1.31-.29 2.04-1.3 2.33-2.32.3-2.03-1.27-3.48-2.72-4.79z\" fill=\"#1F7A55\"/></svg></div><div class=\"ds-pet-info\"><span class=\"ds-pet-name\">پیشی</span><span class=\"ds-pet-species\">گربه</span></div></div></div>",
+      "css": ".ds-pet-list { background: #F6F5F1; padding: 0 24px; font-family: system-ui, sans-serif; direction: rtl; } .ds-pet-row { display: flex; flex-direction: row; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #E4E2DA; cursor: pointer; } .ds-pet-row:last-child { border-bottom: none; } .ds-pet-row:active { background: #EFEEE8; margin: 0 -24px; padding: 12px 24px; } .ds-pet-thumb { width: 48px; height: 48px; border-radius: 50%; background: #EFEEE8; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; } .ds-pet-info { display: flex; flex-direction: column; gap: 4px; } .ds-pet-name { font-size: 17px; font-weight: 500; color: #1A1A17; } .ds-pet-species { font-size: 13px; font-weight: 400; color: #73726B; }"
+    },
+    {
+      "name": "Bottom Tab Navigation",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Three-tab bottom navigator. Garden Confident active tint; Ink Muted inactive. Tab bar background matches the screen canvas — no visual separation.",
+      "html": "<nav class=\"ds-bottom-nav\" dir=\"rtl\"><button class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z\" fill=\"#73726B\"/></svg><span class=\"ds-tab-label\">خانه</span></button><button class=\"ds-tab ds-tab--active\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M4.5 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5-4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5 0a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm5 4a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM17.34 14.86c-.87-1.02-1.6-1.89-2.48-2.91-.46-.54-1.05-1.08-1.75-1.32-.7.24-1.28.78-1.75 1.32-.88 1.02-1.61 1.89-2.48 2.91C7.57 16.17 6 17.62 6.3 19.65c.29 1.02 1.02 2.03 2.33 2.32.73.16 1.5.01 2.28-.19.77-.2 1.53-.47 2.27-.68.73.21 1.5.48 2.27.68.78.2 1.55.35 2.28.19 1.31-.29 2.04-1.3 2.33-2.32.3-2.03-1.27-3.48-2.72-4.79z\" fill=\"#1F7A55\"/></svg><span class=\"ds-tab-label ds-tab-label--active\">حیوانات من</span></button><button class=\"ds-tab\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z\" fill=\"#73726B\"/></svg><span class=\"ds-tab-label\">پروفایل</span></button></nav>",
+      "css": ".ds-bottom-nav { display: flex; flex-direction: row; background: #F6F5F1; padding: 8px 0 20px; direction: rtl; font-family: system-ui, sans-serif; } .ds-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; border: none; background: transparent; cursor: pointer; padding: 4px 0; min-height: 44px; justify-content: center; } .ds-tab-label { font-size: 11px; color: #73726B; font-family: system-ui, sans-serif; } .ds-tab-label--active { color: #1F7A55; }"
+    },
+    {
+      "name": "Detail Field Group",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Label + value pair used in PetDetailScreen. Label is Ink Muted (field key); value is Warm Ink (content). Stacked vertically with 4px internal gap.",
+      "html": "<div class=\"ds-detail-screen\" dir=\"rtl\"><div class=\"ds-detail-group\"><span class=\"ds-detail-label\">گونه</span><span class=\"ds-detail-value\">سگ</span></div><div class=\"ds-detail-group\"><span class=\"ds-detail-label\">جنسیت</span><span class=\"ds-detail-value\">نر</span></div><div class=\"ds-detail-group\"><span class=\"ds-detail-label\">تاریخ ایجاد</span><span class=\"ds-detail-value\">۱۴۰۴/۰۳/۲۹</span></div></div>",
+      "css": ".ds-detail-screen { background: #F6F5F1; padding: 16px 24px; font-family: system-ui, sans-serif; direction: rtl; display: flex; flex-direction: column; gap: 16px; } .ds-detail-group { display: flex; flex-direction: column; gap: 4px; } .ds-detail-label { font-size: 13px; font-weight: 600; color: #73726B; } .ds-detail-value { font-size: 15px; font-weight: 400; color: #1A1A17; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Garden",
+    "overview": "پت‌کر is a still, unhurried space — the kind of interface you return to without dread, like a pocket notebook you trust. The design aesthetic is \"quiet warmth\": a warm paper canvas holds everything together, a single confident emerald accent marks what matters, and Vazirmatn's clean curves speak Persian natively. Nothing competes. Nothing shouts. The UI earns the trust of someone who loves their animals and wants care to feel simple, not medical.\n\nThe system is Restrained in its color commitment: Garden Confident accent on no more than 10% of any screen, the rest held by warm neutrals that recede. This is a deliberate choice — the pets themselves (their photos, names, notes) supply the personality. The UI is the quiet frame around them.\n\nThis system explicitly rejects three failure modes: the sterile clinical palette that makes care feel like a doctor's office; the loud gamified energy that treats adults like children; and corporate heaviness that obscures the personal and the small. The interface should disappear into the task.",
+    "keyCharacteristics": [
+      "Warm paper ground (Warm Paper, #F6F5F1) — the canvas, never competing with content",
+      "Single emerald accent (Garden Confident, #1F7A55) used only on primary actions and active states",
+      "Vazirmatn exclusively — one family, four weights; weight carries hierarchy before size",
+      "Ambient elevation: surfaces rest close to the canvas; shadows are felt, not seen",
+      "RTL-native: every layout decision assumes right-to-left; Persian is not a translation"
+    ],
+    "rules": [
+      {
+        "name": "The One Voice Rule",
+        "body": "Garden Confident appears on ≤10% of any given screen. Primary button fill, active tab icon, focused input border: that is the complete list. A section header, a card highlight, or a decorative list accent in Garden Confident breaks the rule. Its rarity is the signal.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tonal Depth Rule",
+        "body": "Depth is expressed through surface steps (Sunken Well → Warm Paper → White Surface), not shadows. Shadows are atmospheric additions, not structural separators. If you're tempted to add a shadow to distinguish two surfaces, use a background step first.",
+        "section": "colors"
+      },
+      {
+        "name": "The Weight-Over-Size Rule",
+        "body": "Reach for a heavier weight before reaching for a larger size. A 15px SemiBold reads as more authoritative than a 17px Regular on the same canvas. This keeps the scale compact.",
+        "section": "typography"
+      },
+      {
+        "name": "The Persian-Native Rule",
+        "body": "All user-facing strings use Vazirmatn. If a Latin string appears (an email address, an error code, a URL), Vazirmatn's built-in Latin glyphs handle it — no family switching. The app has one font and four weights, not one font per script.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ambient-Only Rule",
+        "body": "No drop shadows on list rows, nav bars, section dividers, headers, or cards. A shadow appears only where an element genuinely floats (logo halo, primary button). If adding a shadow feels necessary to make something readable, a surface-step change or border is the right answer first.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do use Garden Confident only for primary button fills, active tab states, focused input borders, and text links. Its rarity is the signal.",
+      "Do set all user-facing text in Vazirmatn. Use Bold/SemiBold/Medium/Regular weights to carry hierarchy before increasing size.",
+      "Do respect RTL layout at every level: margins, padding, icon placement, text alignment, and gesture direction follow Persian's right-to-left reading direction.",
+      "Do display all dates in the Jalali (Persian Solar Hijri) calendar. Never show Gregorian dates in the UI.",
+      "Do use 1px Border Gentle separator lines for list items rather than wrapping them in cards.",
+      "Do keep all interactive touch targets at 44×44px minimum (WCAG 2.1 AA, mobile).",
+      "Do use the three surface steps (Sunken Well → Warm Paper → White Surface) for depth. Reserve shadows for the two documented floating elements only.",
+      "Do give empty states an action that teaches the interface, not just a message that reports absence.",
+      "Do use Ink Muted (#73726B) for secondary text. Never use Ink Faint (#A8A79E) for readable content."
+    ],
+    "donts": [
+      "Don't use a cold white-and-blue palette, dense form layouts, or clinical data tables. Pets are loved, not patients.",
+      "Don't use bright cartoon colors, bouncy or elastic motion, or gamification elements. Users are adults managing daily care.",
+      "Don't add heavy navigation patterns: side nav, breadcrumbs, flyout menus, toolbar rows, or dense info panels.",
+      "Don't introduce a second accent color. The system is Restrained by design — a second accent breaks the One Voice Rule.",
+      "Don't use gradient text, side-stripe borders (>1px left/right accent), or glassmorphism.",
+      "Don't use uppercase tracked eyebrow labels above sections. Labels are field identifiers only, not section headers.",
+      "Don't show Gregorian calendar dates anywhere in the UI. Jalali only, formatted as yyyy/MM/dd.",
+      "Don't use Ink Faint (#A8A79E) for real content text. Placeholder text is its one permitted use.",
+      "Don't add motion to list row entrances, tab transitions, or background section reveals. Motion signals state, not choreography."
+    ]
+  }
+}
