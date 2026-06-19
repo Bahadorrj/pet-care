@@ -262,3 +262,24 @@ async def test_change_username_invalid_bad_chars_returns_422(client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 422
+
+
+async def test_change_username_same_user_own_name_returns_200(client):
+    """Regression: PATCHing one's own current username must be 200, not 409.
+
+    Both exact-match and case-only variants must succeed — the service must
+    recognise that the conflicting row belongs to the requesting user.
+    """
+    r_reg = await register(client, username="samename_1")
+    token = r_reg.json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Exact same name (already lowercased)
+    r1 = await client.patch("/auth/me", json={"username": "samename_1"}, headers=headers)
+    assert r1.status_code == 200
+    assert r1.json()["username"] == "samename_1"
+
+    # Case-only variant — server lowercases, still the same user → 200, not 409
+    r2 = await client.patch("/auth/me", json={"username": "SameName_1"}, headers=headers)
+    assert r2.status_code == 200
+    assert r2.json()["username"] == "samename_1"
