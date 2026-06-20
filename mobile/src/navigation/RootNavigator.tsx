@@ -4,13 +4,11 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 
-import HomeScreen from '../screens/HomeScreen';
 import ProfileStack from './ProfileStack';
 import PetsStack from './PetsStack';
 import { colors } from '../theme/theme';
 
 export type RootTabParamList = {
-  Home: undefined;
   Pets: undefined;
   Profile: undefined;
 };
@@ -30,14 +28,6 @@ export default function RootNavigator() {
         tabBarStyle: { backgroundColor: colors.bg, borderTopWidth: 0, elevation: 0 },
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: t('tab.home'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" color={color} size={size} />,
-        }}
-      />
       <Tab.Screen
         name="Pets"
         component={PetsStack}
