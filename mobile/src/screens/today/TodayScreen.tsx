@@ -23,7 +23,12 @@ function toTehranTime(isoUtc: string): string {
 // ── Ordering ──────────────────────────────────────────────────────────────────
 // Overdue-today (missed + past-time pending) first, then chronological.
 function isOverdue(occ: Occurrence): boolean {
-  return occ.status === 'missed';
+  // Engine marks past-no-log as missed at compute time, but the stored snapshot
+  // goes stale as the clock passes a still-pending dueAt — treat that as overdue too.
+  return (
+    occ.status === 'missed' ||
+    (occ.status === 'pending' && occ.dueAt < new Date().toISOString())
+  );
 }
 
 function sortOccurrences(occs: Occurrence[]): Occurrence[] {
@@ -65,7 +70,7 @@ function OccurrenceRow({ occ, petName, onDone, onSkip }: RowProps) {
   const { t } = useTranslation();
   const { chore, dueAt, status } = occ;
   const isFinal = status === 'done' || status === 'skipped';
-  const isOverdueRow = status === 'missed';
+  const isOverdueRow = isOverdue(occ);
 
   return (
     <View

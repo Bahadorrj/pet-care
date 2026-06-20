@@ -116,6 +116,18 @@ describe('TodayScreen – ordering', () => {
     expect(rows[0].props.testID).toBe('today-row-chore-1'); // earlier dueAt
     expect(rows[1].props.testID).toBe('today-row-chore-2'); // later dueAt
   });
+
+  test('a past-time pending occurrence counts as overdue (snapshot staleness)', async () => {
+    // chore-6 is pending but its dueAt is in the past → overdue, must sort first
+    // even ahead of chore-7 (done, not overdue) whose dueAt is earlier.
+    const pastPending = makeOccurrence('chore-6', '2024-06-21T06:00:00Z', 'pending');
+    const doneEarlier = makeOccurrence('chore-7', '2024-06-21T01:00:00Z', 'done');
+    mockOccurrences = [doneEarlier, pastPending];
+    const { getAllByTestId } = await render(<TodayScreen />);
+    const rows = getAllByTestId(/^today-row-/);
+    expect(rows[0].props.testID).toBe('today-row-chore-6'); // overdue pending first
+    expect(rows[1].props.testID).toBe('today-row-chore-7'); // done, after, despite earlier time
+  });
 });
 
 // ── 3. Done action ────────────────────────────────────────────────────────────
