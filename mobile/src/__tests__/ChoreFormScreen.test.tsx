@@ -184,16 +184,17 @@ describe('ChoreFormScreen – Add – interval', () => {
   });
 });
 
-// ── 4. Add – one_off ──────────────────────────────────────────────────────────
+// ── 4. Add – one_off (Jalali input) ──────────────────────────────────────────
 
 describe('ChoreFormScreen – Add – one_off', () => {
-  test('Tehran 10:00 on 2026-07-01 → UTC 06:30 ISO at field', async () => {
+  test('Jalali 1405/04/10 at Tehran 10:00 → UTC 06:30 ISO at field', async () => {
+    // 1405/04/10 (Jalali) = 2026-07-01 (Gregorian). Tehran +03:30: 10:00 − 210min = 06:30 UTC.
     mockAddChore.mockResolvedValue(undefined);
     const { getByTestId } = await render(<ChoreFormScreen />);
 
     await press(getByTestId('choreform-type-vet'));
     await press(getByTestId('choreform-schedule-one_off'));
-    await changeText(getByTestId('choreform-oneoff-date'), '2026-07-01');
+    await changeText(getByTestId('choreform-oneoff-date'), '1405/04/10');
     await changeText(getByTestId('choreform-oneoff-time'), '10:00');
     await press(getByTestId('choreform-submit'));
 
@@ -201,8 +202,80 @@ describe('ChoreFormScreen – Add – one_off', () => {
 
     const call = mockAddChore.mock.calls[0][0];
     expect(call.schedule.kind).toBe('one_off');
-    // Tehran +03:30: 10:00 local − 210min = 06:30 UTC
+    // No Gregorian date reaches the user; UTC conversion must still be correct
     expect(call.schedule.at).toBe('2026-07-01T06:30:00.000Z');
+  });
+
+  test('invalid Jalali date → schedule error shown, addChore not called', async () => {
+    mockAddChore.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await render(<ChoreFormScreen />);
+
+    await press(getByTestId('choreform-type-vet'));
+    await press(getByTestId('choreform-schedule-one_off'));
+    // Type garbage — jalaliToGregorian returns null → throws schedule_empty
+    await changeText(getByTestId('choreform-oneoff-date'), 'not-a-date');
+    await press(getByTestId('choreform-submit'));
+
+    await waitFor(() => expect(getByText('زمان‌بندی الزامی است')).toBeTruthy());
+    expect(mockAddChore).not.toHaveBeenCalled();
+  });
+});
+
+// ── 4b. end-until Jalali input ────────────────────────────────────────────────
+
+describe('ChoreFormScreen – end-until Jalali input', () => {
+  test('Jalali end-until 1405/04/10 → correct UTC endUntil on submit', async () => {
+    // 1405/04/10 = 2026-07-01 Gregorian. toUtcIso('00:00', '2026-07-01') = '2026-06-30T20:30:00.000Z'
+    mockAddChore.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<ChoreFormScreen />);
+
+    await press(getByTestId('choreform-type-feeding'));
+    // press the "until" chip (testID = choreform-end-until); then fill the date field
+    await press(getByTestId('choreform-end-until'));
+    await changeText(getByTestId('choreform-end-until-date'), '1405/04/10');
+    await press(getByTestId('choreform-submit'));
+
+    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+
+    const call = mockAddChore.mock.calls[0][0];
+    expect(call.endKind).toBe('until');
+    // Tehran midnight 00:00 on 2026-07-01 = UTC 2026-06-30T20:30:00.000Z
+    expect(call.endUntil).toBe('2026-06-30T20:30:00.000Z');
+  });
+});
+
+// ── 4c. Edit mode prefill: Jalali, not Gregorian ──────────────────────────────
+
+describe('ChoreFormScreen – Edit mode Jalali prefill', () => {
+  const CHORE_WITH_UNTIL: Chore = {
+    id: 'chore-edit-until',
+    petId: 'pet-1',
+    type: 'meds',
+    title: null,
+    schedule: { kind: 'daily_times', times: ['08:00'] },
+    endKind: 'until',
+    // endUntil = UTC ISO for 2026-07-01 midnight Tehran
+    endUntil: '2026-06-30T20:30:00.000Z',
+    endCount: null,
+    active: true,
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    mockRouteParams = { petId: 'pet-1', choreId: CHORE_WITH_UNTIL.id };
+    mockGetChore.mockReturnValue(CHORE_WITH_UNTIL);
+  });
+
+  test('end-until prefill shows Jalali yyyy/MM/dd, not Gregorian YYYY-MM-DD', async () => {
+    const { getByTestId } = await render(<ChoreFormScreen />);
+    const field = getByTestId('choreform-end-until-date');
+    const val: string = field.props.value;
+    // Must be Jalali format yyyy/MM/dd — no raw Gregorian YYYY-MM-DD
+    expect(val).toMatch(/^\d{4}\/\d{2}\/\d{2}$/);
+    // Must NOT be the Gregorian date
+    expect(val).not.toContain('2026-');
+    expect(val).not.toContain('2026-06-30');
   });
 });
 

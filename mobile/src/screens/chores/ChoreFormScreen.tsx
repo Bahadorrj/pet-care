@@ -30,7 +30,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns-jalali';
+import { format, parse as parseJalali } from 'date-fns-jalali';
 
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
@@ -57,23 +57,44 @@ const END_KINDS: EndKind[] = ['never', 'until', 'after_n'];
 // Weekday labels — RTL-aware display; 0=Sun..6=Sat
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
-// Current Tehran date string for placeholder hints
-function tehranTodayStr(): string {
-  // Tehran = UTC+03:30
+/** Current Tehran calendar day as a Jalali string yyyy/MM/dd for default/placeholder. */
+// ponytail: text input parsed from Jalali; no picker lib installed — future upgrade path
+function tehranTodayJalali(): string {
+  // Build a Date whose UTC fields represent the Tehran wall-clock time
   const tehranMs = Date.now() + (3 * 60 + 30) * 60 * 1000;
   const d = new Date(tehranMs);
-  const yr = d.getUTCFullYear();
-  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dy = String(d.getUTCDate()).padStart(2, '0');
-  return `${yr}-${mo}-${dy}`;
+  // Reconstruct as a plain local-midnight Date so date-fns-jalali reads the Tehran day
+  const tehranMidnight = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  return format(tehranMidnight, 'yyyy/MM/dd');
 }
 
-/** Format a UTC ISO date for Jalali display in the end-until field */
-function displayJalali(isoUtc: string): string {
+/**
+ * Convert a Gregorian YYYY-MM-DD string to Jalali yyyy/MM/dd for display.
+ * Used to prefill edit-mode fields.
+ */
+function gregorianToJalali(gregorianDateStr: string): string {
   try {
-    return format(new Date(isoUtc), 'yyyy/MM/dd');
+    const [yr, mo, dy] = gregorianDateStr.split('-').map(Number);
+    return format(new Date(yr, mo - 1, dy), 'yyyy/MM/dd');
   } catch {
     return '';
+  }
+}
+
+/**
+ * Parse a user-typed Jalali yyyy/MM/dd into a Gregorian YYYY-MM-DD string.
+ * Returns null on invalid input — caller must reject with schedule error.
+ */
+function jalaliToGregorian(jalaliStr: string): string | null {
+  try {
+    const parsed = parseJalali(jalaliStr, 'yyyy/MM/dd', new Date());
+    if (isNaN(parsed.getTime())) return null;
+    const yr = parsed.getFullYear();
+    const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dy = String(parsed.getDate()).padStart(2, '0');
+    return `${yr}-${mo}-${dy}`;
+  } catch {
+    return null;
   }
 }
 
@@ -120,10 +141,13 @@ export default function ChoreFormScreen() {
   const [intervalN, setIntervalN] = useState(initIntervalN);
   const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>(initIntervalUnit);
 
-  // ── one_off — Gregorian date (Tehran wall-clock) + time ──────────────────────
-  // We store as separate input strings; on submit combine via toUtcIso
+  // ── one_off — Jalali date yyyy/MM/dd (Tehran wall-clock) + time HH:MM ────────
+  // User types Jalali; on submit jalaliToGregorian converts before toUtcIso.
+  // ponytail: text input, not a picker — no picker lib installed; future upgrade path
   const initOneOffDate =
-    existing?.schedule.kind === 'one_off' ? tehranTodayStr() : tehranTodayStr();
+    existing?.schedule.kind === 'one_off'
+      ? gregorianToJalali(new Date(existing.schedule.at).toISOString().slice(0, 10))
+      : tehranTodayJalali();
   const initOneOffTime =
     existing?.schedule.kind === 'one_off' ? '09:00' : '09:00';
   const [oneOffDate, setOneOffDate] = useState(initOneOffDate);
@@ -131,9 +155,9 @@ export default function ChoreFormScreen() {
 
   // ── End condition ─────────────────────────────────────────────────────────────
   const [endKind, setEndKind] = useState<EndKind>(existing?.endKind ?? 'never');
-  // endUntil stored as a Tehran date string (YYYY-MM-DD); converted to UTC ISO on submit
+  // endUntilDate is Jalali yyyy/MM/dd; jalaliToGregorian converts on submit
   const initEndUntilDate = existing?.endUntil
-    ? format(new Date(existing.endUntil), 'yyyy-MM-dd')
+    ? gregorianToJalali(existing.endUntil.slice(0, 10))
     : '';
   const [endUntilDate, setEndUntilDate] = useState(initEndUntilDate);
   const [endCount, setEndCount] = useState(
@@ -184,7 +208,9 @@ export default function ChoreFormScreen() {
       }
 
       case 'one_off': {
-        const at = toUtcIso(oneOffTime, oneOffDate);
+        const greg = jalaliToGregorian(oneOffDate);
+        if (!greg) throw new Error('chores.error.schedule_empty');
+        const at = toUtcIso(oneOffTime, greg);
         return { kind: 'one_off', at };
       }
     }
@@ -201,14 +227,12 @@ export default function ChoreFormScreen() {
     }
     setTypeError('');
 
-    const schedule = buildSchedule();
-
     // Build end condition
     const resolvedEndKind: EndKind = endKind;
-    const resolvedEndUntil =
-      endKind === 'until' && endUntilDate
-        ? toUtcIso('00:00', endUntilDate)
-        : null;
+    const endUntilGreg = endKind === 'until' && endUntilDate
+      ? jalaliToGregorian(endUntilDate)
+      : null;
+    const resolvedEndUntil = endUntilGreg ? toUtcIso('00:00', endUntilGreg) : null;
     const resolvedEndCount =
       endKind === 'after_n' && endCount ? parseInt(endCount, 10) : null;
 
@@ -216,6 +240,8 @@ export default function ChoreFormScreen() {
     setIsSubmitting(true);
 
     try {
+      // buildSchedule may throw (e.g. invalid Jalali date) — inside try so error surfaces
+      const schedule = buildSchedule();
       const input = {
         petId,
         type: choreType,
@@ -514,7 +540,7 @@ export default function ChoreFormScreen() {
               <Text style={styles.label}>{t('chores.field.date')}</Text>
               <TextField
                 testID="choreform-oneoff-date"
-                placeholder="YYYY-MM-DD"
+                placeholder={t('chores.field.date_hint')}
                 value={oneOffDate}
                 onChangeText={(v) => {
                   setOneOffDate(v);
@@ -574,8 +600,8 @@ export default function ChoreFormScreen() {
             {endKind === 'until' && (
               <View style={{ marginTop: spacing.sm }}>
                 <TextField
-                  testID="choreform-end-until"
-                  placeholder="YYYY-MM-DD"
+                  testID="choreform-end-until-date"
+                  placeholder={t('chores.field.date_hint')}
                   value={endUntilDate}
                   onChangeText={setEndUntilDate}
                   keyboardType="numeric"

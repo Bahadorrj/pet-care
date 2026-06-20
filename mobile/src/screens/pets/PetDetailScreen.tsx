@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns-jalali';
+import { useShallow } from 'zustand/react/shallow';
 
 import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
@@ -44,8 +45,8 @@ export default function PetDetailScreen() {
   // Prefer the in-memory store list; fall back to a direct read.
   const pet = usePetsStore((s) => s.pets.find((p) => p.id === petId)) ?? getPet(petId);
 
-  // Chores for this pet — filtered from the store's full list
-  const petChores = useChoresStore((s) => s.chores.filter((c) => c.petId === petId));
+  // Chores for this pet — useShallow prevents infinite re-render from new array ref each call (zustand v5)
+  const petChores = useChoresStore(useShallow((s) => s.chores.filter((c) => c.petId === petId)));
 
   if (!pet) return null;
 
