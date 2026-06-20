@@ -4,6 +4,7 @@
  * Verifies:
  * - Logged out: renders profile.signin_prompt + sign-in button; pressing it navigates to 'Signin'.
  * - Logged in: renders email + logout button; pressing it calls logout().
+ * - Logged in: @username handle renders (RTL×LTR fix — value present, writingDirection handled in impl).
  *
  * expo-secure-store is mocked to prevent native module access (authStore calls
  * hydrate() at module load which hits SecureStore).
@@ -66,9 +67,21 @@ describe('ProfileScreen – logged in', () => {
     useAuthStore.setState({ isAuthenticated: true, token: 'tok', email: 'user@example.com', username: 'johndoe' });
   });
 
-  test('renders @username above email', async () => {
+  test('renders @username handle (includes username value with LRM prefix)', async () => {
     await render(<ProfileScreen />);
-    expect(screen.getByText('@johndoe')).toBeTruthy();
+    // The handle text contains LRM + '@' + username; query by a substring match
+    const handle = screen.getByTestId('profile-username-handle');
+    expect(handle).toBeTruthy();
+    expect(handle.props.children).toContain('johndoe');
+  });
+
+  test('handle Text has writingDirection ltr to prevent bidi reordering', async () => {
+    await render(<ProfileScreen />);
+    const handle = screen.getByTestId('profile-username-handle');
+    const style = Array.isArray(handle.props.style)
+      ? Object.assign({}, ...handle.props.style)
+      : handle.props.style ?? {};
+    expect(style.writingDirection).toBe('ltr');
   });
 
   test('renders the user email', async () => {

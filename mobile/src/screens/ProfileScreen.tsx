@@ -9,6 +9,9 @@ import { useAuthStore } from '../store/authStore';
 import { colors, fonts, spacing, typography } from '../theme/theme';
 import type { ProfileNavigationProp } from '../navigation/ProfileStack';
 
+// Left-to-Right Mark — keeps '@handle' from bidi-reordering in forced-RTL layouts.
+const LRM = '‎';
+
 export default function ProfileScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<ProfileNavigationProp>();
@@ -26,7 +29,12 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.root}>
       {username != null && (
-        <Text style={styles.username}>@{username}</Text>
+        <Text
+          testID="profile-username-handle"
+          style={styles.username}
+        >
+          {LRM}@{username}
+        </Text>
       )}
       <Text style={styles.email}>{email}</Text>
       <Button
@@ -63,6 +71,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: 'center',
     marginBottom: spacing.xs,
+    writingDirection: 'ltr',
   },
   changeUsernameBtn: {
     marginBottom: spacing.md,

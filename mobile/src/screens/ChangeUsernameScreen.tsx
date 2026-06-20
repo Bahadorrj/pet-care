@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -27,18 +27,34 @@ export default function ChangeUsernameScreen() {
 
   const [username, setUsernameField] = useState(currentUsername);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inFlightRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current != null) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const isUnchanged =
+    username.trim() === '' ||
+    username.trim().toLowerCase() === currentUsername.toLowerCase();
 
   const handleSubmit = async () => {
     if (inFlightRef.current) return;
     inFlightRef.current = true;
     setError('');
+    setSuccessMessage('');
     setIsSubmitting(true);
     try {
       const res = await apiChangeUsername(username);
       await setUsername(res.username);
-      navigation.goBack();
+      setSuccessMessage(t('profile.username_updated'));
+      timerRef.current = setTimeout(() => {
+        navigation.goBack();
+      }, 900);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
@@ -67,23 +83,37 @@ export default function ChangeUsernameScreen() {
         <View style={styles.form}>
           <View style={styles.header}>
             <Text style={styles.title}>{t('profile.change_username')}</Text>
+            <Text style={styles.subtitle}>{t('profile.change_username_subtitle')}</Text>
           </View>
 
           <View style={styles.fields}>
-            <TextField
-              placeholder={t('auth.username')}
-              value={username}
-              onChangeText={setUsernameField}
-              autoCapitalize="none"
-              autoCorrect={false}
-              invalid={error !== ''}
-              accessibilityLabel={t('auth.username')}
-            />
+            <View>
+              <TextField
+                placeholder={t('auth.username')}
+                value={username}
+                onChangeText={setUsernameField}
+                autoCapitalize="none"
+                autoCorrect={false}
+                invalid={error !== ''}
+                accessibilityLabel={t('auth.username')}
+              />
+              <Text style={styles.hint}>{t('auth.username_hint')}</Text>
+            </View>
           </View>
 
           {error !== '' && (
-            <View style={styles.errorBanner}>
+            <View
+              style={styles.errorBanner}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="assertive"
+            >
               <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {successMessage !== '' && (
+            <View style={styles.successBanner}>
+              <Text style={styles.successText}>{successMessage}</Text>
             </View>
           )}
 
@@ -92,7 +122,7 @@ export default function ChangeUsernameScreen() {
             label={t('profile.change_username')}
             onPress={handleSubmit}
             loading={isSubmitting}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isUnchanged}
           />
         </View>
       </KeyboardAvoidingView>
@@ -122,9 +152,23 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bold,
     color: colors.ink,
   },
+  subtitle: {
+    marginTop: spacing.xs,
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+  },
   fields: {
     gap: spacing.md,
     marginBottom: spacing.lg,
+  },
+  hint: {
+    marginTop: spacing.xs,
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted, // #73726B on #F6F5F1 — 4.9:1, passes WCAG AA
   },
   errorBanner: {
     backgroundColor: colors.dangerSoft,
@@ -135,6 +179,20 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: colors.danger,
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.regular,
+    textAlign: 'center',
+  },
+  successBanner: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  successText: {
+    color: colors.primary,
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,

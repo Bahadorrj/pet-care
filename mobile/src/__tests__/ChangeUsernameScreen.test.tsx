@@ -3,10 +3,14 @@
  *
  * Verifies:
  * - Renders pre-filled with current username from store
+ * - Renders subtitle text
+ * - Renders username format hint
+ * - Submit button disabled when field is empty or matches current username (plus isSubmitting)
+ * - Submit button enabled after editing to a different value
  * - Submits new username to changeUsername API
- * - On success: calls setUsername and navigates back
- * - On 409: shows auth.error.username_taken error
- * - On 422: shows auth.error.invalid_username error
+ * - On success: shows success banner, calls setUsername with server value, then goBack after ~900ms
+ * - On 409: shows auth.error.username_taken error (a11y alert role)
+ * - On 422: shows auth.error.invalid_username error (a11y alert role)
  * - On network error: shows auth.error.network error
  *
  * authStore.setUsername is tested separately in authStore tests.
@@ -61,17 +65,52 @@ describe('ChangeUsernameScreen – rendering', () => {
     const { getByTestId } = await render(<ChangeUsernameScreen />);
     expect(getByTestId('change-username-submit')).toBeTruthy();
   });
+
+  test('renders the context subtitle', async () => {
+    const { getByText } = await render(<ChangeUsernameScreen />);
+    expect(
+      getByText('این نام برای نمایش عمومی شماست؛ هر زمان می‌توانید تغییرش دهید.'),
+    ).toBeTruthy();
+  });
+
+  test('renders the username format hint', async () => {
+    const { getByText } = await render(<ChangeUsernameScreen />);
+    expect(getByText('۳ تا ۳۰ حرف انگلیسی، عدد یا زیرخط')).toBeTruthy();
+  });
 });
 
-describe('ChangeUsernameScreen – happy path', () => {
-  test('calls changeUsername with new value, setUsername with server value, and navigates back', async () => {
+describe('ChangeUsernameScreen – disabled state', () => {
+  test('submit button is disabled when field matches current username (unchanged)', async () => {
+    const { getByTestId } = await render(<ChangeUsernameScreen />);
+    const btn = getByTestId('change-username-submit');
+    // Pre-filled with 'johndoe' — same as currentUsername → disabled
+    expect(btn.props.accessibilityState?.disabled).toBe(true);
+  });
+
+  test('submit button is disabled when field is empty', async () => {
+    const { getByTestId, getByDisplayValue } = await render(<ChangeUsernameScreen />);
+    await fireEvent.changeText(getByDisplayValue('johndoe'), '');
+    const btn = getByTestId('change-username-submit');
+    expect(btn.props.accessibilityState?.disabled).toBe(true);
+  });
+
+  test('submit button is enabled after editing to a different non-empty value', async () => {
+    const { getByTestId, getByDisplayValue } = await render(<ChangeUsernameScreen />);
+    await fireEvent.changeText(getByDisplayValue('johndoe'), 'newname');
+    const btn = getByTestId('change-username-submit');
+    expect(btn.props.accessibilityState?.disabled).toBeFalsy();
+  });
+});
+
+describe('ChangeUsernameScreen – happy path (success beat)', () => {
+  test('shows success banner, calls setUsername and goBack on success', async () => {
     mockAuthApi.changeUsername.mockResolvedValueOnce({
       id: '1',
       email: 'user@example.com',
       username: 'newname',
     });
 
-    const { getByDisplayValue, getByTestId } = await render(<ChangeUsernameScreen />);
+    const { getByDisplayValue, getByTestId, getByText } = await render(<ChangeUsernameScreen />);
 
     await fireEvent.changeText(getByDisplayValue('johndoe'), 'newname');
     await fireEvent.press(getByTestId('change-username-submit'));
@@ -79,28 +118,37 @@ describe('ChangeUsernameScreen – happy path', () => {
     await waitFor(() => {
       expect(mockAuthApi.changeUsername).toHaveBeenCalledWith('newname');
       expect(mockSetUsername).toHaveBeenCalledWith('newname');
-      expect(mockGoBack).toHaveBeenCalledTimes(1);
+      expect(getByText('نام کاربری به‌روزرسانی شد')).toBeTruthy();
     });
+
+    // After the 900ms beat, goBack is called — wait for it with a generous timeout
+    await waitFor(() => {
+      expect(mockGoBack).toHaveBeenCalledTimes(1);
+    }, { timeout: 2000 });
   });
 });
 
 describe('ChangeUsernameScreen – 409 error', () => {
-  test('shows username_taken Farsi message and does not navigate', async () => {
+  test('shows username_taken Farsi message with alert a11y and does not navigate', async () => {
     const err = Object.assign(new Error('Conflict'), {
       isAxiosError: true,
       response: { status: 409 },
     });
     mockAuthApi.changeUsername.mockRejectedValueOnce(err);
 
-    const { getByDisplayValue, getByTestId, getByText } = await render(<ChangeUsernameScreen />);
+    const { getByTestId, getByText, getByPlaceholderText } = await render(<ChangeUsernameScreen />);
 
-    await fireEvent.changeText(getByDisplayValue('johndoe'), 'taken');
+    await fireEvent.changeText(getByPlaceholderText('نام کاربری'), 'taken');
     await fireEvent.press(getByTestId('change-username-submit'));
 
     await waitFor(() => {
-      // The i18n key auth.error.username_taken maps to a Persian string we will add
       expect(getByText('این نام کاربری قبلاً گرفته شده است')).toBeTruthy();
     });
+
+    // a11y: error banner should have accessibilityRole="alert"
+    const banner = getByText('این نام کاربری قبلاً گرفته شده است').parent;
+    expect(banner?.props.accessibilityRole).toBe('alert');
+
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 });
@@ -113,9 +161,9 @@ describe('ChangeUsernameScreen – 422 error', () => {
     });
     mockAuthApi.changeUsername.mockRejectedValueOnce(err);
 
-    const { getByDisplayValue, getByTestId, getByText } = await render(<ChangeUsernameScreen />);
+    const { getByTestId, getByText, getByPlaceholderText } = await render(<ChangeUsernameScreen />);
 
-    await fireEvent.changeText(getByDisplayValue('johndoe'), 'bad!');
+    await fireEvent.changeText(getByPlaceholderText('نام کاربری'), 'bad!');
     await fireEvent.press(getByTestId('change-username-submit'));
 
     await waitFor(() => {
@@ -135,8 +183,9 @@ describe('ChangeUsernameScreen – network error', () => {
     });
     mockAuthApi.changeUsername.mockRejectedValueOnce(err);
 
-    const { getByDisplayValue, getByTestId, getByText } = await render(<ChangeUsernameScreen />);
+    const { getByTestId, getByText, getByPlaceholderText } = await render(<ChangeUsernameScreen />);
 
+    await fireEvent.changeText(getByPlaceholderText('نام کاربری'), 'newname');
     await fireEvent.press(getByTestId('change-username-submit'));
 
     await waitFor(() => {
