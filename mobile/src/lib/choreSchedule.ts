@@ -161,6 +161,23 @@ export function expandOccurrences(chore: Chore, fromUtc: Date, toUtc: Date): str
     // so clamped months don't accumulate drift (e.g. Jan 31 + 1m + 1m = Mar 31, not Mar 28).
     let monthStep = 0;
 
+    // Fast-forward hours/days to the first occurrence >= fromUtc to avoid O(N) iteration
+    // when anchor is far before the query window (e.g. hourly chore created months ago).
+    // Occurrences skipped before fromUtc STILL count toward the origin-based after_n total.
+    // ponytail: months stays on the additive-from-anchor path below because day-clamping
+    // (e.g. Jan 31 → Feb 28) makes the step size non-uniform; arithmetic skip would
+    // require replicating the clamping logic and is not worth the complexity.
+    if (unit === 'hours' || unit === 'days') {
+      const stepMs = unit === 'hours' ? n * 3600000 : n * 86400000;
+      const anchorMs = anchorDate.getTime();
+      const fromMs = fromUtc.getTime();
+      if (fromMs > anchorMs) {
+        const steps = Math.ceil((fromMs - anchorMs) / stepMs);
+        current = new Date(anchorMs + steps * stepMs);
+        count = steps; // occurrences before fromUtc still count toward after_n
+      }
+    }
+
     while (current.getTime() < toUtc.getTime()) {
       const isoUtc = current.toISOString();
       count++;

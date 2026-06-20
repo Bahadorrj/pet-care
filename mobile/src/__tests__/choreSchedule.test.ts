@@ -460,6 +460,52 @@ describe('expandOccurrences — end_kind after_n', () => {
     );
     expect(result).toEqual(['2025-06-20T10:00:00.000Z']);
   });
+
+  test('after_n with weekdays: only matching days count toward N, not skipped days', () => {
+    // Fridays only (day 5) at 09:00 Tehran. createdAt = 2025-06-13 (a Friday).
+    // endCount = 3 → 3 Fridays total: Jun 13, Jun 20, Jun 27. Jun 27 is the last.
+    // Non-matching weekdays must NOT increment the count.
+    const chore = makeChore({
+      createdAt: '2025-06-13T05:30:00.000Z', // 2025-06-13T09:00 Tehran = UTC 05:30
+      endKind: 'after_n',
+      endCount: 3,
+      schedule: { kind: 'weekdays', days: [5], times: ['09:00'] }, // Fridays only
+    });
+    // Query spans all 3 Fridays and beyond to verify cutoff
+    const result = expandOccurrences(
+      chore,
+      new Date('2025-06-13T00:00:00.000Z'),
+      new Date('2025-07-11T00:00:00.000Z'),
+    );
+    // 3 Fridays at 09:00 Tehran = 05:30 UTC each
+    expect(result).toEqual([
+      '2025-06-13T05:30:00.000Z',
+      '2025-06-20T05:30:00.000Z',
+      '2025-06-27T05:30:00.000Z',
+    ]);
+  });
+
+  test('after_n with interval months: N monthly occurrences from anchor then stops', () => {
+    // Monthly from Jan 15, endCount = 3 → Jan 15, Feb 15, Mar 15 only.
+    const anchor = '2025-01-15T10:00:00.000Z';
+    const chore = makeChore({
+      createdAt: '2025-01-01T00:00:00.000Z',
+      endKind: 'after_n',
+      endCount: 3,
+      schedule: { kind: 'interval', n: 1, unit: 'months', anchor },
+    });
+    // Query beyond the 3rd occurrence to confirm hard cutoff
+    const result = expandOccurrences(
+      chore,
+      new Date('2025-01-01T00:00:00.000Z'),
+      new Date('2025-06-01T00:00:00.000Z'),
+    );
+    expect(result).toEqual([
+      '2025-01-15T10:00:00.000Z',
+      '2025-02-15T10:00:00.000Z',
+      '2025-03-15T10:00:00.000Z',
+    ]);
+  });
 });
 
 // ---------------------------------------------------------------------------
