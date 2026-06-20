@@ -31,6 +31,10 @@ class UserService:
 
     @staticmethod
     async def change_username(db: AsyncSession, user: User, username: str) -> User:
+        # ponytail: pre-check is TOCTOU; the unique DB constraint is the real
+        # backstop, but a losing race surfaces as IntegrityError -> 500 rather
+        # than 409. Fine on SQLite single-process; on Postgres/concurrent, wrap
+        # the commit in try/except IntegrityError and map to UsernameTakenError.
         existing = await UserService.get_by_username(db, username)
         if existing is not None and existing.id != user.id:
             raise UsernameTakenError(username)
@@ -43,6 +47,8 @@ class UserService:
     async def create(db: AsyncSession, email: str, password: str, username: str) -> User:
         # Pre-checks keep the session usable on duplicate (an IntegrityError
         # from commit would poison the session for the rest of the request).
+        # ponytail: same TOCTOU race as change_username — unique constraint is
+        # the backstop; map IntegrityError -> domain error when going concurrent.
         if await UserService.get_by_email(db, email) is not None:
             raise EmailAlreadyRegisteredError(email)
         if await UserService.get_by_username(db, username) is not None:
