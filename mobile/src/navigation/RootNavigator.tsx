@@ -6,9 +6,11 @@ import { Ionicons } from '@expo/vector-icons';
 
 import ProfileStack from './ProfileStack';
 import PetsStack from './PetsStack';
+import TodayScreen from '../screens/today/TodayScreen';
 import { colors } from '../theme/theme';
 
 export type RootTabParamList = {
+  Today: undefined;
   Pets: undefined;
   Profile: undefined;
 };
@@ -28,6 +30,14 @@ export default function RootNavigator() {
         tabBarStyle: { backgroundColor: colors.bg, borderTopWidth: 0, elevation: 0 },
       }}
     >
+      <Tab.Screen
+        name="Today"
+        component={TodayScreen}
+        options={{
+          tabBarLabel: t('tab.today'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="today-outline" color={color} size={size} />,
+        }}
+      />
       <Tab.Screen
         name="Pets"
         component={PetsStack}

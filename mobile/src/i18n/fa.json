@@ -98,5 +98,7 @@
   "chores.weekday.wed": "چ",
   "chores.weekday.thu": "پ",
   "chores.weekday.fri": "ج",
-  "chores.weekday.sat": "ش"
+  "chores.weekday.sat": "ش",
+  "today.empty_title": "امروز کاری برای انجام ندارید",
+  "today.empty_subtitle": "همه‌چیز رو به‌راه است!"
 }
