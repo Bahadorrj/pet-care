@@ -84,6 +84,15 @@ function utcIsoToTehranJalali(isoUtc: string): string {
   }
 }
 
+/** Stored UTC ISO instant → Tehran wall-clock HH:MM (+03:30). Edit-mode time prefill. */
+function utcIsoToTehranTime(isoUtc: string): string {
+  const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
+  const d = new Date(tehranMs);
+  const h = String(d.getUTCHours()).padStart(2, '0');
+  const m = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
 /**
  * Parse a user-typed Jalali yyyy/MM/dd into a Gregorian YYYY-MM-DD string.
  * Returns null on invalid input — caller must reject with schedule error.
@@ -152,7 +161,9 @@ export default function ChoreFormScreen() {
       ? utcIsoToTehranJalali(existing.schedule.at)
       : tehranTodayJalali();
   const initOneOffTime =
-    existing?.schedule.kind === 'one_off' ? '09:00' : '09:00';
+    existing?.schedule.kind === 'one_off'
+      ? utcIsoToTehranTime(existing.schedule.at)
+      : '09:00';
   const [oneOffDate, setOneOffDate] = useState(initOneOffDate);
   const [oneOffTime, setOneOffTime] = useState(initOneOffTime);
 
@@ -395,7 +406,7 @@ export default function ChoreFormScreen() {
                       onPress={() => removeTime(idx)}
                       style={styles.removeButton}
                       accessibilityRole="button"
-                      accessibilityLabel={t('chores.error.times_required')}
+                      accessibilityLabel={t('chores.action.remove_time')}
                     >
                       <Text style={styles.removeText}>−</Text>
                     </Pressable>
@@ -468,6 +479,7 @@ export default function ChoreFormScreen() {
                       onPress={() => removeTime(idx)}
                       style={styles.removeButton}
                       accessibilityRole="button"
+                      accessibilityLabel={t('chores.action.remove_time')}
                     >
                       <Text style={styles.removeText}>−</Text>
                     </Pressable>

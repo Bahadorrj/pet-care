@@ -275,6 +275,30 @@ describe('ChoreFormScreen – Edit mode Jalali prefill', () => {
     // (Slicing the raw UTC date would wrongly give 2026-06-30 → 1405/04/09.)
     expect(val).toBe('1405/04/10');
   });
+
+  test('one_off edit prefills the stored Tehran date AND time (not 09:00)', async () => {
+    // at = 2026-06-30T22:30:00Z = Tehran 2026-07-01 02:00 (crosses UTC day).
+    // Date must be the Tehran day (1405/04/10), time the stored 02:00 — not 09:00.
+    const CHORE_ONE_OFF: Chore = {
+      id: 'chore-edit-oneoff',
+      petId: 'pet-1',
+      type: 'vet',
+      title: null,
+      schedule: { kind: 'one_off', at: '2026-06-30T22:30:00.000Z' },
+      endKind: 'never',
+      endUntil: null,
+      endCount: null,
+      active: true,
+      createdAt: '2024-01-01T00:00:00Z',
+      updatedAt: '2024-01-01T00:00:00Z',
+    };
+    mockRouteParams = { petId: 'pet-1', choreId: CHORE_ONE_OFF.id };
+    mockGetChore.mockReturnValue(CHORE_ONE_OFF);
+
+    const { getByTestId } = await render(<ChoreFormScreen />);
+    expect(getByTestId('choreform-oneoff-date').props.value).toBe('1405/04/10');
+    expect(getByTestId('choreform-oneoff-time').props.value).toBe('02:00');
+  });
 });
 
 // ── 5. Validation – no type ───────────────────────────────────────────────────
