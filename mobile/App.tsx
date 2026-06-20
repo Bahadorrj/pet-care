@@ -3,13 +3,20 @@ import './src/i18n';
 // Import for side effects: opens the SQLite db and creates the pets table.
 import './src/db';
 
+import { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
+import { createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import RootNavigator from './src/navigation/RootNavigator';
+import type { RootTabParamList } from './src/navigation/RootNavigator';
 import { useAuthStore } from './src/store/authStore';
+import { initChoreNotifications } from './src/lib/choreNotifications';
+
+// Navigation ref shared with choreNotifications for tap-to-open Today tab.
+const navRef = createNavigationContainerRef<RootTabParamList>();
 
 export default function App() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
@@ -21,6 +28,14 @@ export default function App() {
     'Vazirmatn-Bold': require('./assets/fonts/Vazirmatn-Bold.ttf'),
   });
 
+  // ponytail: init once; errors are fire-and-forget (permission denied is non-fatal)
+  const notifInitDone = useRef(false);
+  useEffect(() => {
+    if (!hasHydrated || !fontsLoaded || notifInitDone.current) return;
+    notifInitDone.current = true;
+    initChoreNotifications(navRef).catch(() => {});
+  }, [hasHydrated, fontsLoaded]);
+
   // Hold the first render until both the persisted session and the fonts are
   // ready, so the user never sees a flash of guest UI or unstyled system text.
   if (!hasHydrated || !fontsLoaded) {
@@ -29,7 +44,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer ref={navRef}>
         <RootNavigator />
         <StatusBar style="auto" />
       </NavigationContainer>
