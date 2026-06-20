@@ -7,14 +7,32 @@ import { format } from 'date-fns-jalali';
 
 import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
+import { useChoresStore } from '../../store/choresStore';
 import { getPet } from '../../db/pets';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
 import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
+import type { ChoreType } from '../../db/types';
 
 type PetDetailRouteProp = RouteProp<PetsStackParamList, 'PetDetail'>;
 
 // All dates render in the Jalali (Persian) calendar — never Gregorian.
 const formatJalali = (iso: string) => format(new Date(iso), 'yyyy/MM/dd');
+
+/** Short schedule summary for the chores list row */
+function scheduleLabel(t: (key: string) => string, chore: { schedule: { kind: string } }): string {
+  const kind = chore.schedule.kind;
+  return t(`chores.schedule.${kind}`);
+}
+
+/** Chore type icon as emoji — a lightweight visual cue without introducing a new icon lib */
+const CHORE_TYPE_ICON: Record<ChoreType, string> = {
+  feeding: '🍖',
+  meds: '💊',
+  play: '🎾',
+  grooming: '✂️',
+  vet: '🏥',
+  other: '📋',
+};
 
 export default function PetDetailScreen() {
   const { t } = useTranslation();
@@ -25,6 +43,9 @@ export default function PetDetailScreen() {
   const remove = usePetsStore((s) => s.remove);
   // Prefer the in-memory store list; fall back to a direct read.
   const pet = usePetsStore((s) => s.pets.find((p) => p.id === petId)) ?? getPet(petId);
+
+  // Chores for this pet — filtered from the store's full list
+  const petChores = useChoresStore((s) => s.chores.filter((c) => c.petId === petId));
 
   if (!pet) return null;
 
@@ -83,6 +104,51 @@ export default function PetDetailScreen() {
         <View style={styles.fieldGroup}>
           <Text style={styles.label}>{t('pets.field.updated_at')}</Text>
           <Text style={styles.value}>{formatJalali(pet.updatedAt)}</Text>
+        </View>
+
+        {/* ── Chores section ──────────────────────────────────────────────── */}
+        <View style={styles.choresSection}>
+          <View style={styles.choresSectionHeader}>
+            <Text style={styles.choresSectionTitle}>{t('chores.section_title')}</Text>
+            <Pressable
+              testID="petdetail-add-chore"
+              onPress={() => navigation.navigate('ChoreForm', { petId })}
+              style={({ pressed }) => [
+                styles.addChoreButton,
+                pressed && styles.addChoreButtonPressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t('chores.add')}
+            >
+              <Text style={styles.addChoreText}>{t('chores.add')}</Text>
+            </Pressable>
+          </View>
+
+          {petChores.length === 0 ? (
+            <Text style={styles.choresEmpty}>{t('chores.empty')}</Text>
+          ) : (
+            petChores.map((chore, idx) => (
+              <Pressable
+                key={chore.id}
+                testID={`petdetail-chore-${chore.id}`}
+                onPress={() => navigation.navigate('ChoreForm', { petId, choreId: chore.id })}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.choreRow,
+                  idx < petChores.length - 1 && styles.choreRowBorder,
+                  pressed && styles.choreRowPressed,
+                ]}
+              >
+                <Text style={styles.choreIcon}>{CHORE_TYPE_ICON[chore.type]}</Text>
+                <View style={styles.choreInfo}>
+                  <Text style={styles.choreTitle}>
+                    {chore.title ?? t(`chores.type.${chore.type}`)}
+                  </Text>
+                  <Text style={styles.choreSchedule}>{scheduleLabel(t, chore)}</Text>
+                </View>
+              </Pressable>
+            ))
+          )}
         </View>
 
         <View style={styles.actions}>
@@ -146,6 +212,83 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.ink,
   },
+  // ── Chores section ──────────────────────────────────────────────────────────
+  choresSection: {
+    gap: 0,
+    marginTop: spacing.xs,
+  },
+  choresSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  choresSectionTitle: {
+    fontSize: typography.label.fontSize,
+    lineHeight: typography.label.lineHeight,
+    fontFamily: fonts.semibold,
+    color: colors.inkMuted,
+  },
+  addChoreButton: {
+    minHeight: 36,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primarySoft,
+  },
+  addChoreButtonPressed: {
+    opacity: 0.7,
+  },
+  addChoreText: {
+    fontSize: typography.caption.fontSize,
+    fontFamily: fonts.semibold,
+    color: colors.primary,
+  },
+  choreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 56,
+  },
+  choreRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  choreRowPressed: {
+    backgroundColor: colors.surfaceSunken,
+    borderRadius: radius.sm,
+  },
+  choreIcon: {
+    fontSize: 22,
+    width: 32,
+    textAlign: 'center',
+  },
+  choreInfo: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  choreTitle: {
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontFamily: fonts.medium,
+    color: colors.ink,
+  },
+  choreSchedule: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+  },
+  choresEmpty: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkFaint,
+    paddingVertical: spacing.sm,
+  },
+  // ────────────────────────────────────────────────────────────────────────────
   actions: {
     gap: spacing.md,
     marginTop: spacing.lg,

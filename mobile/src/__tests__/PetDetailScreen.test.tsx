@@ -25,6 +25,13 @@ jest.mock('../store/petsStore', () => ({
     selector({ pets: mockPets, remove: mockRemove }),
 }));
 
+// choresStore imports listChores() (SQLite) at module load — mock it too.
+// PetDetailScreen uses useChoresStore to display a pet's chores section.
+jest.mock('../store/choresStore', () => ({
+  useChoresStore: (selector: (s: { chores: unknown[] }) => unknown) =>
+    selector({ chores: [] }),
+}));
+
 // ── DB mock ───────────────────────────────────────────────────────────────────
 const mockGetPet = jest.fn();
 jest.mock('../db/pets', () => ({

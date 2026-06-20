@@ -87,5 +87,14 @@
   "chores.action.skip": "رد شود",
   "chores.error.type_required": "انتخاب نوع کار الزامی است",
   "chores.error.schedule_required": "زمان‌بندی الزامی است",
-  "chores.error.times_required": "حداقل یک ساعت الزامی است"
+  "chores.error.times_required": "حداقل یک ساعت الزامی است",
+  "chores.error.days_required": "حداقل یک روز الزامی است",
+  "chores.field.date": "تاریخ (YYYY-MM-DD)",
+  "chores.weekday.sun": "ی",
+  "chores.weekday.mon": "د",
+  "chores.weekday.tue": "س",
+  "chores.weekday.wed": "چ",
+  "chores.weekday.thu": "پ",
+  "chores.weekday.fri": "ج",
+  "chores.weekday.sat": "ش"
 }
