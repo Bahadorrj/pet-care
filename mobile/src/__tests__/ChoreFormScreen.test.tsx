@@ -271,11 +271,9 @@ describe('ChoreFormScreen – Edit mode Jalali prefill', () => {
     const { getByTestId } = await render(<ChoreFormScreen />);
     const field = getByTestId('choreform-end-until-date');
     const val: string = field.props.value;
-    // Must be Jalali format yyyy/MM/dd — no raw Gregorian YYYY-MM-DD
-    expect(val).toMatch(/^\d{4}\/\d{2}\/\d{2}$/);
-    // Must NOT be the Gregorian date
-    expect(val).not.toContain('2026-');
-    expect(val).not.toContain('2026-06-30');
+    // endUntil 2026-06-30T20:30:00Z = Tehran 2026-07-01 00:00 = Jalali 1405/04/10.
+    // (Slicing the raw UTC date would wrongly give 2026-06-30 → 1405/04/09.)
+    expect(val).toBe('1405/04/10');
   });
 });
 

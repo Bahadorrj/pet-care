@@ -69,13 +69,16 @@ function tehranTodayJalali(): string {
 }
 
 /**
- * Convert a Gregorian YYYY-MM-DD string to Jalali yyyy/MM/dd for display.
- * Used to prefill edit-mode fields.
+ * Convert a stored UTC ISO instant to the Jalali yyyy/MM/dd of its Tehran
+ * calendar day (+03:30). Used to prefill edit-mode date fields. Slicing the raw
+ * UTC date is wrong: a Tehran 00:00 instant is the prior UTC day.
  */
-function gregorianToJalali(gregorianDateStr: string): string {
+function utcIsoToTehranJalali(isoUtc: string): string {
   try {
-    const [yr, mo, dy] = gregorianDateStr.split('-').map(Number);
-    return format(new Date(yr, mo - 1, dy), 'yyyy/MM/dd');
+    const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
+    const d = new Date(tehranMs);
+    const tehranMidnight = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    return format(tehranMidnight, 'yyyy/MM/dd');
   } catch {
     return '';
   }
@@ -146,7 +149,7 @@ export default function ChoreFormScreen() {
   // ponytail: text input, not a picker — no picker lib installed; future upgrade path
   const initOneOffDate =
     existing?.schedule.kind === 'one_off'
-      ? gregorianToJalali(new Date(existing.schedule.at).toISOString().slice(0, 10))
+      ? utcIsoToTehranJalali(existing.schedule.at)
       : tehranTodayJalali();
   const initOneOffTime =
     existing?.schedule.kind === 'one_off' ? '09:00' : '09:00';
@@ -157,7 +160,7 @@ export default function ChoreFormScreen() {
   const [endKind, setEndKind] = useState<EndKind>(existing?.endKind ?? 'never');
   // endUntilDate is Jalali yyyy/MM/dd; jalaliToGregorian converts on submit
   const initEndUntilDate = existing?.endUntil
-    ? gregorianToJalali(existing.endUntil.slice(0, 10))
+    ? utcIsoToTehranJalali(existing.endUntil)
     : '';
   const [endUntilDate, setEndUntilDate] = useState(initEndUntilDate);
   const [endCount, setEndCount] = useState(

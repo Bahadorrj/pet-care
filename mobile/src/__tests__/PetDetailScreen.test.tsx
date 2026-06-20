@@ -26,9 +26,10 @@ jest.mock('../store/petsStore', () => ({
 }));
 
 // choresStore imports listChores() (SQLite) at module load — mock it too.
-// PetDetailScreen uses useChoresStore to display a pet's chores section.
-// mockChores is mutable so individual tests can inject chores and exercise
-// the real useShallow selector path (Flag 1 fix coverage).
+// This mock calls the selector directly, so it verifies the selector LOGIC
+// (filter-by-petId), not the useShallow wrapper: the infinite-render guard
+// lives in zustand's useSyncExternalStore, which is bypassed here. The
+// useShallow fix itself is verified on device (see Flag 1).
 let mockChores: unknown[] = [];
 
 jest.mock('../store/choresStore', () => ({
@@ -96,10 +97,9 @@ describe('PetDetailScreen – edit', () => {
 });
 
 // ── Chores section ────────────────────────────────────────────────────────────
-// These tests exercise the REAL useShallow selector path (Flag 1).
-// mockChores is fed directly to the selector; if useShallow is absent the
-// identity check in zustand v5 would cause infinite re-renders and the test
-// would time out / throw an act() loop error.
+// These tests verify the selector logic (filter-by-petId) and the section's
+// render/navigation. They do NOT prove the useShallow infinite-render guard —
+// that path (zustand useSyncExternalStore) is bypassed by the store mock above.
 
 const CHORE_FIXTURE: Chore = {
   id: 'chore-1',
