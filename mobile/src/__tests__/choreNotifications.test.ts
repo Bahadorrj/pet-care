@@ -14,7 +14,7 @@
 // Notifee mock
 // ---------------------------------------------------------------------------
 
-const mockCancelAllNotifications = jest.fn().mockResolvedValue(undefined);
+const mockCancelTriggerNotifications = jest.fn().mockResolvedValue(undefined);
 const mockCreateChannel = jest.fn().mockResolvedValue('chores');
 const mockCreateTriggerNotification = jest.fn().mockResolvedValue(undefined);
 const mockRequestPermission = jest.fn().mockResolvedValue({ authorizationStatus: 1 });
@@ -22,7 +22,7 @@ const mockRequestPermission = jest.fn().mockResolvedValue({ authorizationStatus:
 jest.mock('@notifee/react-native', () => ({
   __esModule: true,
   default: {
-    cancelAllNotifications: (...args: unknown[]) => mockCancelAllNotifications(...args),
+    cancelTriggerNotifications: (...args: unknown[]) => mockCancelTriggerNotifications(...args),
     createChannel: (...args: unknown[]) => mockCreateChannel(...args),
     createTriggerNotification: (...args: unknown[]) => mockCreateTriggerNotification(...args),
     requestPermission: (...args: unknown[]) => mockRequestPermission(...args),
@@ -99,29 +99,29 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('syncNotifications – cancel then register', () => {
-  test('calls cancelAllNotifications before createTriggerNotification', async () => {
+  test('calls cancelTriggerNotifications before createTriggerNotification', async () => {
     mockListChores.mockReturnValue([makeChore()]);
 
     const { syncNotifications } = require('../lib/choreNotifications');
     await syncNotifications();
 
-    expect(mockCancelAllNotifications).toHaveBeenCalledTimes(1);
+    expect(mockCancelTriggerNotifications).toHaveBeenCalledTimes(1);
     // At least one trigger notification created for an active daily chore
     expect(mockCreateTriggerNotification).toHaveBeenCalled();
 
     // Cancel called before first create
-    const cancelOrder = mockCancelAllNotifications.mock.invocationCallOrder[0];
+    const cancelOrder = mockCancelTriggerNotifications.mock.invocationCallOrder[0];
     const createOrder = mockCreateTriggerNotification.mock.invocationCallOrder[0];
     expect(cancelOrder).toBeLessThan(createOrder);
   });
 
-  test('calls cancelAllNotifications even when no chores', async () => {
+  test('calls cancelTriggerNotifications even when no chores', async () => {
     mockListChores.mockReturnValue([]);
 
     const { syncNotifications } = require('../lib/choreNotifications');
     await syncNotifications();
 
-    expect(mockCancelAllNotifications).toHaveBeenCalledTimes(1);
+    expect(mockCancelTriggerNotifications).toHaveBeenCalledTimes(1);
     expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
   });
 });

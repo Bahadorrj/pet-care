@@ -3,7 +3,7 @@ import './src/i18n';
 // Import for side effects: opens the SQLite db and creates the pets table.
 import './src/db';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
@@ -28,13 +28,15 @@ export default function App() {
     'Vazirmatn-Bold': require('./assets/fonts/Vazirmatn-Bold.ttf'),
   });
 
-  // ponytail: init once; errors are fire-and-forget (permission denied is non-fatal)
+  // ponytail: init once; errors are fire-and-forget (permission denied is non-fatal).
+  // Gate on navReady so getInitialNotification's cold-start tap can actually navigate.
+  const [navReady, setNavReady] = useState(false);
   const notifInitDone = useRef(false);
   useEffect(() => {
-    if (!hasHydrated || !fontsLoaded || notifInitDone.current) return;
+    if (!hasHydrated || !fontsLoaded || !navReady || notifInitDone.current) return;
     notifInitDone.current = true;
     initChoreNotifications(navRef).catch(() => {});
-  }, [hasHydrated, fontsLoaded]);
+  }, [hasHydrated, fontsLoaded, navReady]);
 
   // Hold the first render until both the persisted session and the fonts are
   // ready, so the user never sees a flash of guest UI or unstyled system text.
@@ -44,7 +46,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer ref={navRef}>
+      <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
         <RootNavigator />
         <StatusBar style="auto" />
       </NavigationContainer>

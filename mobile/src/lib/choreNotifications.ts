@@ -46,8 +46,8 @@ export async function syncNotifications(): Promise<void> {
   entries.sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
   const scheduled = entries.slice(0, CAP);
 
-  // Cancel all existing trigger notifications first
-  await notifee.cancelAllNotifications();
+  // Cancel existing scheduled triggers first (leaves displayed/non-trigger ones alone)
+  await notifee.cancelTriggerNotifications();
 
   // Register each selected occurrence
   for (const { choreId, dueAt } of scheduled) {
