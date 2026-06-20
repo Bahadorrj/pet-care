@@ -74,7 +74,8 @@ function computeTodayOccurrences(chores: Chore[]): Occurrence[] {
   const logsEnd: ChoreLog[] =
     endDayPrefix !== startDayPrefix ? getLogsForDay(endDayPrefix) : [];
   const logs: ChoreLog[] = [...logsStart, ...logsEnd];
-  return occurrencesForDay(chores, logs, { start, end });
+  const activeChores = chores.filter((c) => c.active);
+  return occurrencesForDay(activeChores, logs, { start, end });
 }
 
 // ---------------------------------------------------------------------------

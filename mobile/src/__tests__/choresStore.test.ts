@@ -480,3 +480,42 @@ describe('choresStore – validation', () => {
     expect(useChoresStore.getState().chores).toHaveLength(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 8. toggleActive removes chore from Today occurrences
+// ---------------------------------------------------------------------------
+
+describe('choresStore – toggleActive excludes from occurrences', () => {
+  test('inactive chore is absent from occurrences; active chore remains present', async () => {
+    // Create both chores before "today" so their origin ≤ today
+    jest.setSystemTime(new Date('2026-06-18T10:00:00.000Z'));
+    const { useChoresStore } = loadFreshChoresStore();
+
+    // Add two active chores
+    await useChoresStore.getState().addChore(makeChoreInput());
+    await useChoresStore.getState().addChore(makeChoreInput());
+
+    const [choreA, choreB] = useChoresStore.getState().chores;
+
+    // Advance to "now" = Tehran 2026-06-20 10:00 (after 08:00 occurrence)
+    jest.setSystemTime(new Date('2026-06-20T06:30:00.000Z'));
+
+    // Both chores should appear before toggling
+    await useChoresStore.getState().load();
+    expect(
+      useChoresStore.getState().occurrences.some((o) => o.chore.id === choreA.id),
+    ).toBe(true);
+    expect(
+      useChoresStore.getState().occurrences.some((o) => o.chore.id === choreB.id),
+    ).toBe(true);
+
+    // Toggle choreA inactive
+    await useChoresStore.getState().toggleActive(choreA.id);
+
+    const occs = useChoresStore.getState().occurrences;
+    // Inactive chore must be absent
+    expect(occs.some((o) => o.chore.id === choreA.id)).toBe(false);
+    // Active chore must still be present
+    expect(occs.some((o) => o.chore.id === choreB.id)).toBe(true);
+  });
+});
