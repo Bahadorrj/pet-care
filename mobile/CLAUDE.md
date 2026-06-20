@@ -37,7 +37,15 @@ Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with two tabs: `Home` 
 
 **UI primitives** — `src/components/ui/` (`Button`, `TextField`). Reuse these rather than raw RN components.
 
+**Chores** — offline-first chore reminders (ADR-0016). Storage: `chores` table
+(rule as `schedule_json` TEXT discriminated union) + `chore_logs` table (done/skipped
+actions). Occurrences, today's agenda, missed status, streak, and adherence are
+**always derived** from the rule + logs at query time — never materialised to
+storage (approach B). Local notifications via `@notifee/react-native` (ADR-0008,
+first realisation). Tehran time = fixed **+03:30** offset.
+
 ## Conventions
 
 - Tests live in `src/__tests__/` (jest-expo + @testing-library/react-native). I18nManager RTL is asserted via spies, since the jest mock doesn't flip synchronously.
 - Async submit handlers use a `useRef` in-flight guard to block duplicate requests before state re-renders.
+- `@notifee/react-native` is a native module — mock it in tests; a real `expo run:android` build is required for notification verification.
