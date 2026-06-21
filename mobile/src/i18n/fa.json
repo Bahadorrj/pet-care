@@ -85,6 +85,7 @@
   "chores.status.missed": "از دست رفت",
   "chores.action.done": "انجام شد",
   "chores.action.skip": "رد شود",
+  "chores.action.snooze": "به تعویق",
   "chores.action.remove_time": "حذف ساعت",
   "chores.error.type_required": "انتخاب نوع کار الزامی است",
   "chores.error.schedule_required": "زمان‌بندی الزامی است",

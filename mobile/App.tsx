@@ -10,10 +10,16 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import notifee from '@notifee/react-native';
+
 import RootNavigator from './src/navigation/RootNavigator';
 import type { RootTabParamList } from './src/navigation/RootNavigator';
 import { useAuthStore } from './src/store/authStore';
-import { initChoreNotifications } from './src/lib/choreNotifications';
+import { initChoreNotifications, handleNotificationEvent } from './src/lib/choreNotifications';
+
+// Register background handler at module top-level (before render), per Notifee requirement.
+// Background JS context: handleNotificationEvent only touches db/chores — safe for headless.
+notifee.onBackgroundEvent(handleNotificationEvent);
 
 // Navigation ref shared with choreNotifications for tap-to-open Today tab.
 const navRef = createNavigationContainerRef<RootTabParamList>();

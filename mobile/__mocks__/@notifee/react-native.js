@@ -16,9 +16,10 @@ module.exports = {
     cancelTriggerNotifications: jest.fn().mockResolvedValue(undefined),
     createTriggerNotification: jest.fn().mockResolvedValue(undefined),
     onForegroundEvent: jest.fn().mockReturnValue(() => {}),
+    onBackgroundEvent: jest.fn().mockReturnValue(() => {}),
     getInitialNotification: jest.fn().mockResolvedValue(null),
   },
   TriggerType: { TIMESTAMP: 0 },
   AndroidImportance: { HIGH: 4 },
-  EventType: { PRESS: 1, DISMISSED: 0 },
+  EventType: { PRESS: 1, DISMISSED: 0, ACTION_PRESS: 2 },
 };

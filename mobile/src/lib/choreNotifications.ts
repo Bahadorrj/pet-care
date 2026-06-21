@@ -5,12 +5,14 @@
  * Public API:
  *   initChoreNotifications(navRef)  — call once at app start (channel + seam + tap handler)
  *   syncNotifications()             — cancel-all then re-register triggers for next 60 days
+ *   handleNotificationEvent(event)  — action/press handler (fore + background)
  */
 
 import notifee, { TriggerType, AndroidImportance, EventType } from '@notifee/react-native';
 import type { NavigationContainerRef } from '@react-navigation/native';
+import { t } from 'i18next';
 
-import { listChores } from '../db/chores';
+import { listChores, logOccurrence } from '../db/chores';
 import { expandOccurrences } from './choreSchedule';
 import { setChoresSyncNotifications } from '../store/choresStore';
 import type { RootTabParamList } from '../navigation/RootNavigator';
@@ -19,6 +21,25 @@ import type { RootTabParamList } from '../navigation/RootNavigator';
 const CHANNEL_ID = 'chores';
 const WINDOW_DAYS = 60;
 const CAP = 200;
+const SNOOZE_MS = 15 * 60 * 1000;
+
+// ponytail: one notification shape, reused by initial schedule + snooze reschedule
+function buildChoreNotification(choreId: string, dueAt: string) {
+  return {
+    title: 'PetCare',
+    body: 'یادآوری مراقبت از حیوان خانگی',
+    android: {
+      channelId: CHANNEL_ID,
+      pressAction: { id: 'default' },
+      actions: [
+        { title: t('chores.action.done'), pressAction: { id: 'done' } },
+        { title: t('chores.action.skip'), pressAction: { id: 'skip' } },
+        { title: t('chores.action.snooze'), pressAction: { id: 'snooze' } },
+      ],
+    },
+    data: { choreId, dueAt },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // syncNotifications — pure scheduling logic (unit-tested)
@@ -51,21 +72,49 @@ export async function syncNotifications(): Promise<void> {
 
   // Register each selected occurrence
   for (const { choreId, dueAt } of scheduled) {
-    await notifee.createTriggerNotification(
-      {
-        title: 'PetCare',
-        body: 'یادآوری مراقبت از حیوان خانگی',
-        android: {
-          channelId: CHANNEL_ID,
-          pressAction: { id: 'default' },
-        },
-        data: { choreId, dueAt },
-      },
-      {
-        type: TriggerType.TIMESTAMP,
-        timestamp: new Date(dueAt).getTime(),
-      },
-    );
+    await notifee.createTriggerNotification(buildChoreNotification(choreId, dueAt), {
+      type: TriggerType.TIMESTAMP,
+      timestamp: new Date(dueAt).getTime(),
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// handleNotificationEvent — maps Notifee events to side effects
+// Safe to call from both foreground and headless background contexts.
+// Background: must NOT touch zustand store or navigation (not alive in headless).
+// ---------------------------------------------------------------------------
+
+export async function handleNotificationEvent(event: {
+  type: number;
+  detail: {
+    pressAction?: { id: string };
+    notification?: { data?: { choreId?: string; dueAt?: string } };
+  };
+}): Promise<void> {
+  const { type, detail } = event;
+
+  if (type !== EventType.ACTION_PRESS) {
+    // PRESS (default body tap) and DISMISSED are handled elsewhere or ignored
+    return;
+  }
+
+  const actionId = detail.pressAction?.id;
+  const choreId = detail.notification?.data?.choreId;
+  const dueAt = detail.notification?.data?.dueAt;
+
+  if (!choreId || !dueAt) return;
+
+  if (actionId === 'done') {
+    logOccurrence(choreId, dueAt, 'done');
+  } else if (actionId === 'skip') {
+    logOccurrence(choreId, dueAt, 'skipped');
+  } else if (actionId === 'snooze') {
+    // ponytail: fixed +15min offset per plan; no log written on snooze
+    await notifee.createTriggerNotification(buildChoreNotification(choreId, dueAt), {
+      type: TriggerType.TIMESTAMP,
+      timestamp: Date.now() + SNOOZE_MS,
+    });
   }
 }
 
@@ -89,10 +138,14 @@ export async function initChoreNotifications(
   // Wire the store seam so mutations re-sync automatically
   setChoresSyncNotifications(syncNotifications);
 
-  // Handle tap when app is already open (foreground)
-  notifee.onForegroundEvent(({ type }) => {
-    if (type === EventType.PRESS && navRef.isReady()) {
+  // Consolidated foreground handler: default press navigates, action buttons act.
+  // Mutually exclusive — a body PRESS never falls through to the action handler.
+  notifee.onForegroundEvent((event) => {
+    if (event.type === EventType.PRESS && navRef.isReady()) {
       navRef.navigate('Today');
+    } else if (event.type === EventType.ACTION_PRESS) {
+      // fire-and-forget; handler is self-contained (db write / reschedule)
+      handleNotificationEvent(event);
     }
   });
 

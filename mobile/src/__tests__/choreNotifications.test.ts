@@ -18,6 +18,8 @@ const mockCancelTriggerNotifications = jest.fn().mockResolvedValue(undefined);
 const mockCreateChannel = jest.fn().mockResolvedValue('chores');
 const mockCreateTriggerNotification = jest.fn().mockResolvedValue(undefined);
 const mockRequestPermission = jest.fn().mockResolvedValue({ authorizationStatus: 1 });
+const mockOnForegroundEvent = jest.fn().mockReturnValue(() => {});
+const mockOnBackgroundEvent = jest.fn().mockReturnValue(() => {});
 
 jest.mock('@notifee/react-native', () => ({
   __esModule: true,
@@ -26,10 +28,13 @@ jest.mock('@notifee/react-native', () => ({
     createChannel: (...args: unknown[]) => mockCreateChannel(...args),
     createTriggerNotification: (...args: unknown[]) => mockCreateTriggerNotification(...args),
     requestPermission: (...args: unknown[]) => mockRequestPermission(...args),
+    onForegroundEvent: (...args: unknown[]) => mockOnForegroundEvent(...args),
+    onBackgroundEvent: (...args: unknown[]) => mockOnBackgroundEvent(...args),
+    getInitialNotification: jest.fn().mockResolvedValue(null),
   },
   TriggerType: { TIMESTAMP: 0 },
   AndroidImportance: { HIGH: 4 },
-  EventType: { PRESS: 1, DISMISSED: 0 },
+  EventType: { PRESS: 1, DISMISSED: 0, ACTION_PRESS: 2 },
 }));
 
 // ---------------------------------------------------------------------------
@@ -37,9 +42,11 @@ jest.mock('@notifee/react-native', () => ({
 // ---------------------------------------------------------------------------
 
 const mockListChores = jest.fn();
+const mockLogOccurrence = jest.fn().mockReturnValue({ id: 'log-1', choreId: 'chore-1', dueAt: '', status: 'done', createdAt: '' });
 
 jest.mock('../db/chores', () => ({
   listChores: (...args: unknown[]) => mockListChores(...args),
+  logOccurrence: (...args: unknown[]) => mockLogOccurrence(...args),
 }));
 
 // ---------------------------------------------------------------------------
@@ -351,5 +358,81 @@ describe('syncNotifications – multiple chores merged', () => {
     const ids = mockCreateTriggerNotification.mock.calls.map((c) => c[0].data?.choreId);
     expect(ids).toContain('c1');
     expect(ids).toContain('c2');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. handleNotificationEvent — action button + default press handling
+// ---------------------------------------------------------------------------
+
+describe('handleNotificationEvent – ACTION_PRESS done', () => {
+  test('calls logOccurrence with status "done" and does not create a trigger', async () => {
+    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    await handleNotificationEvent({
+      type: 2, // EventType.ACTION_PRESS
+      detail: {
+        pressAction: { id: 'done' },
+        notification: { data: { choreId: 'chore-1', dueAt: '2026-06-21T06:30:00.000Z' } },
+      },
+    });
+
+    expect(mockLogOccurrence).toHaveBeenCalledTimes(1);
+    expect(mockLogOccurrence).toHaveBeenCalledWith('chore-1', '2026-06-21T06:30:00.000Z', 'done');
+    expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleNotificationEvent – ACTION_PRESS skip', () => {
+  test('calls logOccurrence with status "skipped" and does not create a trigger', async () => {
+    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    await handleNotificationEvent({
+      type: 2, // EventType.ACTION_PRESS
+      detail: {
+        pressAction: { id: 'skip' },
+        notification: { data: { choreId: 'chore-2', dueAt: '2026-06-21T07:00:00.000Z' } },
+      },
+    });
+
+    expect(mockLogOccurrence).toHaveBeenCalledTimes(1);
+    expect(mockLogOccurrence).toHaveBeenCalledWith('chore-2', '2026-06-21T07:00:00.000Z', 'skipped');
+    expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
+  });
+});
+
+describe('handleNotificationEvent – ACTION_PRESS snooze', () => {
+  test('creates a +15min trigger with same data, does NOT call logOccurrence', async () => {
+    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    const dueAt = '2026-06-21T06:30:00.000Z';
+    await handleNotificationEvent({
+      type: 2, // EventType.ACTION_PRESS
+      detail: {
+        pressAction: { id: 'snooze' },
+        notification: { data: { choreId: 'chore-3', dueAt } },
+      },
+    });
+
+    expect(mockLogOccurrence).not.toHaveBeenCalled();
+    expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
+    const [notif, trigger] = mockCreateTriggerNotification.mock.calls[0];
+    expect(notif.data).toEqual({ choreId: 'chore-3', dueAt });
+    // Trigger should be ~15min from now (Date.now() = NOW_UTC in fake timers)
+    const expectedTimestamp = NOW_UTC.getTime() + 15 * 60 * 1000;
+    expect(trigger.timestamp).toBe(expectedTimestamp);
+    expect(trigger.type).toBe(0); // TriggerType.TIMESTAMP
+  });
+});
+
+describe('handleNotificationEvent – PRESS (default body tap)', () => {
+  test('does not call logOccurrence or createTriggerNotification', async () => {
+    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    await handleNotificationEvent({
+      type: 1, // EventType.PRESS
+      detail: {
+        notification: { data: { choreId: 'chore-4', dueAt: '2026-06-21T06:30:00.000Z' } },
+      },
+    });
+
+    expect(mockLogOccurrence).not.toHaveBeenCalled();
+    expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
   });
 });
