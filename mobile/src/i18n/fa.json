@@ -101,5 +101,7 @@
   "chores.weekday.fri": "ج",
   "chores.weekday.sat": "ش",
   "today.empty_title": "امروز کاری برای انجام ندارید",
-  "today.empty_subtitle": "همه‌چیز رو به‌راه است!"
+  "today.empty_subtitle": "همه‌چیز رو به‌راه است!",
+  "chores.stat.streak": "{{count}} بار متوالی",
+  "chores.stat.adherence": "{{percent}}٪ پایبندی"
 }

@@ -263,6 +263,89 @@ export function expandOccurrences(chore: Chore, fromUtc: Date, toUtc: Date): str
 }
 
 // ---------------------------------------------------------------------------
+// streak
+// ---------------------------------------------------------------------------
+
+/**
+ * Count of consecutive past-due occurrences, walking BACKWARD from `now`,
+ * that each have a 'done' log. Stops at the first occurrence that is skipped
+ * OR has no log (missed). Future occurrences are ignored.
+ *
+ * // ponytail: occurrence-level, not day-level — multi-time chores count each
+ * time slot as its own streak unit.
+ */
+export function streak(chore: Chore, logs: ChoreLog[], now: Date = new Date()): number {
+  // ponytail: 365-day lookback cap; streaks longer than a year are under-counted
+  const windowStart = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+  const all = expandOccurrences(chore, windowStart, now); // dueAt < now (half-open)
+  // Also include the exact-now boundary: expandOccurrences uses [from, to)
+  // so dueAt === now is excluded — that's correct (future = not yet due).
+
+  // Build a done-log set for O(1) lookup. A non-done occurrence (skipped or
+  // missing) breaks the streak, so only 'done' needs tracking.
+  const doneSet = new Set<string>();
+  for (const log of logs) {
+    if (log.choreId === chore.id && log.status === 'done') doneSet.add(log.dueAt);
+  }
+
+  // `all` is already past-due (expandOccurrences is half-open [from, now), so
+  // dueAt === now is excluded). Sort descending (most-recent first), walk until
+  // a non-done. ISO UTC strings sort lexicographically === chronologically.
+  const pastDue = all.sort().reverse();
+
+  let count = 0;
+  for (const dueAt of pastDue) {
+    if (doneSet.has(dueAt)) {
+      count++;
+    } else {
+      // skipped or missing-log → break
+      break;
+    }
+  }
+  return count;
+}
+
+// ---------------------------------------------------------------------------
+// adherence
+// ---------------------------------------------------------------------------
+
+/**
+ * Ratio of done occurrences to total past-due occurrences in [since, now].
+ * Returns null when there are no past-due occurrences in that window.
+ * 'skipped' and missing-log both count as not-done.
+ */
+export function adherence(
+  chore: Chore,
+  logs: ChoreLog[],
+  since: Date,
+  now: Date = new Date(),
+): number | null {
+  // Expand the full window to collect all scheduled occurrences
+  const all = expandOccurrences(chore, since, now);
+
+  const nowMs = now.getTime();
+  const sinceMs = since.getTime();
+
+  // Filter to past-due in [since, now]
+  const due = all.filter((dueAt) => {
+    const ms = new Date(dueAt).getTime();
+    return ms >= sinceMs && ms <= nowMs;
+  });
+
+  if (due.length === 0) return null;
+
+  const doneSet = new Set<string>();
+  for (const log of logs) {
+    if (log.choreId === chore.id && log.status === 'done') {
+      doneSet.add(log.dueAt);
+    }
+  }
+
+  const doneCount = due.filter((dueAt) => doneSet.has(dueAt)).length;
+  return doneCount / due.length;
+}
+
+// ---------------------------------------------------------------------------
 // occurrencesForDay
 // ---------------------------------------------------------------------------
 

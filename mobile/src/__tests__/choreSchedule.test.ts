@@ -7,6 +7,8 @@ import {
   expandOccurrences,
   occurrencesForDay,
   toUtcIso,
+  streak,
+  adherence,
 } from '../lib/choreSchedule';
 import type { Chore, ChoreLog, Occurrence } from '../db/types';
 
@@ -583,5 +585,247 @@ describe('occurrencesForDay', () => {
     const now = new Date('2025-06-20T10:00:00.000Z');
     const result = occurrencesForDay([], [], { start: dayStart, end: dayEnd }, now);
     expect(result).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// streak
+// ---------------------------------------------------------------------------
+
+describe('streak', () => {
+  // daily_times 08:00 Tehran = 04:30 UTC; 20:00 Tehran = 16:30 UTC
+  const dailyChore = makeChore({
+    id: 'c-streak',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    schedule: { kind: 'daily_times', times: ['08:00'] },
+  });
+
+  test('returns 0 when there are no past-due occurrences', () => {
+    // now is before any occurrence could have been due
+    const now = new Date('2025-01-01T00:00:00.000Z');
+    expect(streak(dailyChore, [], now)).toBe(0);
+  });
+
+  test('returns 0 when there are past-due occurrences but none logged', () => {
+    // Several occurrences in the past but no logs → first is missed → streak 0
+    const now = new Date('2025-06-20T10:00:00.000Z'); // after 04:30 Jun 20
+    expect(streak(dailyChore, [], now)).toBe(0);
+  });
+
+  test('returns 1 when last past-due occurrence is done but the one before is missed', () => {
+    // Jun 20 08:00 Tehran = 2025-06-20T04:30Z (past, done)
+    // Jun 19 08:00 Tehran = 2025-06-19T04:30Z (past, missed)
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done')];
+    expect(streak(dailyChore, logs, now)).toBe(1);
+  });
+
+  test('returns 0 when last past-due occurrence is skipped', () => {
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'skipped')];
+    expect(streak(dailyChore, logs, now)).toBe(0);
+  });
+
+  test('counts consecutive done occurrences walking backward', () => {
+    // Jun 18, 19, 20 all done
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-streak', '2025-06-18T04:30:00.000Z', 'done'),
+      makeLog('c-streak', '2025-06-19T04:30:00.000Z', 'done'),
+      makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done'),
+    ];
+    expect(streak(dailyChore, logs, now)).toBe(3);
+  });
+
+  test('stops at a skipped occurrence mid-run', () => {
+    // Jun 18 done, Jun 19 skipped, Jun 20 done → streak = 1 (only Jun 20)
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-streak', '2025-06-18T04:30:00.000Z', 'done'),
+      makeLog('c-streak', '2025-06-19T04:30:00.000Z', 'skipped'),
+      makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done'),
+    ];
+    expect(streak(dailyChore, logs, now)).toBe(1);
+  });
+
+  test('stops at a missing-log occurrence mid-run (missed counts as break)', () => {
+    // Jun 18 done, Jun 19 no log (missed), Jun 20 done → streak = 1
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-streak', '2025-06-18T04:30:00.000Z', 'done'),
+      makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done'),
+    ];
+    expect(streak(dailyChore, logs, now)).toBe(1);
+  });
+
+  test('ignores future occurrences — only past-due count', () => {
+    // now is between 08:00 and 20:00 Tehran on Jun 20
+    // 20:00 Tehran on Jun 20 = 2025-06-20T16:30Z which is in the future
+    const multiTimeChore = makeChore({
+      id: 'c-multi',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
+    });
+    const now = new Date('2025-06-20T10:00:00.000Z'); // after 04:30 but before 16:30
+    const logs = [makeLog('c-multi', '2025-06-20T04:30:00.000Z', 'done')];
+    // Only 1 past-due occurrence (08:00), and it's done → streak = 1
+    // 20:00 occurrence is future → not counted
+    expect(streak(multiTimeChore, logs, now)).toBe(1);
+  });
+
+  test('multi-time chore: each time is its own occurrence (occurrence-level, not day-level)', () => {
+    // // ponytail: occurrence-level streak — a day with 2 times = 2 separate occurrences
+    // Jun 20 08:00 done, Jun 20 20:00 done, Jun 21 08:00 done, Jun 21 20:00 done
+    const multiTimeChore = makeChore({
+      id: 'c-multi2',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
+    });
+    // now is after both occurrences on Jun 21
+    const now = new Date('2025-06-21T20:00:00.000Z');
+    const logs = [
+      makeLog('c-multi2', '2025-06-20T04:30:00.000Z', 'done'),
+      makeLog('c-multi2', '2025-06-20T16:30:00.000Z', 'done'),
+      makeLog('c-multi2', '2025-06-21T04:30:00.000Z', 'done'),
+      makeLog('c-multi2', '2025-06-21T16:30:00.000Z', 'done'),
+    ];
+    expect(streak(multiTimeChore, logs, now)).toBe(4);
+  });
+
+  test('after_n bounded chore: streak respects the bound (no occurrences after endCount)', () => {
+    const boundedChore = makeChore({
+      id: 'c-bounded',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      endKind: 'after_n',
+      endCount: 2,
+      schedule: { kind: 'daily_times', times: ['08:00'] },
+    });
+    // Only occurrences: Jan 1 and Jan 2
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-bounded', '2025-01-01T04:30:00.000Z', 'done'),
+      makeLog('c-bounded', '2025-01-02T04:30:00.000Z', 'done'),
+    ];
+    expect(streak(boundedChore, logs, now)).toBe(2);
+  });
+
+  test('until bounded chore: streak respects until date', () => {
+    const untilChore = makeChore({
+      id: 'c-until',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      endKind: 'until',
+      endUntil: '2025-06-18T04:30:00.000Z', // only Jun 18 08:00 Tehran = 04:30Z is included
+      schedule: { kind: 'daily_times', times: ['08:00'] },
+    });
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-until', '2025-06-18T04:30:00.000Z', 'done'),
+    ];
+    // Jun 19 and Jun 20 occurrences are beyond endUntil — not generated → only Jun 18
+    expect(streak(untilChore, logs, now)).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// adherence
+// ---------------------------------------------------------------------------
+
+describe('adherence', () => {
+  const dailyChore = makeChore({
+    id: 'c-adh',
+    createdAt: '2025-01-01T00:00:00.000Z',
+    schedule: { kind: 'daily_times', times: ['08:00'] },
+  });
+
+  test('returns null when no past-due occurrences in [since, now]', () => {
+    // since and now are before any occurrence
+    const since = new Date('2025-01-01T00:00:00.000Z');
+    const now = new Date('2025-01-01T00:00:00.000Z');
+    expect(adherence(dailyChore, [], since, now)).toBeNull();
+  });
+
+  test('returns 0 when all due occurrences are missed (no logs)', () => {
+    const since = new Date('2025-06-18T00:00:00.000Z');
+    const now = new Date('2025-06-20T10:00:00.000Z'); // Jun 18, 19, 20 04:30Z are past-due
+    expect(adherence(dailyChore, [], since, now)).toBe(0);
+  });
+
+  test('returns 1 when all due occurrences are done', () => {
+    const since = new Date('2025-06-18T00:00:00.000Z');
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-adh', '2025-06-18T04:30:00.000Z', 'done'),
+      makeLog('c-adh', '2025-06-19T04:30:00.000Z', 'done'),
+      makeLog('c-adh', '2025-06-20T04:30:00.000Z', 'done'),
+    ];
+    expect(adherence(dailyChore, logs, since, now)).toBe(1);
+  });
+
+  test('returns correct fraction (2 done out of 3 due)', () => {
+    const since = new Date('2025-06-18T00:00:00.000Z');
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-adh', '2025-06-18T04:30:00.000Z', 'done'),
+      makeLog('c-adh', '2025-06-19T04:30:00.000Z', 'done'),
+      // Jun 20 missed (no log)
+    ];
+    expect(adherence(dailyChore, logs, since, now)).toBeCloseTo(2 / 3);
+  });
+
+  test('skipped counts as not-done (lowers adherence)', () => {
+    const since = new Date('2025-06-18T00:00:00.000Z');
+    const now = new Date('2025-06-20T10:00:00.000Z');
+    const logs = [
+      makeLog('c-adh', '2025-06-18T04:30:00.000Z', 'done'),
+      makeLog('c-adh', '2025-06-19T04:30:00.000Z', 'skipped'), // not done
+      makeLog('c-adh', '2025-06-20T04:30:00.000Z', 'done'),
+    ];
+    // 2 done / 3 total
+    expect(adherence(dailyChore, logs, since, now)).toBeCloseTo(2 / 3);
+  });
+
+  test('future occurrences (dueAt > now) are excluded from denominator', () => {
+    const since = new Date('2025-06-20T00:00:00.000Z');
+    // now is before 20:00 occurrence on Jun 20
+    const now = new Date('2025-06-20T10:00:00.000Z'); // 04:30 is past, 16:30 would be future
+    const multiTimeChore = makeChore({
+      id: 'c-adh-multi',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
+    });
+    // Only 04:30Z occurrence is past-due; 16:30Z is future → denominator = 1
+    const logs = [makeLog('c-adh-multi', '2025-06-20T04:30:00.000Z', 'done')];
+    expect(adherence(multiTimeChore, logs, since, now)).toBe(1);
+  });
+
+  test('multi-time chore: correct fraction with partial done', () => {
+    const since = new Date('2025-06-20T00:00:00.000Z');
+    const now = new Date('2025-06-21T00:00:00.000Z'); // both Jun 20 times are past
+    const multiTimeChore = makeChore({
+      id: 'c-adh-m2',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
+    });
+    const logs = [makeLog('c-adh-m2', '2025-06-20T04:30:00.000Z', 'done')]; // 1 of 2 done
+    expect(adherence(multiTimeChore, logs, since, now)).toBeCloseTo(0.5);
+  });
+
+  test('after_n bounded chore: only includes occurrences up to the bound', () => {
+    const boundedChore = makeChore({
+      id: 'c-adh-bounded',
+      createdAt: '2025-01-01T00:00:00.000Z',
+      endKind: 'after_n',
+      endCount: 3,
+      schedule: { kind: 'daily_times', times: ['08:00'] },
+    });
+    // 3 occurrences: Jan 1, 2, 3
+    const since = new Date('2025-01-01T00:00:00.000Z');
+    const now = new Date('2025-06-20T00:00:00.000Z');
+    const logs = [
+      makeLog('c-adh-bounded', '2025-01-01T04:30:00.000Z', 'done'),
+      makeLog('c-adh-bounded', '2025-01-02T04:30:00.000Z', 'done'),
+      // Jan 3 missed
+    ];
+    expect(adherence(boundedChore, logs, since, now)).toBeCloseTo(2 / 3);
   });
 });

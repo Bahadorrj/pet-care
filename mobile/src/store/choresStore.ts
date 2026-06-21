@@ -6,6 +6,7 @@ import {
   deleteChore as dbDeleteChore,
   logOccurrence,
   getLogsForDay,
+  getLogsForChore as dbGetLogsForChore,
 } from '../db/chores';
 import { occurrencesForDay, toUtcIso } from '../lib/choreSchedule';
 import type { Chore, ChoreLog, Occurrence, Schedule } from '../db/types';
@@ -92,6 +93,9 @@ interface ChoresState {
   /** Reload chores from db and recompute today's occurrences. */
   load: () => Promise<void>;
 
+  /** Read all logs for a specific chore (synchronous db call). */
+  getLogsForChore: (choreId: string) => ChoreLog[];
+
   addChore: (input: ChoreInput) => Promise<void>;
   updateChore: (id: string, data: ChoreUpdate) => Promise<void>;
   deleteChore: (id: string) => Promise<void>;
@@ -113,6 +117,8 @@ export const useChoresStore = create<ChoresState>((set, get) => {
       const occurrences = computeTodayOccurrences(chores);
       set({ chores, occurrences });
     },
+
+    getLogsForChore: (choreId) => dbGetLogsForChore(choreId),
 
     addChore: async (input) => {
       validateSchedule(input.schedule);

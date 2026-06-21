@@ -10,9 +10,10 @@ import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
 import { useChoresStore } from '../../store/choresStore';
 import { getPet } from '../../db/pets';
+import { streak, adherence } from '../../lib/choreSchedule';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
 import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
-import type { ChoreType } from '../../db/types';
+import type { Chore, ChoreLog, ChoreType } from '../../db/types';
 
 type PetDetailRouteProp = RouteProp<PetsStackParamList, 'PetDetail'>;
 
@@ -35,6 +36,45 @@ const CHORE_TYPE_ICON: Record<ChoreType, string> = {
   other: '📋',
 };
 
+// 30-day adherence window
+const ADHERENCE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** Secondary stats line per chore row: streak + adherence (hidden if no history). */
+function ChoreStats({
+  chore,
+  getLogsForChore,
+  t,
+}: {
+  chore: Chore;
+  getLogsForChore: (id: string) => ChoreLog[];
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}) {
+  const now = new Date();
+  const since = new Date(now.getTime() - ADHERENCE_WINDOW_MS);
+  const logs = getLogsForChore(chore.id);
+
+  const streakCount = streak(chore, logs, now);
+  const adh = adherence(chore, logs, since, now);
+
+  // Render if either stat has a value; skips the new-chore case (0 streak / null
+  // adherence). Partial states (streak-only or adherence-only) are intentional.
+  if (adh === null && streakCount === 0) return null;
+
+  const parts: string[] = [];
+  if (streakCount > 0) {
+    parts.push(t('chores.stat.streak', { count: streakCount }));
+  }
+  if (adh !== null) {
+    parts.push(t('chores.stat.adherence', { percent: Math.round(adh * 100) }));
+  }
+
+  return (
+    <Text style={styles.choreStats} accessibilityLabel={parts.join(' · ')}>
+      {parts.join(' · ')}
+    </Text>
+  );
+}
+
 export default function PetDetailScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
@@ -47,6 +87,7 @@ export default function PetDetailScreen() {
 
   // Chores for this pet — useShallow prevents infinite re-render from new array ref each call (zustand v5)
   const petChores = useChoresStore(useShallow((s) => s.chores.filter((c) => c.petId === petId)));
+  const getLogsForChore = useChoresStore((s) => s.getLogsForChore);
 
   if (!pet) return null;
 
@@ -146,6 +187,7 @@ export default function PetDetailScreen() {
                     {chore.title ?? t(`chores.type.${chore.type}`)}
                   </Text>
                   <Text style={styles.choreSchedule}>{scheduleLabel(t, chore)}</Text>
+                  <ChoreStats chore={chore} getLogsForChore={getLogsForChore} t={t} />
                 </View>
               </Pressable>
             ))
@@ -281,6 +323,12 @@ const styles = StyleSheet.create({
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
+  },
+  choreStats: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkFaint,
   },
   choresEmpty: {
     fontSize: typography.caption.fontSize,
