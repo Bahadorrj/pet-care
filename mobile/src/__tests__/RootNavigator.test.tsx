@@ -2,8 +2,8 @@
  * RootNavigator tests
  *
  * Verifies:
- * - Both tab labels render in Farsi ("خانه" and "پروفایل").
- * - Home tab is the default/active tab on first render (home-logo testID visible).
+ * - All three tab labels render in Farsi ("امروز", "حیوانات من", "پروفایل").
+ * - Today is the default/active tab on first render (today-empty testID visible).
  *
  * expo-secure-store is mocked to prevent native module access (authStore calls
  * hydrate() at module load which hits SecureStore).
@@ -36,6 +36,23 @@ jest.mock('../store/petsStore', () => ({
   usePetsStore: jest.fn().mockReturnValue([]),
 }));
 
+// Today is the default tab → TodayScreen renders on mount. Mock choresStore so it
+// shows the empty state without touching SQLite or the real derived occurrences.
+jest.mock('../store/choresStore', () => ({
+  useChoresStore: (
+    selector: (s: {
+      occurrences: unknown[];
+      load: () => Promise<void>;
+      markOccurrence: () => Promise<void>;
+    }) => unknown,
+  ) =>
+    selector({
+      occurrences: [],
+      load: jest.fn().mockResolvedValue(undefined),
+      markOccurrence: jest.fn().mockResolvedValue(undefined),
+    }),
+}));
+
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
 import '../i18n';
 import { useAuthStore } from '../store/authStore';
@@ -57,9 +74,9 @@ function renderNavigator() {
 }
 
 describe('RootNavigator', () => {
-  test('renders the Home tab label in Farsi', async () => {
+  test('renders the Today tab label in Farsi', async () => {
     renderNavigator();
-    await waitFor(() => expect(screen.getByText('خانه')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('امروز')).toBeTruthy());
   });
 
   test('renders the Pets tab label in Farsi', async () => {
@@ -75,14 +92,14 @@ describe('RootNavigator', () => {
   test('renders 3 tabs total', async () => {
     renderNavigator();
     await waitFor(() => {
-      expect(screen.getByText('خانه')).toBeTruthy();
+      expect(screen.getByText('امروز')).toBeTruthy();
       expect(screen.getByText('حیوانات من')).toBeTruthy();
       expect(screen.getByText('پروفایل')).toBeTruthy();
     });
   });
 
-  test('Home tab is active by default (home-logo testID is present)', async () => {
+  test('Today tab is active by default (today-empty testID is present)', async () => {
     renderNavigator();
-    await waitFor(() => expect(screen.getByTestId('home-logo')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('today-empty')).toBeTruthy());
   });
 });
