@@ -328,7 +328,8 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
-    color: colors.inkFaint,
+    // inkMuted (not inkFaint) — this is real content; inkFaint ~2.2:1 fails WCAG AA
+    color: colors.inkMuted,
   },
   choresEmpty: {
     fontSize: typography.caption.fontSize,

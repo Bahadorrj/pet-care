@@ -212,11 +212,11 @@ describe('ChoreFormScreen – Add – one_off', () => {
 
     await press(getByTestId('choreform-type-vet'));
     await press(getByTestId('choreform-schedule-one_off'));
-    // Type garbage — jalaliToGregorian returns null → throws schedule_empty
+    // Type garbage — form-level validation rejects with invalid_date before submit
     await changeText(getByTestId('choreform-oneoff-date'), 'not-a-date');
     await press(getByTestId('choreform-submit'));
 
-    await waitFor(() => expect(getByText('زمان‌بندی الزامی است')).toBeTruthy());
+    await waitFor(() => expect(getByText('تاریخ باید به شکل yyyy/MM/dd باشد')).toBeTruthy());
     expect(mockAddChore).not.toHaveBeenCalled();
   });
 });
@@ -241,6 +241,19 @@ describe('ChoreFormScreen – end-until Jalali input', () => {
     expect(call.endKind).toBe('until');
     // Tehran midnight 00:00 on 2026-07-01 = UTC 2026-06-30T20:30:00.000Z
     expect(call.endUntil).toBe('2026-06-30T20:30:00.000Z');
+  });
+
+  test('end-until "until" with an invalid date is rejected, not silently saved as never', async () => {
+    mockAddChore.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await render(<ChoreFormScreen />);
+
+    await press(getByTestId('choreform-type-feeding'));
+    await press(getByTestId('choreform-end-until'));
+    await changeText(getByTestId('choreform-end-until-date'), 'garbage');
+    await press(getByTestId('choreform-submit'));
+
+    await waitFor(() => expect(getByText('تاریخ باید به شکل yyyy/MM/dd باشد')).toBeTruthy());
+    expect(mockAddChore).not.toHaveBeenCalled();
   });
 });
 
@@ -339,11 +352,11 @@ describe('ChoreFormScreen – validation – schedule_empty from store', () => {
 
     await press(getByTestId('choreform-type-play'));
     await press(getByTestId('choreform-schedule-weekdays'));
-    // No days selected — store will throw schedule_empty
+    // No days selected — form-level validation rejects with days_required
     await press(getByTestId('choreform-submit'));
 
     await waitFor(() =>
-      expect(getByText('زمان‌بندی الزامی است')).toBeTruthy(),
+      expect(getByText('حداقل یک روز الزامی است')).toBeTruthy(),
     );
     expect(mockGoBack).not.toHaveBeenCalled();
   });

@@ -110,6 +110,11 @@ function jalaliToGregorian(jalaliStr: string): string | null {
   }
 }
 
+/** True if `s` is a valid 24-hour HH:MM wall-clock string. */
+function isValidTime(s: string): boolean {
+  return /^([01]?\d|2[0-3]):[0-5]\d$/.test(s.trim());
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ChoreFormScreen() {
@@ -181,6 +186,7 @@ export default function ChoreFormScreen() {
   // ── Errors ───────────────────────────────────────────────────────────────────
   const [typeError, setTypeError] = useState('');
   const [scheduleError, setScheduleError] = useState('');
+  const [endError, setEndError] = useState('');
 
   // ── Submission state ─────────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -240,6 +246,40 @@ export default function ChoreFormScreen() {
       return;
     }
     setTypeError('');
+
+    // ── Field-format validation (engine assumes valid HH:MM + Jalali dates) ──
+    const needsTimes = scheduleKind === 'daily_times' || scheduleKind === 'weekdays';
+    if (scheduleKind === 'weekdays' && weekdays.length === 0) {
+      setScheduleError(t('chores.error.days_required'));
+      return;
+    }
+    if (needsTimes && (times.length === 0 || !times.every(isValidTime))) {
+      setScheduleError(t('chores.error.invalid_time'));
+      return;
+    }
+    if (scheduleKind === 'one_off') {
+      if (!jalaliToGregorian(oneOffDate)) {
+        setScheduleError(t('chores.error.invalid_date'));
+        return;
+      }
+      if (!isValidTime(oneOffTime)) {
+        setScheduleError(t('chores.error.invalid_time'));
+        return;
+      }
+    }
+    setScheduleError('');
+
+    // End-condition validation — an invalid "until" date must not silently
+    // collapse to "never"; an after_n needs a positive count.
+    if (endKind === 'until' && !jalaliToGregorian(endUntilDate)) {
+      setEndError(t('chores.error.invalid_date'));
+      return;
+    }
+    if (endKind === 'after_n' && !(parseInt(endCount, 10) > 0)) {
+      setEndError(t('chores.error.count_required'));
+      return;
+    }
+    setEndError('');
 
     // Build end condition
     const resolvedEndKind: EndKind = endKind;
@@ -595,7 +635,10 @@ export default function ChoreFormScreen() {
                 <Pressable
                   key={ek}
                   testID={`choreform-end-${ek}`}
-                  onPress={() => setEndKind(ek)}
+                  onPress={() => {
+                    setEndKind(ek);
+                    if (endError) setEndError('');
+                  }}
                   style={[styles.chip, endKind === ek && styles.chipSelected]}
                   accessibilityRole="button"
                   accessibilityState={{ selected: endKind === ek }}
@@ -618,7 +661,10 @@ export default function ChoreFormScreen() {
                   testID="choreform-end-until-date"
                   placeholder={t('chores.field.date_hint')}
                   value={endUntilDate}
-                  onChangeText={setEndUntilDate}
+                  onChangeText={(v) => {
+                    setEndUntilDate(v);
+                    if (endError) setEndError('');
+                  }}
                   keyboardType="numeric"
                   accessibilityLabel={t('chores.end.until')}
                 />
@@ -631,12 +677,17 @@ export default function ChoreFormScreen() {
                   testID="choreform-end-count"
                   placeholder="10"
                   value={endCount}
-                  onChangeText={setEndCount}
+                  onChangeText={(v) => {
+                    setEndCount(v);
+                    if (endError) setEndError('');
+                  }}
                   keyboardType="numeric"
                   accessibilityLabel={t('chores.end.after_n')}
                 />
               </View>
             )}
+
+            {endError !== '' && <Text style={styles.errorText}>{endError}</Text>}
           </View>
 
           {/* ── Submit ─────────────────────────────────────────────────────── */}

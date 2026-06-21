@@ -52,7 +52,7 @@ const CHORE_TYPE_ICON: Record<ChoreType, string> = {
 
 // Status badge colors
 const STATUS_COLOR: Record<Occurrence['status'], string> = {
-  pending: colors.inkFaint,
+  pending: colors.inkMuted, // inkFaint ~2.2:1 fails WCAG AA for the badge text
   missed: colors.danger,
   done: colors.primary,
   skipped: colors.inkMuted,
@@ -268,7 +268,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     minWidth: 72,
+    minHeight: 44, // WCAG touch target — these are the primary daily action
     alignItems: 'center',
+    justifyContent: 'center',
   },
   actionDone: {
     backgroundColor: colors.primarySoft,
