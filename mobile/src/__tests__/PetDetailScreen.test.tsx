@@ -31,10 +31,11 @@ jest.mock('../store/petsStore', () => ({
 // lives in zustand's useSyncExternalStore, which is bypassed here. The
 // useShallow fix itself is verified on device (see Flag 1).
 let mockChores: unknown[] = [];
+const mockGetLogsForChore = jest.fn().mockReturnValue([]);
 
 jest.mock('../store/choresStore', () => ({
-  useChoresStore: (selector: (s: { chores: unknown[] }) => unknown) =>
-    selector({ chores: mockChores }),
+  useChoresStore: (selector: (s: { chores: unknown[]; getLogsForChore: typeof mockGetLogsForChore }) => unknown) =>
+    selector({ chores: mockChores, getLogsForChore: mockGetLogsForChore }),
 }));
 
 // ── DB mock ───────────────────────────────────────────────────────────────────
@@ -75,6 +76,7 @@ beforeEach(() => {
   mockGetPet.mockReset();
   mockNavigate.mockClear();
   mockGoBack.mockClear();
+  mockGetLogsForChore.mockClear();
   mockRouteParams = { petId: PET.id };
   mockPets = [PET];
   mockChores = []; // default: empty chores list
