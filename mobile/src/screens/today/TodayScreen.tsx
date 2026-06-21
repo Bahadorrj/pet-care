@@ -155,7 +155,7 @@ export default function TodayScreen() {
 
   if (sorted.length === 0) {
     return (
-      <SafeAreaView style={styles.root} edges={['bottom']}>
+      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.emptyContainer} testID="today-empty">
           <Text style={styles.emptyIcon}>🌿</Text>
           <Text style={styles.emptyTitle}>{t('today.empty_title')}</Text>
@@ -166,7 +166,7 @@ export default function TodayScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.root} edges={['bottom']}>
+    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <FlatList
         data={sorted}
         keyExtractor={(occ) => `${occ.chore.id}-${occ.dueAt}`}
@@ -261,13 +261,13 @@ const styles = StyleSheet.create({
   // Actions
   actions: {
     gap: spacing.xs,
-    alignItems: 'flex-end',
+    // Fixed column width → Done/Skip stretch to match (labels differ in length).
+    width: 92,
   },
   actionBtn: {
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    minWidth: 72,
     minHeight: 44, // WCAG touch target — these are the primary daily action
     alignItems: 'center',
     justifyContent: 'center',

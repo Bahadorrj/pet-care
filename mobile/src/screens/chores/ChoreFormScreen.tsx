@@ -115,6 +115,18 @@ function isValidTime(s: string): boolean {
   return /^([01]?\d|2[0-3]):[0-5]\d$/.test(s.trim());
 }
 
+/**
+ * Mask digits into HH:MM as the user types: insert ':' once the 2 hour digits
+ * are in, so they never type it themselves. `prev` lets a backspace step back
+ * past the auto-':' instead of it being re-added (the classic input-mask trap).
+ */
+export function maskTime(prev: string, raw: string): string {
+  const d = raw.replace(/\D/g, '').slice(0, 4);
+  if (d.length < 2) return d;
+  if (d.length === 2) return raw.length < prev.length ? d : `${d}:`;
+  return `${d.slice(0, 2)}:${d.slice(2)}`;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ChoreFormScreen() {
@@ -435,7 +447,7 @@ export default function ChoreFormScreen() {
                       testID={`choreform-time-${idx}`}
                       placeholder="08:00"
                       value={t_}
-                      onChangeText={(v) => updateTime(idx, v)}
+                      onChangeText={(v) => updateTime(idx, maskTime(t_, v))}
                       keyboardType="numeric"
                       accessibilityLabel={t('chores.schedule.times')}
                     />
@@ -508,7 +520,7 @@ export default function ChoreFormScreen() {
                       testID={`choreform-wday-time-${idx}`}
                       placeholder="08:00"
                       value={t_}
-                      onChangeText={(v) => updateTime(idx, v)}
+                      onChangeText={(v) => updateTime(idx, maskTime(t_, v))}
                       keyboardType="numeric"
                       accessibilityLabel={t('chores.schedule.times')}
                     />
@@ -612,7 +624,7 @@ export default function ChoreFormScreen() {
                 placeholder="09:00"
                 value={oneOffTime}
                 onChangeText={(v) => {
-                  setOneOffTime(v);
+                  setOneOffTime(maskTime(oneOffTime, v));
                   if (scheduleError) setScheduleError('');
                 }}
                 keyboardType="numeric"

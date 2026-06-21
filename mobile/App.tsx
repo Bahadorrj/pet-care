@@ -54,7 +54,9 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
         <RootNavigator />
-        <StatusBar style="auto" />
+        {/* App is light-only (userInterfaceStyle: light); "auto" follows the OS
+            scheme and renders white text on the light canvas in device dark mode. */}
+        <StatusBar style="dark" />
       </NavigationContainer>
     </SafeAreaProvider>
   );
