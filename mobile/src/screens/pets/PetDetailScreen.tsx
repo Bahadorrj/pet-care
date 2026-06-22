@@ -4,15 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { usePetsStore } from '../../store/petsStore';
 import { useChoresStore } from '../../store/choresStore';
 import { getPet } from '../../db/pets';
 import { streak, adherence, nextOccurrence, toTehranTime } from '../../lib/choreSchedule';
 import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
+import { SPECIES_ICON, CHORE_TYPE_ICON } from '../../theme/icons';
 import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
-import type { Chore, ChoreLog, ChoreType, Species } from '../../db/types';
+import type { Chore, ChoreLog } from '../../db/types';
 
 type PetDetailRouteProp = RouteProp<PetsStackParamList, 'PetDetail'>;
 
@@ -20,30 +21,11 @@ const HERO_HEIGHT = 280;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-// Species emoji — the no-photo hero fallback.
-const SPECIES_EMOJI: Record<Species, string> = {
-  dog: '🐶',
-  cat: '🐱',
-  bird: '🐦',
-  rabbit: '🐰',
-  other: '🐾',
-};
-
 /** Short schedule summary for the chores list row */
 function scheduleLabel(t: (key: string) => string, chore: { schedule: { kind: string } }): string {
   const kind = chore.schedule.kind;
   return t(`chores.schedule.${kind}`);
 }
-
-/** Chore type icon as emoji — a lightweight visual cue without introducing a new icon lib */
-const CHORE_TYPE_ICON: Record<ChoreType, string> = {
-  feeding: '🍖',
-  meds: '💊',
-  play: '🎾',
-  grooming: '✂️',
-  vet: '🏥',
-  other: '📋',
-};
 
 // 30-day adherence window
 const ADHERENCE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
@@ -74,12 +56,13 @@ function ChoreStats({
   return (
     <View style={styles.statsRow}>
       {streakCount > 0 && (
-        <Text
+        <View
           style={styles.streakChip}
           accessibilityLabel={t('chores.stat.streak', { count: streakCount })}
         >
-          🔥 {streakCount}
-        </Text>
+          <MaterialCommunityIcons name="fire" size={14} color={colors.ink} />
+          <Text style={styles.streakChipText}>{streakCount}</Text>
+        </View>
       )}
       {percent !== null && (
         <View
@@ -149,7 +132,11 @@ export default function PetDetailScreen() {
               accessibilityLabel={pet.name}
             />
           ) : (
-            <Text style={styles.heroEmoji}>{SPECIES_EMOJI[pet.species]}</Text>
+            <MaterialCommunityIcons
+              name={SPECIES_ICON[pet.species]}
+              size={96}
+              color={colors.inkFaint}
+            />
           )}
 
           <View style={styles.heroScrim}>
@@ -200,7 +187,12 @@ export default function PetDetailScreen() {
 
           {choresSummary && (
             <View style={styles.summaryCard}>
-              <Text style={styles.summaryText}>📋 {choresSummary}</Text>
+              <MaterialCommunityIcons
+                name="clipboard-text-outline"
+                size={18}
+                color={colors.primary}
+              />
+              <Text style={styles.summaryText}>{choresSummary}</Text>
             </View>
           )}
 
@@ -229,7 +221,12 @@ export default function PetDetailScreen() {
                   pressed && styles.choreRowPressed,
                 ]}
               >
-                <Text style={styles.choreIcon}>{CHORE_TYPE_ICON[chore.type]}</Text>
+                <MaterialCommunityIcons
+                  name={CHORE_TYPE_ICON[chore.type]}
+                  size={22}
+                  color={colors.primary}
+                  style={styles.choreIcon}
+                />
                 <View style={styles.choreInfo}>
                   <Text style={styles.choreTitle}>
                     {chore.title ?? t(`chores.type.${chore.type}`)}
@@ -283,9 +280,6 @@ const styles = StyleSheet.create({
     end: 0,
     width: SCREEN_WIDTH,
     height: HERO_HEIGHT,
-  },
-  heroEmoji: {
-    fontSize: 64,
   },
   heroScrim: {
     position: 'absolute',
@@ -379,6 +373,9 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
   },
   summaryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     backgroundColor: colors.primarySoft,
     borderRadius: radius.md,
     padding: spacing.md,
@@ -422,7 +419,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
   },
   choreIcon: {
-    fontSize: 22,
     width: 32,
     textAlign: 'center',
   },
@@ -450,6 +446,11 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   streakChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  streakChipText: {
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.medium,

@@ -1,27 +1,18 @@
-import React, { useCallback, useLayoutEffect } from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
 import { useChoresStore } from '../../store/choresStore';
 import { nextOccurrence, toTehranTime } from '../../lib/choreSchedule';
 import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
+import { SPECIES_ICON } from '../../theme/icons';
 import type { PetsNavigationProp } from '../../navigation/PetsStack';
-import type { Chore, Pet, Species } from '../../db/types';
-
-// Species emoji — the no-photo fallback. Keeps a card visually anchored without
-// inventing a face for an animal we have no picture of.
-const SPECIES_EMOJI: Record<Species, string> = {
-  dog: '🐶',
-  cat: '🐱',
-  bird: '🐦',
-  rabbit: '🐰',
-  other: '🐾',
-};
+import type { Chore, Pet } from '../../db/types';
 
 const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -42,25 +33,6 @@ export default function PetsListScreen() {
     }
     return map;
   }, [chores]);
-
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      headerShown: true,
-      // RTL: the header row is flipped, so headerLeft renders on the visual right.
-      // Clear headerRight too — setOptions merges, so a stale headerRight would
-      // otherwise linger across Fast Refresh and show a second button.
-      headerRight: () => null,
-      headerLeft: () => (
-        <Pressable
-          onPress={() => navigation.navigate('PetForm', {})}
-          accessibilityLabel={t('pets.add')}
-          style={styles.addButton}
-        >
-          <Text style={styles.addButtonText}>{t('pets.add')}</Text>
-        </Pressable>
-      ),
-    });
-  }, [navigation, t]);
 
   const renderItem = useCallback(
     ({ item }: { item: Pet }) => {
@@ -84,7 +56,11 @@ export default function PetsListScreen() {
             {item.photoUri ? (
               <Image source={{ uri: item.photoUri }} style={styles.photo} resizeMode="cover" />
             ) : (
-              <Text style={styles.photoEmoji}>{SPECIES_EMOJI[item.species]}</Text>
+              <MaterialCommunityIcons
+                name={SPECIES_ICON[item.species]}
+                size={56}
+                color={colors.inkFaint}
+              />
             )}
             <View style={styles.scrim}>
               <Text style={styles.cardName} numberOfLines={1}>
@@ -111,7 +87,7 @@ export default function PetsListScreen() {
 
   if (pets.length === 0) {
     return (
-      <SafeAreaView style={styles.root}>
+      <SafeAreaView style={styles.root} edges={['top']}>
         <View style={styles.empty}>
           <Ionicons name="paw-outline" size={56} color={colors.inkFaint} />
           <Text style={styles.emptyText}>{t('pets.empty')}</Text>
@@ -126,7 +102,7 @@ export default function PetsListScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       <FlatList
         data={pets}
         keyExtractor={(item) => item.id}
@@ -135,6 +111,14 @@ export default function PetsListScreen() {
         columnWrapperStyle={styles.column}
         contentContainerStyle={styles.list}
       />
+      <Pressable
+        onPress={() => navigation.navigate('PetForm', {})}
+        accessibilityRole="button"
+        accessibilityLabel={t('pets.add')}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+      >
+        <Ionicons name="add" size={28} color="#FFFFFF" />
+      </Pressable>
     </SafeAreaView>
   );
 }
@@ -147,7 +131,7 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
+    paddingBottom: 96, // clear the FAB so the last row isn't hidden
     gap: spacing.md,
   },
   column: {
@@ -178,9 +162,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     start: 0,
     end: 0,
-  },
-  photoEmoji: {
-    fontSize: 40,
   },
   scrim: {
     position: 'absolute',
@@ -240,13 +221,19 @@ const styles = StyleSheet.create({
   emptyButton: {
     alignSelf: 'stretch',
   },
-  addButton: {
-    paddingStart: spacing.md,
+  fab: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    end: spacing.xl,
+    width: 56,
+    height: 56,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.card,
   },
-  addButtonText: {
-    fontSize: typography.body.fontSize,
-    lineHeight: typography.body.lineHeight,
-    fontFamily: fonts.medium,
-    color: colors.primary,
+  fabPressed: {
+    opacity: 0.85,
   },
 });

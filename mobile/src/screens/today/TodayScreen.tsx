@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { useChoresStore } from '../../store/choresStore';
 import { usePetsStore } from '../../store/petsStore';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
-import type { ChoreType, Occurrence } from '../../db/types';
+import { CHORE_TYPE_ICON } from '../../theme/icons';
+import type { Occurrence } from '../../db/types';
 
 // ── Tehran time helper ────────────────────────────────────────────────────────
 // ponytail: mirrors utcIsoToTehranTime in ChoreFormScreen — shift +210 min, read UTC fields
@@ -40,16 +42,6 @@ function sortOccurrences(occs: Occurrence[]): Occurrence[] {
   });
 }
 
-// ── Type icons ────────────────────────────────────────────────────────────────
-const CHORE_TYPE_ICON: Record<ChoreType, string> = {
-  feeding: '🍖',
-  meds: '💊',
-  play: '🎾',
-  grooming: '✂️',
-  vet: '🏥',
-  other: '📋',
-};
-
 // Status badge colors
 const STATUS_COLOR: Record<Occurrence['status'], string> = {
   pending: colors.inkMuted, // inkFaint ~2.2:1 fails WCAG AA for the badge text
@@ -79,9 +71,13 @@ function OccurrenceRow({ occ, petName, onDone, onSkip }: RowProps) {
       accessibilityRole="none"
     >
       {/* Left: type icon */}
-      <Text style={styles.typeIcon} accessibilityLabel={t(`chores.type.${chore.type}`)}>
-        {CHORE_TYPE_ICON[chore.type]}
-      </Text>
+      <MaterialCommunityIcons
+        name={CHORE_TYPE_ICON[chore.type]}
+        size={24}
+        color={colors.primary}
+        style={styles.typeIcon}
+        accessibilityLabel={t(`chores.type.${chore.type}`)}
+      />
 
       {/* Middle: info */}
       <View style={styles.rowInfo}>
@@ -157,7 +153,7 @@ export default function TodayScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.emptyContainer} testID="today-empty">
-          <Text style={styles.emptyIcon}>🌿</Text>
+          <MaterialCommunityIcons name="leaf" size={48} color={colors.inkFaint} />
           <Text style={styles.emptyTitle}>{t('today.empty_title')}</Text>
           <Text style={styles.emptySubtitle}>{t('today.empty_subtitle')}</Text>
         </View>
@@ -216,7 +212,6 @@ const styles = StyleSheet.create({
     marginHorizontal: -spacing.sm,
   },
   typeIcon: {
-    fontSize: 24,
     width: 36,
     textAlign: 'center',
   },
@@ -298,9 +293,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.xxl,
-  },
-  emptyIcon: {
-    fontSize: 48,
   },
   emptyTitle: {
     fontSize: typography.bodyLg.fontSize,
