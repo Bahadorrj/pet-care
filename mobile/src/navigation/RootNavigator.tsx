@@ -31,19 +31,19 @@ export default function RootNavigator() {
       }}
     >
       <Tab.Screen
-        name="Today"
-        component={TodayScreen}
-        options={{
-          tabBarLabel: t('tab.today'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="today-outline" color={color} size={size} />,
-        }}
-      />
-      <Tab.Screen
         name="Pets"
         component={PetsStack}
         options={{
           tabBarLabel: t('tab.pets'),
           tabBarIcon: ({ color, size }) => <Ionicons name="paw-outline" color={color} size={size} />,
+        }}
+      />
+      <Tab.Screen
+        name="Today"
+        component={TodayScreen}
+        options={{
+          tabBarLabel: t('tab.today'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="today-outline" color={color} size={size} />,
         }}
       />
       <Tab.Screen
