@@ -1,24 +1,33 @@
 import React from 'react';
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { format } from 'date-fns-jalali';
 import { useShallow } from 'zustand/react/shallow';
+import { Ionicons } from '@expo/vector-icons';
 
-import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
 import { useChoresStore } from '../../store/choresStore';
 import { getPet } from '../../db/pets';
-import { streak, adherence } from '../../lib/choreSchedule';
-import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
+import { streak, adherence, nextOccurrence, toTehranTime } from '../../lib/choreSchedule';
+import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
 import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
-import type { Chore, ChoreLog, ChoreType } from '../../db/types';
+import type { Chore, ChoreLog, ChoreType, Species } from '../../db/types';
 
 type PetDetailRouteProp = RouteProp<PetsStackParamList, 'PetDetail'>;
 
-// All dates render in the Jalali (Persian) calendar — never Gregorian.
-const formatJalali = (iso: string) => format(new Date(iso), 'yyyy/MM/dd');
+const HERO_HEIGHT = 280;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Species emoji — the no-photo hero fallback.
+const SPECIES_EMOJI: Record<Species, string> = {
+  dog: '🐶',
+  cat: '🐱',
+  bird: '🐦',
+  rabbit: '🐰',
+  other: '🐾',
+};
 
 /** Short schedule summary for the chores list row */
 function scheduleLabel(t: (key: string) => string, chore: { schedule: { kind: string } }): string {
@@ -39,7 +48,7 @@ const CHORE_TYPE_ICON: Record<ChoreType, string> = {
 // 30-day adherence window
 const ADHERENCE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Secondary stats line per chore row: streak + adherence (hidden if no history). */
+/** Secondary stats per chore row: streak chip + adherence bar (hidden if no history). */
 function ChoreStats({
   chore,
   getLogsForChore,
@@ -60,18 +69,30 @@ function ChoreStats({
   // adherence). Partial states (streak-only or adherence-only) are intentional.
   if (adh === null && streakCount === 0) return null;
 
-  const parts: string[] = [];
-  if (streakCount > 0) {
-    parts.push(t('chores.stat.streak', { count: streakCount }));
-  }
-  if (adh !== null) {
-    parts.push(t('chores.stat.adherence', { percent: Math.round(adh * 100) }));
-  }
+  const percent = adh !== null ? Math.round(adh * 100) : null;
 
   return (
-    <Text style={styles.choreStats} accessibilityLabel={parts.join(' · ')}>
-      {parts.join(' · ')}
-    </Text>
+    <View style={styles.statsRow}>
+      {streakCount > 0 && (
+        <Text
+          style={styles.streakChip}
+          accessibilityLabel={t('chores.stat.streak', { count: streakCount })}
+        >
+          🔥 {streakCount}
+        </Text>
+      )}
+      {percent !== null && (
+        <View
+          style={styles.adhWrap}
+          accessibilityLabel={t('chores.stat.adherence', { percent })}
+        >
+          <View style={styles.adhTrack}>
+            <View style={[styles.adhFill, { width: `${percent}%` }]} />
+          </View>
+          <Text style={styles.adhPercent}>{percent}٪</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -91,6 +112,15 @@ export default function PetDetailScreen() {
 
   if (!pet) return null;
 
+  const activeChores = petChores.filter((c) => c.active);
+  let choresSummary: string | null = null;
+  if (activeChores.length > 0) {
+    const now = new Date();
+    const next = nextOccurrence(activeChores, now, new Date(now.getTime() + NEXT_WINDOW_MS));
+    choresSummary = t('pets.active_chores', { count: activeChores.length });
+    if (next) choresSummary += ` · ${t('pets.next_chore', { time: toTehranTime(next) })}`;
+  }
+
   const handleDelete = () => {
     Alert.alert(t('pets.delete'), t('pets.delete_confirm'), [
       { text: t('common.cancel'), style: 'cancel' },
@@ -108,63 +138,81 @@ export default function PetDetailScreen() {
   return (
     <SafeAreaView style={styles.root} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.content}>
-        {pet.photoUri != null && (
-          <Image
-            testID="petdetail-photo"
-            source={{ uri: pet.photoUri }}
-            style={styles.photo}
-            accessibilityLabel={pet.name}
-          />
-        )}
+        {/* ── Hero zone ───────────────────────────────────────────────────── */}
+        <View style={styles.hero}>
+          {pet.photoUri != null ? (
+            <Image
+              testID="petdetail-photo"
+              source={{ uri: pet.photoUri }}
+              style={styles.heroPhoto}
+              resizeMode="cover"
+              accessibilityLabel={pet.name}
+            />
+          ) : (
+            <Text style={styles.heroEmoji}>{SPECIES_EMOJI[pet.species]}</Text>
+          )}
 
-        <Text style={styles.name}>{pet.name}</Text>
+          <View style={styles.heroScrim}>
+            <Text style={styles.heroName} numberOfLines={1}>
+              {pet.name}
+            </Text>
+            <View style={styles.heroChip}>
+              <Text style={styles.heroChipText}>{t(`pets.species.${pet.species}`)}</Text>
+            </View>
+          </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('pets.field.species')}</Text>
-          <Text style={styles.value}>{t(`pets.species.${pet.species}`)}</Text>
+          <Pressable
+            testID="petdetail-edit"
+            onPress={() => navigation.navigate('PetForm', { petId })}
+            accessibilityRole="button"
+            accessibilityLabel={t('pets.edit')}
+            style={({ pressed }) => [styles.editFab, pressed && styles.editFabPressed]}
+          >
+            <Ionicons name="pencil" size={20} color={colors.primary} />
+          </Pressable>
         </View>
 
-        {pet.gender != null && (
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('pets.field.gender')}</Text>
-            <Text style={styles.value}>{t(`pets.gender.${pet.gender}`)}</Text>
+        {/* ── Info card ───────────────────────────────────────────────────── */}
+        <View style={styles.infoCard}>
+          <View style={styles.infoRow}>
+            <Text style={styles.label}>{t('pets.field.species')}</Text>
+            <Text style={styles.value}>{t(`pets.species.${pet.species}`)}</Text>
           </View>
-        )}
 
-        {pet.notes != null && pet.notes !== '' && (
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('pets.field.notes')}</Text>
-            <Text style={styles.value}>{pet.notes}</Text>
-          </View>
-        )}
+          {pet.gender != null && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>{t('pets.field.gender')}</Text>
+              <Text style={styles.value}>{t(`pets.gender.${pet.gender}`)}</Text>
+            </View>
+          )}
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('pets.field.created_at')}</Text>
-          <Text style={styles.value}>{formatJalali(pet.createdAt)}</Text>
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>{t('pets.field.updated_at')}</Text>
-          <Text style={styles.value}>{formatJalali(pet.updatedAt)}</Text>
+          {pet.notes != null && pet.notes !== '' && (
+            <View style={styles.notesGroup}>
+              <Text style={styles.label}>{t('pets.field.notes')}</Text>
+              <Text style={styles.value}>{pet.notes}</Text>
+            </View>
+          )}
         </View>
 
         {/* ── Chores section ──────────────────────────────────────────────── */}
         <View style={styles.choresSection}>
-          <View style={styles.choresSectionHeader}>
-            <Text style={styles.choresSectionTitle}>{t('chores.section_title')}</Text>
-            <Pressable
-              testID="petdetail-add-chore"
-              onPress={() => navigation.navigate('ChoreForm', { petId })}
-              style={({ pressed }) => [
-                styles.addChoreButton,
-                pressed && styles.addChoreButtonPressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={t('chores.add')}
-            >
-              <Text style={styles.addChoreText}>{t('chores.add')}</Text>
-            </Pressable>
-          </View>
+          <Text style={styles.choresSectionTitle}>{t('chores.section_title')}</Text>
+
+          {choresSummary && (
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryText}>📋 {choresSummary}</Text>
+            </View>
+          )}
+
+          <Pressable
+            testID="petdetail-add-chore"
+            onPress={() => navigation.navigate('ChoreForm', { petId })}
+            style={({ pressed }) => [styles.addChoreButton, pressed && styles.addChoreButtonPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('chores.add')}
+          >
+            <Text style={styles.addChoreText}>{t('chores.add')}</Text>
+          </Pressable>
 
           {petChores.length === 0 ? (
             <Text style={styles.choresEmpty}>{t('chores.empty')}</Text>
@@ -195,12 +243,6 @@ export default function PetDetailScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Button
-            testID="petdetail-edit"
-            variant="secondary"
-            label={t('pets.edit')}
-            onPress={() => navigation.navigate('PetForm', { petId })}
-          />
           <Pressable
             testID="petdetail-delete"
             onPress={handleDelete}
@@ -222,25 +264,93 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   content: {
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
   },
-  photo: {
-    width: 120,
-    height: 120,
-    borderRadius: radius.pill,
-    alignSelf: 'center',
+  // ── Hero ──────────────────────────────────────────────────────────────────
+  hero: {
+    width: SCREEN_WIDTH,
+    height: HERO_HEIGHT,
+    backgroundColor: colors.surfaceSunken,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  name: {
+  heroPhoto: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    start: 0,
+    end: 0,
+    width: SCREEN_WIDTH,
+    height: HERO_HEIGHT,
+  },
+  heroEmoji: {
+    fontSize: 64,
+  },
+  heroScrim: {
+    position: 'absolute',
+    bottom: 0,
+    start: 0,
+    end: 0,
+    height: 100,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  heroName: {
+    flexShrink: 1,
     fontSize: typography.title.fontSize,
     lineHeight: typography.title.lineHeight,
     fontFamily: fonts.bold,
-    color: colors.ink,
-    textAlign: 'center',
+    color: '#FFFFFF',
   },
-  fieldGroup: {
+  heroChip: {
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+  },
+  heroChipText: {
+    fontSize: typography.caption.fontSize,
+    fontFamily: fonts.medium,
+    color: '#FFFFFF',
+  },
+  editFab: {
+    position: 'absolute',
+    top: spacing.md,
+    end: spacing.md,
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.card,
+  },
+  editFabPressed: {
+    opacity: 0.7,
+  },
+  // ── Info card ───────────────────────────────────────────────────────────────
+  infoCard: {
+    marginHorizontal: spacing.xl,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.md,
+    ...shadow.card,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  notesGroup: {
     gap: spacing.xs,
   },
   label: {
@@ -250,21 +360,17 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
   },
   value: {
+    flexShrink: 1,
     fontSize: typography.body.fontSize,
     lineHeight: typography.body.lineHeight,
     fontFamily: fonts.regular,
     color: colors.ink,
+    textAlign: 'right',
   },
   // ── Chores section ──────────────────────────────────────────────────────────
   choresSection: {
-    gap: 0,
-    marginTop: spacing.xs,
-  },
-  choresSectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
+    marginHorizontal: spacing.xl,
+    gap: spacing.sm,
   },
   choresSectionTitle: {
     fontSize: typography.label.fontSize,
@@ -272,7 +378,19 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.inkMuted,
   },
+  summaryCard: {
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
+  summaryText: {
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontFamily: fonts.medium,
+    color: colors.primary,
+  },
   addChoreButton: {
+    alignSelf: 'flex-start',
     minHeight: 36,
     borderRadius: radius.sm,
     paddingHorizontal: spacing.md,
@@ -324,11 +442,40 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.inkMuted,
   },
-  choreStats: {
+  // ── Per-chore stats ──────────────────────────────────────────────────────────
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.xs,
+  },
+  streakChip: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.medium,
+    color: colors.ink,
+  },
+  adhWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  adhTrack: {
+    width: 80,
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primarySoft,
+    overflow: 'hidden',
+  },
+  adhFill: {
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+  },
+  adhPercent: {
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
-    // inkMuted (not inkFaint) — this is real content; inkFaint ~2.2:1 fails WCAG AA
     color: colors.inkMuted,
   },
   choresEmpty: {
@@ -340,7 +487,7 @@ const styles = StyleSheet.create({
   },
   // ────────────────────────────────────────────────────────────────────────────
   actions: {
-    gap: spacing.md,
+    marginHorizontal: spacing.xl,
     marginTop: spacing.lg,
   },
   deleteButton: {

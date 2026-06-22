@@ -84,9 +84,17 @@ beforeEach(() => {
 
 describe('PetDetailScreen – render', () => {
   test('renders pet name and translated species', async () => {
-    const { getByText } = await render(<PetDetailScreen />);
+    const { getByText, getAllByText } = await render(<PetDetailScreen />);
     expect(getByText('رکسی')).toBeTruthy();
-    expect(getByText('سگ')).toBeTruthy(); // pets.species.dog
+    // species appears twice now: hero chip + info card value
+    expect(getAllByText('سگ').length).toBeGreaterThanOrEqual(1); // pets.species.dog
+  });
+
+  test('renders hero photo and floating edit button', async () => {
+    mockPets = [{ ...PET, photoUri: 'file:///rexi.jpg' }];
+    const { getByTestId } = await render(<PetDetailScreen />);
+    expect(getByTestId('petdetail-photo')).toBeTruthy();
+    expect(getByTestId('petdetail-edit')).toBeTruthy();
   });
 });
 

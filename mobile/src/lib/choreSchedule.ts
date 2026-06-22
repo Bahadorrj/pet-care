@@ -262,6 +262,30 @@ export function expandOccurrences(chore: Chore, fromUtc: Date, toUtc: Date): str
   return out;
 }
 
+/** Format a UTC ISO string as Tehran wall-clock "HH:MM". */
+export function toTehranTime(isoUtc: string): string {
+  const tehranMs = new Date(isoUtc).getTime() + TEHRAN_OFFSET_MINUTES * 60 * 1000;
+  const d = new Date(tehranMs);
+  const h = String(d.getUTCHours()).padStart(2, '0');
+  const m = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${h}:${m}`;
+}
+
+/**
+ * Earliest active-chore occurrence (UTC ISO) in [from, to), or null when none.
+ * ISO UTC strings sort lexicographically === chronologically.
+ */
+export function nextOccurrence(chores: Chore[], from: Date, to: Date): string | null {
+  let earliest: string | null = null;
+  for (const c of chores) {
+    if (!c.active) continue;
+    for (const iso of expandOccurrences(c, from, to)) {
+      if (earliest === null || iso < earliest) earliest = iso;
+    }
+  }
+  return earliest;
+}
+
 // ---------------------------------------------------------------------------
 // streak
 // ---------------------------------------------------------------------------

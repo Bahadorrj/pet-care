@@ -41,12 +41,14 @@ jest.mock('../store/petsStore', () => ({
 jest.mock('../store/choresStore', () => ({
   useChoresStore: (
     selector: (s: {
+      chores: unknown[];
       occurrences: unknown[];
       load: () => Promise<void>;
       markOccurrence: () => Promise<void>;
     }) => unknown,
   ) =>
     selector({
+      chores: [],
       occurrences: [],
       load: jest.fn().mockResolvedValue(undefined),
       markOccurrence: jest.fn().mockResolvedValue(undefined),

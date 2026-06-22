@@ -108,5 +108,8 @@
   "today.empty_title": "امروز کاری برای انجام ندارید",
   "today.empty_subtitle": "همه‌چیز رو به‌راه است!",
   "chores.stat.streak": "{{count}} بار متوالی",
-  "chores.stat.adherence": "{{percent}}٪ پایبندی"
+  "chores.stat.adherence": "{{percent}}٪ پایبندی",
+  "pets.list.chores": "{{count}} کار",
+  "pets.active_chores": "{{count}} کار فعال",
+  "pets.next_chore": "بعدی {{time}}"
 }
