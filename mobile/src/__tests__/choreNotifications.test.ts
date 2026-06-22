@@ -49,6 +49,13 @@ jest.mock('../db/chores', () => ({
   logOccurrence: (...args: unknown[]) => mockLogOccurrence(...args),
 }));
 
+// db/pets mock (notification content looks up the pet name; avoids SQLite init)
+const mockGetPet = jest.fn().mockReturnValue({ id: 'pet-1', name: 'Rex' });
+
+jest.mock('../db/pets', () => ({
+  getPet: (...args: unknown[]) => mockGetPet(...args),
+}));
+
 // ---------------------------------------------------------------------------
 // choresStore mock (prevents Zustand/SQLite init at import time)
 // ---------------------------------------------------------------------------
@@ -259,7 +266,7 @@ describe('syncNotifications – payload', () => {
 
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
     const [notif, trigger] = mockCreateTriggerNotification.mock.calls[0];
-    expect(notif.data).toEqual({ choreId: 'chore-abc', dueAt: soon });
+    expect(notif.data).toEqual({ choreId: 'chore-abc', dueAt: soon, label: 'Feed', petName: 'Rex' });
     expect(trigger.type).toBe(0); // TriggerType.TIMESTAMP
     expect(trigger.timestamp).toBe(new Date(soon).getTime());
   });
@@ -414,7 +421,8 @@ describe('handleNotificationEvent – ACTION_PRESS snooze', () => {
     expect(mockLogOccurrence).not.toHaveBeenCalled();
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
     const [notif, trigger] = mockCreateTriggerNotification.mock.calls[0];
-    expect(notif.data).toEqual({ choreId: 'chore-3', dueAt });
+    // label/petName were not present on the incoming notification → rebuilt empty
+    expect(notif.data).toEqual({ choreId: 'chore-3', dueAt, label: '', petName: '' });
     // Trigger should be ~15min from now (Date.now() = NOW_UTC in fake timers)
     const expectedTimestamp = NOW_UTC.getTime() + 15 * 60 * 1000;
     expect(trigger.timestamp).toBe(expectedTimestamp);
