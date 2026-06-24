@@ -8,7 +8,7 @@ import QuickAddScreen from '../screens/tasks/QuickAddScreen';
 import { colors } from '../theme/theme';
 
 export type TasksStackParamList = {
-  Tasks: undefined;
+  TasksHome: undefined;
   ChoreForm: { petId: string; choreId?: string; title?: string };
   QuickAdd: undefined;
 };
@@ -29,7 +29,7 @@ export default function TasksStack() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="Tasks" component={TasksScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="TasksHome" component={TasksScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChoreForm" component={ChoreFormScreen} />
       <Stack.Screen name="QuickAdd" component={QuickAddScreen} options={{ presentation: 'formSheet' }} />
     </Stack.Navigator>
