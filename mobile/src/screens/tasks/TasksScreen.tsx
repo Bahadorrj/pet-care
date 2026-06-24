@@ -18,8 +18,9 @@ import Toast from 'react-native-toast-message';
 
 import { useChoresStore } from '../../store/choresStore';
 import { usePetsStore } from '../../store/petsStore';
-import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
+import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
 import { CHORE_TYPE_ICON } from '../../theme/icons';
+import { utcIsoToTehranJalali, toPersianDigits } from '../../lib/jalali';
 import { bucketOccurrences } from './todayBuckets';
 import type { Occurrence, ChoreType } from '../../db/types';
 import type { TasksNavigationProp } from '../../navigation/TasksStack';
@@ -32,16 +33,6 @@ function toTehranTime(isoUtc: string): string {
   const h = String(d.getUTCHours()).padStart(2, '0');
   const m = String(d.getUTCMinutes()).padStart(2, '0');
   return `${h}:${m}`;
-}
-
-// Tehran calendar-day label (YYYY-MM-DD) from a UTC ISO string
-function toTehranDateLabel(isoUtc: string): string {
-  const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
-  const d = new Date(tehranMs);
-  const yr = d.getUTCFullYear();
-  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dy = String(d.getUTCDate()).padStart(2, '0');
-  return `${yr}-${mo}-${dy}`;
 }
 
 // Status badge colors
@@ -298,7 +289,7 @@ export default function TasksScreen() {
   } else {
     let lastDay = '';
     for (const occ of upcoming) {
-      const day = toTehranDateLabel(occ.dueAt);
+      const day = utcIsoToTehranJalali(occ.dueAt);
       if (day !== lastDay) {
         upcomingItems.push({ kind: 'day', label: day });
         lastDay = day;
@@ -508,7 +499,7 @@ export default function TasksScreen() {
           return (
             <View style={styles.sectionHeader} testID={`tasks-section-${sec.sectionKey}`}>
               <Text style={styles.sectionTitle}>
-                {`${t(`tasks.section.${sec.sectionKey}`)} · ${count}`}
+                {`${t(`tasks.section.${sec.sectionKey}`)} · ${toPersianDigits(count)}`}
               </Text>
             </View>
           );
@@ -525,7 +516,7 @@ export default function TasksScreen() {
           if (item.kind === 'day') {
             return (
               <View style={styles.dayHeader}>
-                <Text style={styles.dayHeaderText}>{item.label}</Text>
+                <Text style={styles.dayHeaderText}>{toPersianDigits(item.label)}</Text>
               </View>
             );
           }
@@ -761,7 +752,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
-    elevation: 4,
+    ...shadow.card,
   },
   fabPressed: {
     opacity: 0.85,

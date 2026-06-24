@@ -52,3 +52,8 @@ export function jalaliToGregorian(jalaliStr: string): string | null {
     return null;
   }
 }
+
+/** Latin digits → Persian digits, for display only (never feed back into parsers). */
+export function toPersianDigits(input: string | number): string {
+  return String(input).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+}
