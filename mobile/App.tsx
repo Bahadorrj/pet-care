@@ -9,6 +9,8 @@ import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
+import Toast from 'react-native-toast-message';
 
 import notifee from '@notifee/react-native';
 
@@ -52,12 +54,16 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
-        <RootNavigator />
-        {/* App is light-only (userInterfaceStyle: light); "auto" follows the OS
-            scheme and renders white text on the light canvas in device dark mode. */}
-        <StatusBar style="dark" />
-      </NavigationContainer>
+      <ActionSheetProvider>
+        <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
+          <RootNavigator />
+          {/* App is light-only (userInterfaceStyle: light); "auto" follows the OS
+              scheme and renders white text on the light canvas in device dark mode. */}
+          <StatusBar style="dark" />
+        </NavigationContainer>
+        {/* Toast renders above all screens; must be last child so it overlays navigation. */}
+        <Toast />
+      </ActionSheetProvider>
     </SafeAreaProvider>
   );
 }
