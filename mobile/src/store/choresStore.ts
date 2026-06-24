@@ -6,6 +6,8 @@ import {
   deleteChore as dbDeleteChore,
   logOccurrence,
   getLogsForDay,
+  getLogsInRange,
+  removeLog,
   getLogsForChore as dbGetLogsForChore,
 } from '../db/chores';
 import { occurrencesForDay, toUtcIso } from '../lib/choreSchedule';
@@ -80,6 +82,19 @@ function computeTodayOccurrences(chores: Chore[]): Occurrence[] {
 }
 
 // ---------------------------------------------------------------------------
+// Derive window occurrences [now − 7d, now + 7d) from the current chores + logs
+// ---------------------------------------------------------------------------
+
+function computeRangeOccurrences(chores: Chore[]): Occurrence[] {
+  const now = Date.now();
+  const start = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const end = new Date(now + 7 * 24 * 60 * 60 * 1000);
+  const logs = getLogsInRange(start.toISOString(), end.toISOString());
+  const activeChores = chores.filter((c) => c.active);
+  return occurrencesForDay(activeChores, logs, { start, end });
+}
+
+// ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
 
@@ -89,6 +104,7 @@ type ChoreUpdate = Omit<Chore, 'id' | 'petId' | 'createdAt' | 'updatedAt'>;
 interface ChoresState {
   chores: Chore[];
   occurrences: Occurrence[];
+  windowOccurrences: Occurrence[];
 
   /** Reload chores from db and recompute today's occurrences. */
   load: () => Promise<void>;
@@ -101,21 +117,25 @@ interface ChoresState {
   deleteChore: (id: string) => Promise<void>;
   toggleActive: (choreId: string) => Promise<void>;
   markOccurrence: (choreId: string, dueAt: string, status: ChoreLog['status']) => Promise<void>;
+  unmarkOccurrence: (choreId: string, dueAt: string) => Promise<void>;
 }
 
 export const useChoresStore = create<ChoresState>((set, get) => {
   // Module-level initialisation: read persisted chores synchronously.
   const initialChores = listChores();
   const initialOccurrences = computeTodayOccurrences(initialChores);
+  const initialWindowOccurrences = computeRangeOccurrences(initialChores);
 
   return {
     chores: initialChores,
     occurrences: initialOccurrences,
+    windowOccurrences: initialWindowOccurrences,
 
     load: async () => {
       const chores = listChores();
       const occurrences = computeTodayOccurrences(chores);
-      set({ chores, occurrences });
+      const windowOccurrences = computeRangeOccurrences(chores);
+      set({ chores, occurrences, windowOccurrences });
     },
 
     getLogsForChore: (choreId) => dbGetLogsForChore(choreId),
@@ -125,7 +145,8 @@ export const useChoresStore = create<ChoresState>((set, get) => {
       insertChore(input);
       const chores = listChores();
       const occurrences = computeTodayOccurrences(chores);
-      set({ chores, occurrences });
+      const windowOccurrences = computeRangeOccurrences(chores);
+      set({ chores, occurrences, windowOccurrences });
       _syncNotifications();
     },
 
@@ -134,7 +155,8 @@ export const useChoresStore = create<ChoresState>((set, get) => {
       dbUpdateChore(id, data);
       const chores = listChores();
       const occurrences = computeTodayOccurrences(chores);
-      set({ chores, occurrences });
+      const windowOccurrences = computeRangeOccurrences(chores);
+      set({ chores, occurrences, windowOccurrences });
       _syncNotifications();
     },
 
@@ -142,7 +164,8 @@ export const useChoresStore = create<ChoresState>((set, get) => {
       dbDeleteChore(id);
       const chores = listChores();
       const occurrences = computeTodayOccurrences(chores);
-      set({ chores, occurrences });
+      const windowOccurrences = computeRangeOccurrences(chores);
+      set({ chores, occurrences, windowOccurrences });
       _syncNotifications();
     },
 
@@ -152,7 +175,8 @@ export const useChoresStore = create<ChoresState>((set, get) => {
       dbUpdateChore(choreId, { ...chore, active: !chore.active });
       const chores = listChores();
       const occurrences = computeTodayOccurrences(chores);
-      set({ chores, occurrences });
+      const windowOccurrences = computeRangeOccurrences(chores);
+      set({ chores, occurrences, windowOccurrences });
       _syncNotifications();
     },
 
@@ -160,7 +184,17 @@ export const useChoresStore = create<ChoresState>((set, get) => {
       logOccurrence(choreId, dueAt, status);
       const chores = get().chores;
       const occurrences = computeTodayOccurrences(chores);
-      set({ occurrences });
+      const windowOccurrences = computeRangeOccurrences(chores);
+      set({ occurrences, windowOccurrences });
+      _syncNotifications();
+    },
+
+    unmarkOccurrence: async (choreId, dueAt) => {
+      removeLog(choreId, dueAt);
+      const chores = get().chores;
+      const occurrences = computeTodayOccurrences(chores);
+      const windowOccurrences = computeRangeOccurrences(chores);
+      set({ occurrences, windowOccurrences });
       _syncNotifications();
     },
   };
