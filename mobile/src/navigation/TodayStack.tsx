@@ -4,6 +4,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import TodayScreen from '../screens/today/TodayScreen';
 import ChoreFormScreen from '../screens/chores/ChoreFormScreen';
+import QuickAddScreen from '../screens/today/QuickAddScreen';
 import { colors } from '../theme/theme';
 
 export type TodayStackParamList = {
@@ -30,6 +31,7 @@ export default function TodayStack() {
     >
       <Stack.Screen name="Today" component={TodayScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChoreForm" component={ChoreFormScreen} />
+      <Stack.Screen name="QuickAdd" component={QuickAddScreen} options={{ presentation: 'formSheet' }} />
     </Stack.Navigator>
   );
 }

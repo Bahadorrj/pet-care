@@ -543,7 +543,24 @@ describe('TodayScreen – combined pet + type filter', () => {
   });
 });
 
-// ── 12. Filter-empty state ────────────────────────────────────────────────────
+// ── 12. FAB ──────────────────────────────────────────────────────────────────
+describe('TodayScreen – FAB', () => {
+  test('pressing today-fab navigates to QuickAdd (with data)', async () => {
+    mockWindowOccurrences = [OCC_TODAY];
+    const { getByTestId } = await render(<TodayScreen />);
+    fireEvent.press(getByTestId('today-fab'));
+    expect(mockNavigate).toHaveBeenCalledWith('QuickAdd');
+  });
+
+  test('pressing today-fab navigates to QuickAdd (empty state)', async () => {
+    mockWindowOccurrences = [];
+    const { getByTestId } = await render(<TodayScreen />);
+    fireEvent.press(getByTestId('today-fab'));
+    expect(mockNavigate).toHaveBeenCalledWith('QuickAdd');
+  });
+});
+
+// ── 13. Filter-empty state (no-match) ────────────────────────────────────────
 describe('TodayScreen – filter-empty (no-match)', () => {
   test('filters that match nothing show today-no-match (not today-empty)', async () => {
     mockPets = [

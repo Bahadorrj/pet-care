@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -278,6 +279,14 @@ export default function TodayScreen() {
           <Text style={styles.emptyTitle}>{t('today.empty_title')}</Text>
           <Text style={styles.emptySubtitle}>{t('today.empty_subtitle')}</Text>
         </View>
+        <Pressable
+          testID="today-fab"
+          onPress={() => navigation.navigate('QuickAdd')}
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+          accessibilityRole="button"
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </Pressable>
       </SafeAreaView>
     );
   }
@@ -475,6 +484,14 @@ export default function TodayScreen() {
         }}
         onClose={() => setTypeModalVisible(false)}
       />
+      <Pressable
+        testID="today-fab"
+        onPress={() => navigation.navigate('QuickAdd')}
+        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        accessibilityRole="button"
+      >
+        <Ionicons name="add" size={28} color="#FFFFFF" />
+      </Pressable>
       <SectionList
         sections={sections}
         keyExtractor={(item, index) => {
@@ -731,6 +748,23 @@ const styles = StyleSheet.create({
     fontSize: typography.body.fontSize,
     fontFamily: fonts.medium,
     color: colors.primary,
+  },
+  // FAB
+  fab: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    end: spacing.xl,
+    width: 56,
+    height: 56,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+    elevation: 4,
+  },
+  fabPressed: {
+    opacity: 0.85,
   },
   // Type filter modal
   modalOverlay: {

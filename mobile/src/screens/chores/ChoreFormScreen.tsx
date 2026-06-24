@@ -30,10 +30,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
-import { format, parse as parseJalali } from 'date-fns-jalali';
-
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
+import { jalaliToGregorian, tehranTodayJalali, utcIsoToTehranJalali } from '../../lib/jalali';
 import { useChoresStore } from '../../store/choresStore';
 import { getChore } from '../../db/chores';
 import { toUtcIso } from '../../lib/choreSchedule';
@@ -57,33 +56,6 @@ const END_KINDS: EndKind[] = ['never', 'until', 'after_n'];
 // Weekday labels — RTL-aware display; 0=Sun..6=Sat
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
-/** Current Tehran calendar day as a Jalali string yyyy/MM/dd for default/placeholder. */
-// ponytail: text input parsed from Jalali; no picker lib installed — future upgrade path
-function tehranTodayJalali(): string {
-  // Build a Date whose UTC fields represent the Tehran wall-clock time
-  const tehranMs = Date.now() + (3 * 60 + 30) * 60 * 1000;
-  const d = new Date(tehranMs);
-  // Reconstruct as a plain local-midnight Date so date-fns-jalali reads the Tehran day
-  const tehranMidnight = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  return format(tehranMidnight, 'yyyy/MM/dd');
-}
-
-/**
- * Convert a stored UTC ISO instant to the Jalali yyyy/MM/dd of its Tehran
- * calendar day (+03:30). Used to prefill edit-mode date fields. Slicing the raw
- * UTC date is wrong: a Tehran 00:00 instant is the prior UTC day.
- */
-function utcIsoToTehranJalali(isoUtc: string): string {
-  try {
-    const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
-    const d = new Date(tehranMs);
-    const tehranMidnight = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-    return format(tehranMidnight, 'yyyy/MM/dd');
-  } catch {
-    return '';
-  }
-}
-
 /** Stored UTC ISO instant → Tehran wall-clock HH:MM (+03:30). Edit-mode time prefill. */
 function utcIsoToTehranTime(isoUtc: string): string {
   const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
@@ -91,23 +63,6 @@ function utcIsoToTehranTime(isoUtc: string): string {
   const h = String(d.getUTCHours()).padStart(2, '0');
   const m = String(d.getUTCMinutes()).padStart(2, '0');
   return `${h}:${m}`;
-}
-
-/**
- * Parse a user-typed Jalali yyyy/MM/dd into a Gregorian YYYY-MM-DD string.
- * Returns null on invalid input — caller must reject with schedule error.
- */
-function jalaliToGregorian(jalaliStr: string): string | null {
-  try {
-    const parsed = parseJalali(jalaliStr, 'yyyy/MM/dd', new Date());
-    if (isNaN(parsed.getTime())) return null;
-    const yr = parsed.getFullYear();
-    const mo = String(parsed.getMonth() + 1).padStart(2, '0');
-    const dy = String(parsed.getDate()).padStart(2, '0');
-    return `${yr}-${mo}-${dy}`;
-  } catch {
-    return null;
-  }
 }
 
 /** True if `s` is a valid 24-hour HH:MM wall-clock string. */
