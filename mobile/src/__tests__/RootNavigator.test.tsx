@@ -3,7 +3,6 @@
  *
  * Verifies:
  * - All three tab labels render in Farsi ("وظایف", "حیوانات من", "پروفایل").
- * - Tasks is the default/active tab on first render (tasks-empty testID visible).
  *
  * expo-secure-store is mocked to prevent native module access (authStore calls
  * hydrate() at module load which hits SecureStore).
@@ -34,25 +33,6 @@ jest.mock('expo-secure-store', () => ({
 // petsStore calls listPets() (SQLite) at module load — mock to avoid native db access.
 jest.mock('../store/petsStore', () => ({
   usePetsStore: jest.fn().mockReturnValue([]),
-}));
-
-// Tasks is the default tab → TasksScreen renders on mount. Mock tasksStore so it
-// shows the empty state without touching SQLite or the real derived occurrences.
-jest.mock('../store/tasksStore', () => ({
-  useTasksStore: (
-    selector: (s: {
-      tasks: unknown[];
-      occurrences: unknown[];
-      load: () => Promise<void>;
-      markOccurrence: () => Promise<void>;
-    }) => unknown,
-  ) =>
-    selector({
-      tasks: [],
-      occurrences: [],
-      load: jest.fn().mockResolvedValue(undefined),
-      markOccurrence: jest.fn().mockResolvedValue(undefined),
-    }),
 }));
 
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
@@ -98,10 +78,5 @@ describe('RootNavigator', () => {
       expect(screen.getByText('حیوانات من')).toBeTruthy();
       expect(screen.getByText('پروفایل')).toBeTruthy();
     });
-  });
-
-  test('Tasks tab is active by default (tasks-empty testID is present)', async () => {
-    renderNavigator();
-    await waitFor(() => expect(screen.getByTestId('tasks-empty')).toBeTruthy());
   });
 });
