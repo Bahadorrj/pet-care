@@ -61,9 +61,9 @@ export default function App() {
               scheme and renders white text on the light canvas in device dark mode. */}
           <StatusBar style="dark" />
         </NavigationContainer>
-        {/* Toast renders above all screens; must be last child so it overlays navigation. */}
-        <Toast />
       </ActionSheetProvider>
+      {/* Toast renders above all screens; must be last child so it overlays navigation. */}
+      <Toast />
     </SafeAreaProvider>
   );
 }
