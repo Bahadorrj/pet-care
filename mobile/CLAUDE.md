@@ -25,7 +25,7 @@ Requires `EXPO_PUBLIC_API_BASE_URL` in `.env` (default `http://10.0.2.2:8000`, t
 
 ## Architecture
 
-Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with three tabs: `Pets` (PetsStack), `Tasks` (TasksStack), and `Profile` (ProfileStack). `RootTabParamList` is the root typed contract. `TasksStack` is a native stack inside the Tasks tab hosting `TasksScreen` (Tasks hub), `ChoreForm`, and `QuickAdd`; `TasksStackParamList` / `TasksNavigationProp` are the typed contracts for that stack. `ProfileStack` is a native stack inside the Profile tab hosting `ProfileMain`, `Signin`, and `Signup` screens; `ProfileStackParamList` / `ProfileNavigationProp` are the typed contracts for that stack.
+Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with three tabs: `Pets` (PetsStack), `Tasks` (TasksStack), and `Profile` (ProfileStack). `RootTabParamList` is the root typed contract. `TasksStack` is a native stack inside the Tasks tab hosting `TasksScreen` (tasks hub), `TaskForm`, and `QuickAdd`; `TasksStackParamList` / `TasksNavigationProp` are the typed contracts for that stack. `ProfileStack` is a native stack inside the Profile tab hosting `ProfileMain`, `Signin`, and `Signup` screens; `ProfileStackParamList` / `ProfileNavigationProp` are the typed contracts for that stack.
 
 **Auth & session** — `src/store/authStore.ts` is a Zustand store holding the JWT + email, persisted to `expo-secure-store`. It hydrates **asynchronously** at module load; `App.tsx` gates first render on `hasHydrated` (and `fontsLoaded`) so guest UI never flashes. `login`/`logout` write SecureStore *before* mutating in-memory state so the two never disagree.
 
@@ -37,8 +37,8 @@ Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with three tabs: `Pets
 
 **UI primitives** — `src/components/ui/` (`Button`, `TextField`). Reuse these rather than raw RN components.
 
-**Chores** — offline-first chore reminders (ADR-0016). Storage: `chores` table
-(rule as `schedule_json` TEXT discriminated union) + `chore_logs` table (done/skipped
+**Tasks** — offline-first task reminders (ADR-0016). Storage: `tasks` table
+(rule as `schedule_json` TEXT discriminated union) + `task_logs` table (done/skipped
 actions). Occurrences, today's agenda, missed status, streak, and adherence are
 **always derived** from the rule + logs at query time — never materialised to
 storage (approach B). Local notifications via `@notifee/react-native` (ADR-0008,

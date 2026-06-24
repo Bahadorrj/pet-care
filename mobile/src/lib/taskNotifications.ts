@@ -1,9 +1,9 @@
 /**
- * choreNotifications.ts
+ * taskNotifications.ts
  * Local notification scheduling via @notifee/react-native.
  *
  * Public API:
- *   initChoreNotifications(navRef)  — call once at app start (channel + seam + tap handler)
+ *   initTaskNotifications(navRef)  — call once at app start (channel + seam + tap handler)
  *   syncNotifications()             — cancel-all then re-register triggers for next 60 days
  *   handleNotificationEvent(event)  — action/press handler (fore + background)
  */
@@ -12,42 +12,42 @@ import notifee, { TriggerType, AndroidImportance, EventType } from '@notifee/rea
 import type { NavigationContainerRef } from '@react-navigation/native';
 import { t } from 'i18next';
 
-import { listChores, logOccurrence } from '../db/chores';
+import { listTasks, logOccurrence } from '../db/tasks';
 import { getPet } from '../db/pets';
-import { expandOccurrences } from './choreSchedule';
-import { setChoresSyncNotifications } from '../store/choresStore';
+import { expandOccurrences } from './taskSchedule';
+import { setTasksSyncNotifications } from '../store/tasksStore';
 import type { RootTabParamList } from '../navigation/RootNavigator';
 
 // ponytail: fixed constants, no config object needed
-const CHANNEL_ID = 'chores';
+const CHANNEL_ID = 'tasks';
 const WINDOW_DAYS = 60;
 const CAP = 200;
 const SNOOZE_MS = 15 * 60 * 1000;
 
 // ponytail: one notification shape, reused by initial schedule + snooze reschedule.
-// `label` (resolved chore title) + `petName` are carried in `data` so the snooze
+// `label` (resolved task title) + `petName` are carried in `data` so the snooze
 // reschedule can rebuild the same content without a db/i18n lookup in the
 // headless background context.
-function buildChoreNotification(args: {
-  choreId: string;
+function buildTaskNotification(args: {
+  taskId: string;
   dueAt: string;
   label: string;
   petName: string;
 }) {
-  const { choreId, dueAt, label, petName } = args;
+  const { taskId, dueAt, label, petName } = args;
   return {
     title: label,
-    body: petName ? t('chores.notif.body', { pet: petName }) : t('chores.notif.body_generic'),
+    body: petName ? t('tasks.notif.body', { pet: petName }) : t('tasks.notif.body_generic'),
     android: {
       channelId: CHANNEL_ID,
       pressAction: { id: 'default' },
       actions: [
-        { title: t('chores.action.done'), pressAction: { id: 'done' } },
-        { title: t('chores.action.skip'), pressAction: { id: 'skip' } },
-        { title: t('chores.action.snooze'), pressAction: { id: 'snooze' } },
+        { title: t('tasks.action.done'), pressAction: { id: 'done' } },
+        { title: t('tasks.action.skip'), pressAction: { id: 'skip' } },
+        { title: t('tasks.action.snooze'), pressAction: { id: 'snooze' } },
       ],
     },
-    data: { choreId, dueAt, label, petName },
+    data: { taskId, dueAt, label, petName },
   };
 }
 
@@ -60,18 +60,18 @@ export async function syncNotifications(): Promise<void> {
   const from = now;
   const to = new Date(now.getTime() + WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
-  // Collect {choreId, dueAt} for all active chores within window
-  const chores = listChores().filter((c) => c.active);
+  // Collect {taskId, dueAt} for all active tasks within window
+  const tasks = listTasks().filter((c) => c.active);
 
-  type Entry = { choreId: string; dueAt: string; label: string; petName: string };
+  type Entry = { taskId: string; dueAt: string; label: string; petName: string };
   const entries: Entry[] = [];
 
-  for (const chore of chores) {
-    const label = chore.title?.trim() || t(`chores.type.${chore.type}`);
-    const petName = getPet(chore.petId)?.name ?? '';
-    const occurrences = expandOccurrences(chore, from, to);
+  for (const task of tasks) {
+    const label = task.title?.trim() || t(`tasks.type.${task.type}`);
+    const petName = getPet(task.petId)?.name ?? '';
+    const occurrences = expandOccurrences(task, from, to);
     for (const dueAt of occurrences) {
-      entries.push({ choreId: chore.id, dueAt, label, petName });
+      entries.push({ taskId: task.id, dueAt, label, petName });
     }
   }
 
@@ -84,7 +84,7 @@ export async function syncNotifications(): Promise<void> {
 
   // Register each selected occurrence
   for (const entry of scheduled) {
-    await notifee.createTriggerNotification(buildChoreNotification(entry), {
+    await notifee.createTriggerNotification(buildTaskNotification(entry), {
       type: TriggerType.TIMESTAMP,
       timestamp: new Date(entry.dueAt).getTime(),
     });
@@ -101,7 +101,7 @@ export async function handleNotificationEvent(event: {
   type: number;
   detail: {
     pressAction?: { id: string };
-    notification?: { data?: { choreId?: string; dueAt?: string; label?: string; petName?: string } };
+    notification?: { data?: { taskId?: string; dueAt?: string; label?: string; petName?: string } };
   };
 }): Promise<void> {
   const { type, detail } = event;
@@ -113,19 +113,19 @@ export async function handleNotificationEvent(event: {
 
   const actionId = detail.pressAction?.id;
   const data = detail.notification?.data;
-  const choreId = data?.choreId;
+  const taskId = data?.taskId;
   const dueAt = data?.dueAt;
 
-  if (!choreId || !dueAt) return;
+  if (!taskId || !dueAt) return;
 
   if (actionId === 'done') {
-    logOccurrence(choreId, dueAt, 'done');
+    logOccurrence(taskId, dueAt, 'done');
   } else if (actionId === 'skip') {
-    logOccurrence(choreId, dueAt, 'skipped');
+    logOccurrence(taskId, dueAt, 'skipped');
   } else if (actionId === 'snooze') {
     // ponytail: fixed +15min offset per plan; no log written on snooze
-    await notifee.createTriggerNotification(buildChoreNotification({
-      choreId,
+    await notifee.createTriggerNotification(buildTaskNotification({
+      taskId,
       dueAt,
       label: data?.label ?? '',
       petName: data?.petName ?? '',
@@ -137,16 +137,16 @@ export async function handleNotificationEvent(event: {
 }
 
 // ---------------------------------------------------------------------------
-// initChoreNotifications — call once at app start
+// initTaskNotifications — call once at app start
 // ---------------------------------------------------------------------------
 
-export async function initChoreNotifications(
+export async function initTaskNotifications(
   navRef: NavigationContainerRef<RootTabParamList>,
 ): Promise<void> {
   // Create Android channel (idempotent)
   await notifee.createChannel({
     id: CHANNEL_ID,
-    name: 'Chore Reminders',
+    name: 'Task Reminders',
     importance: AndroidImportance.HIGH,
   });
 
@@ -154,7 +154,7 @@ export async function initChoreNotifications(
   await notifee.requestPermission();
 
   // Wire the store seam so mutations re-sync automatically
-  setChoresSyncNotifications(syncNotifications);
+  setTasksSyncNotifications(syncNotifications);
 
   // Consolidated foreground handler: default press navigates, action buttons act.
   // Mutually exclusive — a body PRESS never falls through to the action handler.

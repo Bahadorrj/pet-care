@@ -36,19 +36,19 @@ jest.mock('../store/petsStore', () => ({
   usePetsStore: jest.fn().mockReturnValue([]),
 }));
 
-// Tasks is the default tab → TasksScreen renders on mount. Mock choresStore so it
+// Tasks is the default tab → TasksScreen renders on mount. Mock tasksStore so it
 // shows the empty state without touching SQLite or the real derived occurrences.
-jest.mock('../store/choresStore', () => ({
-  useChoresStore: (
+jest.mock('../store/tasksStore', () => ({
+  useTasksStore: (
     selector: (s: {
-      chores: unknown[];
+      tasks: unknown[];
       occurrences: unknown[];
       load: () => Promise<void>;
       markOccurrence: () => Promise<void>;
     }) => unknown,
   ) =>
     selector({
-      chores: [],
+      tasks: [],
       occurrences: [],
       load: jest.fn().mockResolvedValue(undefined),
       markOccurrence: jest.fn().mockResolvedValue(undefined),

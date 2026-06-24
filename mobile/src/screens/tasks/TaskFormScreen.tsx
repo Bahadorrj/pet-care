@@ -1,7 +1,7 @@
 /**
- * ChoreFormScreen — Add + Edit a chore for a specific pet.
+ * TaskFormScreen — Add + Edit a task for a specific pet.
  *
- * Mode: Add when no `choreId` param; Edit when `choreId` is set.
+ * Mode: Add when no `taskId` param; Edit when `taskId` is set.
  * Mirrors PetFormScreen patterns: useRef in-flight guard, translated errors,
  * theme tokens, start/end RTL-safe styles, ui primitives.
  *
@@ -33,18 +33,18 @@ import { useTranslation } from 'react-i18next';
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
 import { jalaliToGregorian, tehranTodayJalali, utcIsoToTehranJalali } from '../../lib/jalali';
-import { useChoresStore } from '../../store/choresStore';
-import { getChore } from '../../db/chores';
-import { toUtcIso } from '../../lib/choreSchedule';
+import { useTasksStore } from '../../store/tasksStore';
+import { getTask } from '../../db/tasks';
+import { toUtcIso } from '../../lib/taskSchedule';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
 import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
-import type { ChoreType, Schedule, EndKind } from '../../db/types';
+import type { TaskType, Schedule, EndKind } from '../../db/types';
 
-type ChoreFormRouteProp = RouteProp<PetsStackParamList, 'ChoreForm'>;
+type TaskFormRouteProp = RouteProp<PetsStackParamList, 'TaskForm'>;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const CHORE_TYPES: ChoreType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'other'];
+const TASK_TYPES: TaskType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'other'];
 const SCHEDULE_KINDS = ['daily_times', 'weekdays', 'interval', 'one_off'] as const;
 type ScheduleKind = (typeof SCHEDULE_KINDS)[number];
 
@@ -84,18 +84,18 @@ export function maskTime(prev: string, raw: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ChoreFormScreen() {
+export default function TaskFormScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
-  const route = useRoute<ChoreFormRouteProp>();
-  const { petId, choreId } = route.params;
-  const isEdit = choreId != null;
+  const route = useRoute<TaskFormRouteProp>();
+  const { petId, taskId } = route.params;
+  const isEdit = taskId != null;
 
   // Prefill in edit mode
-  const existing = isEdit ? getChore(choreId) : null;
+  const existing = isEdit ? getTask(taskId) : null;
 
   // ── Type ────────────────────────────────────────────────────────────────────
-  const [choreType, setChoreType] = useState<ChoreType | null>(existing?.type ?? null);
+  const [taskType, setTaskType] = useState<TaskType | null>(existing?.type ?? null);
 
   // ── Title (optional) ────────────────────────────────────────────────────────
   const [title, setTitle] = useState(existing?.title ?? route.params.title ?? '');
@@ -159,8 +159,8 @@ export default function ChoreFormScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inFlightRef = useRef(false);
 
-  const addChore = useChoresStore((s) => s.addChore);
-  const updateChore = useChoresStore((s) => s.updateChore);
+  const addTask = useTasksStore((s) => s.addTask);
+  const updateTask = useTasksStore((s) => s.updateTask);
 
   // ── Weekday toggle ───────────────────────────────────────────────────────────
   const toggleWeekday = (day: number) => {
@@ -196,7 +196,7 @@ export default function ChoreFormScreen() {
 
       case 'one_off': {
         const greg = jalaliToGregorian(oneOffDate);
-        if (!greg) throw new Error('chores.error.schedule_empty');
+        if (!greg) throw new Error('tasks.error.schedule_empty');
         const at = toUtcIso(oneOffTime, greg);
         return { kind: 'one_off', at };
       }
@@ -208,8 +208,8 @@ export default function ChoreFormScreen() {
     if (inFlightRef.current) return;
 
     // Client-side type check
-    if (!choreType) {
-      setTypeError(t('chores.error.type_required'));
+    if (!taskType) {
+      setTypeError(t('tasks.error.type_required'));
       return;
     }
     setTypeError('');
@@ -217,20 +217,20 @@ export default function ChoreFormScreen() {
     // ── Field-format validation (engine assumes valid HH:MM + Jalali dates) ──
     const needsTimes = scheduleKind === 'daily_times' || scheduleKind === 'weekdays';
     if (scheduleKind === 'weekdays' && weekdays.length === 0) {
-      setScheduleError(t('chores.error.days_required'));
+      setScheduleError(t('tasks.error.days_required'));
       return;
     }
     if (needsTimes && (times.length === 0 || !times.every(isValidTime))) {
-      setScheduleError(t('chores.error.invalid_time'));
+      setScheduleError(t('tasks.error.invalid_time'));
       return;
     }
     if (scheduleKind === 'one_off') {
       if (!jalaliToGregorian(oneOffDate)) {
-        setScheduleError(t('chores.error.invalid_date'));
+        setScheduleError(t('tasks.error.invalid_date'));
         return;
       }
       if (!isValidTime(oneOffTime)) {
-        setScheduleError(t('chores.error.invalid_time'));
+        setScheduleError(t('tasks.error.invalid_time'));
         return;
       }
     }
@@ -239,11 +239,11 @@ export default function ChoreFormScreen() {
     // End-condition validation — an invalid "until" date must not silently
     // collapse to "never"; an after_n needs a positive count.
     if (endKind === 'until' && !jalaliToGregorian(endUntilDate)) {
-      setEndError(t('chores.error.invalid_date'));
+      setEndError(t('tasks.error.invalid_date'));
       return;
     }
     if (endKind === 'after_n' && !(parseInt(endCount, 10) > 0)) {
-      setEndError(t('chores.error.count_required'));
+      setEndError(t('tasks.error.count_required'));
       return;
     }
     setEndError('');
@@ -265,7 +265,7 @@ export default function ChoreFormScreen() {
       const schedule = buildSchedule();
       const input = {
         petId,
-        type: choreType,
+        type: taskType,
         title: title.trim() || null,
         schedule,
         endKind: resolvedEndKind,
@@ -274,8 +274,8 @@ export default function ChoreFormScreen() {
         active: true,
       };
 
-      if (isEdit && choreId) {
-        await updateChore(choreId, {
+      if (isEdit && taskId) {
+        await updateTask(taskId, {
           type: input.type,
           title: input.title,
           schedule: input.schedule,
@@ -285,14 +285,14 @@ export default function ChoreFormScreen() {
           active: true,
         });
       } else {
-        await addChore(input);
+        await addTask(input);
       }
       navigation.goBack();
     } catch (err) {
       const key = err instanceof Error ? err.message : '';
       // Surface translated store validation errors
-      if (key === 'chores.error.schedule_empty') {
-        setScheduleError(t('chores.error.schedule_required'));
+      if (key === 'tasks.error.schedule_empty') {
+        setScheduleError(t('tasks.error.schedule_required'));
       } else if (key) {
         setScheduleError(t(key) !== key ? t(key) : key);
       }
@@ -315,27 +315,27 @@ export default function ChoreFormScreen() {
         >
           {/* ── Type chips ─────────────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('chores.field.type')}</Text>
+            <Text style={styles.label}>{t('tasks.field.type')}</Text>
             <View style={styles.chipRow}>
-              {CHORE_TYPES.map((ct) => (
+              {TASK_TYPES.map((ct) => (
                 <Pressable
                   key={ct}
-                  testID={`choreform-type-${ct}`}
+                  testID={`taskform-type-${ct}`}
                   onPress={() => {
-                    setChoreType(ct);
+                    setTaskType(ct);
                     if (typeError) setTypeError('');
                   }}
-                  style={[styles.chip, choreType === ct && styles.chipSelected]}
+                  style={[styles.chip, taskType === ct && styles.chipSelected]}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: choreType === ct }}
+                  accessibilityState={{ selected: taskType === ct }}
                 >
                   <Text
                     style={[
                       styles.chipText,
-                      choreType === ct && styles.chipTextSelected,
+                      taskType === ct && styles.chipTextSelected,
                     ]}
                   >
-                    {t(`chores.type.${ct}`)}
+                    {t(`tasks.type.${ct}`)}
                   </Text>
                 </Pressable>
               ))}
@@ -347,26 +347,26 @@ export default function ChoreFormScreen() {
 
           {/* ── Optional title ─────────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('chores.field.title')}</Text>
+            <Text style={styles.label}>{t('tasks.field.title')}</Text>
             <TextField
-              testID="choreform-title"
+              testID="taskform-title"
               placeholder={
-                choreType ? t(`chores.type.${choreType}`) : t('chores.field.title')
+                taskType ? t(`tasks.type.${taskType}`) : t('tasks.field.title')
               }
               value={title}
               onChangeText={setTitle}
-              accessibilityLabel={t('chores.field.title')}
+              accessibilityLabel={t('tasks.field.title')}
             />
           </View>
 
           {/* ── Schedule kind selector ─────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('chores.field.schedule')}</Text>
+            <Text style={styles.label}>{t('tasks.field.schedule')}</Text>
             <View style={styles.chipRow}>
               {SCHEDULE_KINDS.map((kind) => (
                 <Pressable
                   key={kind}
-                  testID={`choreform-schedule-${kind}`}
+                  testID={`taskform-schedule-${kind}`}
                   onPress={() => {
                     setScheduleKind(kind);
                     if (scheduleError) setScheduleError('');
@@ -384,7 +384,7 @@ export default function ChoreFormScreen() {
                       scheduleKind === kind && styles.chipTextSelected,
                     ]}
                   >
-                    {t(`chores.schedule.${kind}`)}
+                    {t(`tasks.schedule.${kind}`)}
                   </Text>
                 </Pressable>
               ))}
@@ -394,26 +394,26 @@ export default function ChoreFormScreen() {
           {/* ── daily_times inputs ─────────────────────────────────────────── */}
           {scheduleKind === 'daily_times' && (
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t('chores.schedule.times')}</Text>
+              <Text style={styles.label}>{t('tasks.schedule.times')}</Text>
               {times.map((t_, idx) => (
                 <View key={idx} style={styles.timeRow}>
                   <View style={styles.timeInputWrap}>
                     <TextField
-                      testID={`choreform-time-${idx}`}
+                      testID={`taskform-time-${idx}`}
                       placeholder="08:00"
                       value={t_}
                       onChangeText={(v) => updateTime(idx, maskTime(t_, v))}
                       keyboardType="numeric"
-                      accessibilityLabel={t('chores.schedule.times')}
+                      accessibilityLabel={t('tasks.schedule.times')}
                     />
                   </View>
                   {times.length > 1 && (
                     <Pressable
-                      testID={`choreform-time-remove-${idx}`}
+                      testID={`taskform-time-remove-${idx}`}
                       onPress={() => removeTime(idx)}
                       style={styles.removeButton}
                       accessibilityRole="button"
-                      accessibilityLabel={t('chores.action.remove_time')}
+                      accessibilityLabel={t('tasks.action.remove_time')}
                     >
                       <Text style={styles.removeText}>−</Text>
                     </Pressable>
@@ -421,12 +421,12 @@ export default function ChoreFormScreen() {
                 </View>
               ))}
               <Pressable
-                testID="choreform-time-add"
+                testID="taskform-time-add"
                 onPress={addTime}
                 style={styles.ghostAddButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.ghostAddText}>+ {t('chores.schedule.times')}</Text>
+                <Text style={styles.ghostAddText}>+ {t('tasks.schedule.times')}</Text>
               </Pressable>
               {scheduleError !== '' && (
                 <Text style={styles.errorText}>{scheduleError}</Text>
@@ -438,12 +438,12 @@ export default function ChoreFormScreen() {
           {scheduleKind === 'weekdays' && (
             <View style={styles.fieldGroup}>
               {/* Weekday toggles */}
-              <Text style={styles.label}>{t('chores.schedule.days')}</Text>
+              <Text style={styles.label}>{t('tasks.schedule.days')}</Text>
               <View style={styles.weekdayRow}>
                 {WEEKDAY_KEYS.map((key, idx) => (
                   <Pressable
                     key={key}
-                    testID={`choreform-day-${idx}`}
+                    testID={`taskform-day-${idx}`}
                     onPress={() => toggleWeekday(idx)}
                     style={[
                       styles.weekdayCell,
@@ -458,7 +458,7 @@ export default function ChoreFormScreen() {
                         weekdays.includes(idx) && styles.weekdayTextSelected,
                       ]}
                     >
-                      {t(`chores.weekday.${key}`)}
+                      {t(`tasks.weekday.${key}`)}
                     </Text>
                   </Pressable>
                 ))}
@@ -466,27 +466,27 @@ export default function ChoreFormScreen() {
 
               {/* Times for weekdays */}
               <Text style={[styles.label, { marginTop: spacing.md }]}>
-                {t('chores.schedule.times')}
+                {t('tasks.schedule.times')}
               </Text>
               {times.map((t_, idx) => (
                 <View key={idx} style={styles.timeRow}>
                   <View style={styles.timeInputWrap}>
                     <TextField
-                      testID={`choreform-wday-time-${idx}`}
+                      testID={`taskform-wday-time-${idx}`}
                       placeholder="08:00"
                       value={t_}
                       onChangeText={(v) => updateTime(idx, maskTime(t_, v))}
                       keyboardType="numeric"
-                      accessibilityLabel={t('chores.schedule.times')}
+                      accessibilityLabel={t('tasks.schedule.times')}
                     />
                   </View>
                   {times.length > 1 && (
                     <Pressable
-                      testID={`choreform-wday-time-remove-${idx}`}
+                      testID={`taskform-wday-time-remove-${idx}`}
                       onPress={() => removeTime(idx)}
                       style={styles.removeButton}
                       accessibilityRole="button"
-                      accessibilityLabel={t('chores.action.remove_time')}
+                      accessibilityLabel={t('tasks.action.remove_time')}
                     >
                       <Text style={styles.removeText}>−</Text>
                     </Pressable>
@@ -494,12 +494,12 @@ export default function ChoreFormScreen() {
                 </View>
               ))}
               <Pressable
-                testID="choreform-wday-time-add"
+                testID="taskform-wday-time-add"
                 onPress={addTime}
                 style={styles.ghostAddButton}
                 accessibilityRole="button"
               >
-                <Text style={styles.ghostAddText}>+ {t('chores.schedule.times')}</Text>
+                <Text style={styles.ghostAddText}>+ {t('tasks.schedule.times')}</Text>
               </Pressable>
               {scheduleError !== '' && (
                 <Text style={styles.errorText}>{scheduleError}</Text>
@@ -510,11 +510,11 @@ export default function ChoreFormScreen() {
           {/* ── interval inputs ─────────────────────────────────────────────── */}
           {scheduleKind === 'interval' && (
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t('chores.schedule.interval_n')}</Text>
+              <Text style={styles.label}>{t('tasks.schedule.interval_n')}</Text>
               <View style={styles.intervalRow}>
                 <View style={styles.intervalNWrap}>
                   <TextField
-                    testID="choreform-interval-n"
+                    testID="taskform-interval-n"
                     placeholder="1"
                     value={intervalN}
                     onChangeText={(v) => {
@@ -522,14 +522,14 @@ export default function ChoreFormScreen() {
                       if (scheduleError) setScheduleError('');
                     }}
                     keyboardType="numeric"
-                    accessibilityLabel={t('chores.schedule.interval_n')}
+                    accessibilityLabel={t('tasks.schedule.interval_n')}
                   />
                 </View>
                 <View style={styles.chipRow}>
                   {INTERVAL_UNITS.map((u) => (
                     <Pressable
                       key={u}
-                      testID={`choreform-unit-${u}`}
+                      testID={`taskform-unit-${u}`}
                       onPress={() => setIntervalUnit(u)}
                       style={[
                         styles.chip,
@@ -544,7 +544,7 @@ export default function ChoreFormScreen() {
                           intervalUnit === u && styles.chipTextSelected,
                         ]}
                       >
-                        {t(`chores.schedule.unit.${u}`)}
+                        {t(`tasks.schedule.unit.${u}`)}
                       </Text>
                     </Pressable>
                   ))}
@@ -559,23 +559,23 @@ export default function ChoreFormScreen() {
           {/* ── one_off inputs ─────────────────────────────────────────────── */}
           {scheduleKind === 'one_off' && (
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t('chores.field.date')}</Text>
+              <Text style={styles.label}>{t('tasks.field.date')}</Text>
               <TextField
-                testID="choreform-oneoff-date"
-                placeholder={t('chores.field.date_hint')}
+                testID="taskform-oneoff-date"
+                placeholder={t('tasks.field.date_hint')}
                 value={oneOffDate}
                 onChangeText={(v) => {
                   setOneOffDate(v);
                   if (scheduleError) setScheduleError('');
                 }}
                 keyboardType="numeric"
-                accessibilityLabel={t('chores.field.date')}
+                accessibilityLabel={t('tasks.field.date')}
               />
               <Text style={[styles.label, { marginTop: spacing.md }]}>
-                {t('chores.schedule.times')}
+                {t('tasks.schedule.times')}
               </Text>
               <TextField
-                testID="choreform-oneoff-time"
+                testID="taskform-oneoff-time"
                 placeholder="09:00"
                 value={oneOffTime}
                 onChangeText={(v) => {
@@ -583,7 +583,7 @@ export default function ChoreFormScreen() {
                   if (scheduleError) setScheduleError('');
                 }}
                 keyboardType="numeric"
-                accessibilityLabel={t('chores.schedule.times')}
+                accessibilityLabel={t('tasks.schedule.times')}
               />
               {scheduleError !== '' && (
                 <Text style={styles.errorText}>{scheduleError}</Text>
@@ -596,12 +596,12 @@ export default function ChoreFormScreen() {
 
           {/* ── End condition ──────────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('chores.field.end_condition')}</Text>
+            <Text style={styles.label}>{t('tasks.field.end_condition')}</Text>
             <View style={styles.chipRow}>
               {END_KINDS.map((ek) => (
                 <Pressable
                   key={ek}
-                  testID={`choreform-end-${ek}`}
+                  testID={`taskform-end-${ek}`}
                   onPress={() => {
                     setEndKind(ek);
                     if (endError) setEndError('');
@@ -616,7 +616,7 @@ export default function ChoreFormScreen() {
                       endKind === ek && styles.chipTextSelected,
                     ]}
                   >
-                    {t(`chores.end.${ek}`)}
+                    {t(`tasks.end.${ek}`)}
                   </Text>
                 </Pressable>
               ))}
@@ -625,15 +625,15 @@ export default function ChoreFormScreen() {
             {endKind === 'until' && (
               <View style={{ marginTop: spacing.sm }}>
                 <TextField
-                  testID="choreform-end-until-date"
-                  placeholder={t('chores.field.date_hint')}
+                  testID="taskform-end-until-date"
+                  placeholder={t('tasks.field.date_hint')}
                   value={endUntilDate}
                   onChangeText={(v) => {
                     setEndUntilDate(v);
                     if (endError) setEndError('');
                   }}
                   keyboardType="numeric"
-                  accessibilityLabel={t('chores.end.until')}
+                  accessibilityLabel={t('tasks.end.until')}
                 />
               </View>
             )}
@@ -641,7 +641,7 @@ export default function ChoreFormScreen() {
             {endKind === 'after_n' && (
               <View style={{ marginTop: spacing.sm }}>
                 <TextField
-                  testID="choreform-end-count"
+                  testID="taskform-end-count"
                   placeholder="10"
                   value={endCount}
                   onChangeText={(v) => {
@@ -649,7 +649,7 @@ export default function ChoreFormScreen() {
                     if (endError) setEndError('');
                   }}
                   keyboardType="numeric"
-                  accessibilityLabel={t('chores.end.after_n')}
+                  accessibilityLabel={t('tasks.end.after_n')}
                 />
               </View>
             )}
@@ -659,8 +659,8 @@ export default function ChoreFormScreen() {
 
           {/* ── Submit ─────────────────────────────────────────────────────── */}
           <Button
-            testID="choreform-submit"
-            label={isEdit ? t('chores.edit') : t('chores.add')}
+            testID="taskform-submit"
+            label={isEdit ? t('tasks.edit') : t('tasks.add')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={isSubmitting}

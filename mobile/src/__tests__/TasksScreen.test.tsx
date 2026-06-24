@@ -1,7 +1,4 @@
 /**
- * TasksScreen tests — rewritten for Task 6 (SectionList + checkbox/undo/action-sheet)
- * Extended for Task 7 (progress indicator + pet/type filters)
- *
  * Key design choices:
  * - Store mock exposes `windowOccurrences` (built RELATIVE to `new Date()` — keep that approach;
  *   hardcoded past dates fall outside the ±7d window).
@@ -18,17 +15,17 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 const mockLoad = jest.fn().mockResolvedValue(undefined);
 const mockMarkOccurrence = jest.fn().mockResolvedValue(undefined);
 const mockUnmarkOccurrence = jest.fn().mockResolvedValue(undefined);
-const mockDeleteChore = jest.fn().mockResolvedValue(undefined);
+const mockDeleteTask = jest.fn().mockResolvedValue(undefined);
 let mockWindowOccurrences: unknown[] = [];
 
-jest.mock('../store/choresStore', () => ({
-  useChoresStore: (
+jest.mock('../store/tasksStore', () => ({
+  useTasksStore: (
     selector: (s: {
       windowOccurrences: unknown[];
       load: typeof mockLoad;
       markOccurrence: typeof mockMarkOccurrence;
       unmarkOccurrence: typeof mockUnmarkOccurrence;
-      deleteChore: typeof mockDeleteChore;
+      deleteTask: typeof mockDeleteTask;
     }) => unknown,
   ) =>
     selector({
@@ -36,7 +33,7 @@ jest.mock('../store/choresStore', () => ({
       load: mockLoad,
       markOccurrence: mockMarkOccurrence,
       unmarkOccurrence: mockUnmarkOccurrence,
-      deleteChore: mockDeleteChore,
+      deleteTask: mockDeleteTask,
     }),
 }));
 
@@ -86,9 +83,9 @@ const makeOcc = (
   status: Occurrence['status'] = 'pending',
   scheduleKind: 'daily_times' | 'one_off' = 'daily_times',
   petId = 'pet-1',
-  type: Occurrence['chore']['type'] = 'feeding',
+  type: Occurrence['task']['type'] = 'feeding',
 ): Occurrence => ({
-  chore: {
+  task: {
     id,
     petId,
     type,
@@ -108,19 +105,19 @@ const makeOcc = (
   status,
 });
 
-const OCC_OVERDUE = makeOcc('chore-overdue', DUE_OVERDUE, 'pending');
-const OCC_TODAY = makeOcc('chore-today', DUE_TODAY, 'pending');
-const OCC_TODAY_LATE = makeOcc('chore-today-late', DUE_TODAY_LATE, 'pending');
-const OCC_UPCOMING = makeOcc('chore-upcoming', DUE_UPCOMING, 'pending');
-const OCC_DONE = makeOcc('chore-done', DUE_TODAY, 'done');
-const OCC_SKIPPED = makeOcc('chore-skipped', DUE_TODAY, 'skipped');
-const OCC_ONE_OFF = makeOcc('chore-oneoff', DUE_TODAY, 'pending', 'one_off');
+const OCC_OVERDUE = makeOcc('task-overdue', DUE_OVERDUE, 'pending');
+const OCC_TODAY = makeOcc('task-today', DUE_TODAY, 'pending');
+const OCC_TODAY_LATE = makeOcc('task-today-late', DUE_TODAY_LATE, 'pending');
+const OCC_UPCOMING = makeOcc('task-upcoming', DUE_UPCOMING, 'pending');
+const OCC_DONE = makeOcc('task-done', DUE_TODAY, 'done');
+const OCC_SKIPPED = makeOcc('task-skipped', DUE_TODAY, 'skipped');
+const OCC_ONE_OFF = makeOcc('task-oneoff', DUE_TODAY, 'pending', 'one_off');
 
 beforeEach(() => {
   mockLoad.mockClear();
   mockMarkOccurrence.mockClear();
   mockUnmarkOccurrence.mockClear();
-  mockDeleteChore.mockClear();
+  mockDeleteTask.mockClear();
   mockNavigate.mockClear();
   (Toast.show as jest.Mock).mockClear();
   (Toast.hide as jest.Mock).mockClear();
@@ -180,11 +177,11 @@ describe('TasksScreen – checkbox', () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-check-chore-today'));
+    fireEvent.press(getByTestId('tasks-check-task-today'));
 
     await waitFor(() => {
       expect(mockMarkOccurrence).toHaveBeenCalledWith(
-        'chore-today',
+        'task-today',
         OCC_TODAY.dueAt,
         'done',
       );
@@ -198,7 +195,7 @@ describe('TasksScreen – checkbox', () => {
 
     // Invoke the undo handler
     toastArgs.onPress();
-    expect(mockUnmarkOccurrence).toHaveBeenCalledWith('chore-today', OCC_TODAY.dueAt);
+    expect(mockUnmarkOccurrence).toHaveBeenCalledWith('task-today', OCC_TODAY.dueAt);
     expect(Toast.hide).toHaveBeenCalled();
   });
 
@@ -206,7 +203,7 @@ describe('TasksScreen – checkbox', () => {
     mockWindowOccurrences = [OCC_DONE];
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-check-chore-done'));
+    fireEvent.press(getByTestId('tasks-check-task-done'));
     expect(mockMarkOccurrence).not.toHaveBeenCalled();
     expect(Toast.show).not.toHaveBeenCalled();
   });
@@ -214,7 +211,7 @@ describe('TasksScreen – checkbox', () => {
   test('done row renders dimmed (opacity 0.5)', async () => {
     mockWindowOccurrences = [OCC_DONE];
     const { getByTestId } = await render(<TasksScreen />);
-    const row = getByTestId('tasks-row-chore-done');
+    const row = getByTestId('tasks-row-task-done');
     const flatStyle = Array.isArray(row.props.style)
       ? Object.assign({}, ...row.props.style.filter(Boolean))
       : row.props.style;
@@ -229,7 +226,7 @@ describe('TasksScreen – action sheet', () => {
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-task-today'));
 
     expect(showActionSheetWithOptions).toHaveBeenCalledTimes(1);
   });
@@ -239,60 +236,60 @@ describe('TasksScreen – action sheet', () => {
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-task-today'));
 
     const [, callback] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     callback(0);
 
-    expect(mockMarkOccurrence).toHaveBeenCalledWith('chore-today', OCC_TODAY.dueAt, 'skipped');
+    expect(mockMarkOccurrence).toHaveBeenCalledWith('task-today', OCC_TODAY.dueAt, 'skipped');
   });
 
-  test('action-sheet index 1 (edit) → navigate to ChoreForm', async () => {
+  test('action-sheet index 1 (edit) → navigate to TaskForm', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-task-today'));
 
     const [, callback] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     callback(1);
 
-    expect(mockNavigate).toHaveBeenCalledWith('ChoreForm', {
+    expect(mockNavigate).toHaveBeenCalledWith('TaskForm', {
       petId: 'pet-1',
-      choreId: 'chore-today',
+      taskId: 'task-today',
     });
   });
 
-  test('action-sheet index 2 (delete) → deleteChore(id)', async () => {
+  test('action-sheet index 2 (delete) → deleteTask(id)', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-task-today'));
 
     const [, callback] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     callback(2);
 
-    expect(mockDeleteChore).toHaveBeenCalledWith('chore-today');
+    expect(mockDeleteTask).toHaveBeenCalledWith('task-today');
   });
 
-  test('delete label is the recurring-delete translation for recurring chore', async () => {
+  test('delete label is the recurring-delete translation for recurring task', async () => {
     mockWindowOccurrences = [OCC_TODAY]; // daily_times schedule
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-task-today'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     expect(opts.options[2]).toBe('حذف این کار و همه تکرارهای آن');
   });
 
-  test('delete label is the one-off-delete translation for one-off chore', async () => {
+  test('delete label is the one-off-delete translation for one-off task', async () => {
     mockWindowOccurrences = [OCC_ONE_OFF]; // one_off schedule
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-more-chore-oneoff'));
+    fireEvent.press(getByTestId('tasks-more-task-oneoff'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     expect(opts.options[2]).toBe('حذف این کار');
@@ -303,7 +300,7 @@ describe('TasksScreen – action sheet', () => {
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-task-today'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     expect(opts.destructiveButtonIndex).toBe(2);
@@ -323,7 +320,7 @@ describe('TasksScreen – Tehran time display', () => {
       return `${h}:${m}`;
     })();
 
-    mockWindowOccurrences = [makeOcc('chore-time', DUE_TODAY)];
+    mockWindowOccurrences = [makeOcc('task-time', DUE_TODAY)];
     const { getByText } = await render(<TasksScreen />);
     expect(getByText(expectedTehran)).toBeTruthy();
   });
@@ -335,13 +332,13 @@ describe('TasksScreen – skipped row', () => {
     mockWindowOccurrences = [OCC_SKIPPED];
     const { getByTestId } = await render(<TasksScreen />);
 
-    const row = getByTestId('tasks-row-chore-skipped');
+    const row = getByTestId('tasks-row-task-skipped');
     const flatStyle = Array.isArray(row.props.style)
       ? Object.assign({}, ...row.props.style.filter(Boolean))
       : row.props.style;
     expect(flatStyle.opacity).toBe(0.5);
 
-    fireEvent.press(getByTestId('tasks-check-chore-skipped'));
+    fireEvent.press(getByTestId('tasks-check-task-skipped'));
     expect(mockMarkOccurrence).not.toHaveBeenCalled();
   });
 });
@@ -353,7 +350,7 @@ describe('TasksScreen – row body tap', () => {
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('tasks-row-chore-today'));
+    fireEvent.press(getByTestId('tasks-row-task-today'));
 
     expect(showActionSheetWithOptions).toHaveBeenCalledTimes(1);
   });
@@ -399,15 +396,15 @@ describe('TasksScreen – pet filter', () => {
       { id: 'pet-1', name: 'رکسی' },
       { id: 'pet-2', name: 'گربه' },
     ];
-    const occ1 = makeOcc('chore-pet1', DUE_TODAY, 'pending', 'daily_times', 'pet-1');
-    const occ2 = makeOcc('chore-pet2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-2');
+    const occ1 = makeOcc('task-pet1', DUE_TODAY, 'pending', 'daily_times', 'pet-1');
+    const occ2 = makeOcc('task-pet2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-2');
     mockWindowOccurrences = [occ1, occ2];
 
     const { getByTestId, queryByTestId } = await render(<TasksScreen />);
 
     // Both rows visible initially
-    expect(getByTestId('tasks-row-chore-pet1')).toBeTruthy();
-    expect(getByTestId('tasks-row-chore-pet2')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-pet1')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-pet2')).toBeTruthy();
 
     // Select pet-1 chip
     await act(async () => {
@@ -415,8 +412,8 @@ describe('TasksScreen – pet filter', () => {
     });
 
     // pet-1 row still visible, pet-2 row gone
-    expect(getByTestId('tasks-row-chore-pet1')).toBeTruthy();
-    expect(queryByTestId('tasks-row-chore-pet2')).toBeNull();
+    expect(getByTestId('tasks-row-task-pet1')).toBeTruthy();
+    expect(queryByTestId('tasks-row-task-pet2')).toBeNull();
   });
 
   test('tapping selected pet chip resets to All', async () => {
@@ -424,8 +421,8 @@ describe('TasksScreen – pet filter', () => {
       { id: 'pet-1', name: 'رکسی' },
       { id: 'pet-2', name: 'گربه' },
     ];
-    const occ1 = makeOcc('chore-p1', DUE_TODAY, 'pending', 'daily_times', 'pet-1');
-    const occ2 = makeOcc('chore-p2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-2');
+    const occ1 = makeOcc('task-p1', DUE_TODAY, 'pending', 'daily_times', 'pet-1');
+    const occ2 = makeOcc('task-p2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-2');
     mockWindowOccurrences = [occ1, occ2];
 
     const { getByTestId } = await render(<TasksScreen />);
@@ -439,23 +436,23 @@ describe('TasksScreen – pet filter', () => {
     });
 
     // Both rows back
-    expect(getByTestId('tasks-row-chore-p1')).toBeTruthy();
-    expect(getByTestId('tasks-row-chore-p2')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-p1')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-p2')).toBeTruthy();
   });
 });
 
 // ── 10. Type filter ───────────────────────────────────────────────────────────
 describe('TasksScreen – type filter', () => {
   test('opening type filter modal and applying a type narrows rows', async () => {
-    const feedingOcc = makeOcc('chore-feed', DUE_TODAY, 'pending', 'daily_times', 'pet-1', 'feeding');
-    const medsOcc = makeOcc('chore-meds', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-1', 'meds');
+    const feedingOcc = makeOcc('task-feed', DUE_TODAY, 'pending', 'daily_times', 'pet-1', 'feeding');
+    const medsOcc = makeOcc('task-meds', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-1', 'meds');
     mockWindowOccurrences = [feedingOcc, medsOcc];
 
     const { getByTestId, queryByTestId } = await render(<TasksScreen />);
 
     // Both rows visible
-    expect(getByTestId('tasks-row-chore-feed')).toBeTruthy();
-    expect(getByTestId('tasks-row-chore-meds')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-feed')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-meds')).toBeTruthy();
 
     // Open modal
     await act(async () => {
@@ -473,13 +470,13 @@ describe('TasksScreen – type filter', () => {
     });
 
     // Only feeding row visible
-    expect(getByTestId('tasks-row-chore-feed')).toBeTruthy();
-    expect(queryByTestId('tasks-row-chore-meds')).toBeNull();
+    expect(getByTestId('tasks-row-task-feed')).toBeTruthy();
+    expect(queryByTestId('tasks-row-task-meds')).toBeNull();
   });
 
   test('clear in modal empties the type filter draft', async () => {
-    const feedingOcc = makeOcc('chore-f2', DUE_TODAY, 'pending', 'daily_times', 'pet-1', 'feeding');
-    const medsOcc = makeOcc('chore-m2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-1', 'meds');
+    const feedingOcc = makeOcc('task-f2', DUE_TODAY, 'pending', 'daily_times', 'pet-1', 'feeding');
+    const medsOcc = makeOcc('task-m2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-1', 'meds');
     mockWindowOccurrences = [feedingOcc, medsOcc];
 
     const { getByTestId } = await render(<TasksScreen />);
@@ -499,8 +496,8 @@ describe('TasksScreen – type filter', () => {
     });
 
     // Both rows back (filter cleared)
-    expect(getByTestId('tasks-row-chore-f2')).toBeTruthy();
-    expect(getByTestId('tasks-row-chore-m2')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-f2')).toBeTruthy();
+    expect(getByTestId('tasks-row-task-m2')).toBeTruthy();
   });
 });
 

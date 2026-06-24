@@ -1,8 +1,8 @@
 /**
- * choreNotifications tests — TDD Red → Green
+ * taskNotifications tests — TDD Red → Green
  *
  * Tests the PURE selection logic (window/cap/nearest-first/active-only/
- * end-conditions/payload) with Notifee and db/chores fully mocked.
+ * end-conditions/payload) with Notifee and db/tasks fully mocked.
  * Device-only behaviour (actual firing, airplane-mode, reschedule) is
  * NOT tested here — that is the human's post-merge verification.
  *
@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------------
 
 const mockCancelTriggerNotifications = jest.fn().mockResolvedValue(undefined);
-const mockCreateChannel = jest.fn().mockResolvedValue('chores');
+const mockCreateChannel = jest.fn().mockResolvedValue('tasks');
 const mockCreateTriggerNotification = jest.fn().mockResolvedValue(undefined);
 const mockRequestPermission = jest.fn().mockResolvedValue({ authorizationStatus: 1 });
 const mockOnForegroundEvent = jest.fn().mockReturnValue(() => {});
@@ -38,14 +38,14 @@ jest.mock('@notifee/react-native', () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// db/chores mock
+// db/tasks mock
 // ---------------------------------------------------------------------------
 
-const mockListChores = jest.fn();
-const mockLogOccurrence = jest.fn().mockReturnValue({ id: 'log-1', choreId: 'chore-1', dueAt: '', status: 'done', createdAt: '' });
+const mockListTasks = jest.fn();
+const mockLogOccurrence = jest.fn().mockReturnValue({ id: 'log-1', taskId: 'task-1', dueAt: '', status: 'done', createdAt: '' });
 
-jest.mock('../db/chores', () => ({
-  listChores: (...args: unknown[]) => mockListChores(...args),
+jest.mock('../db/tasks', () => ({
+  listTasks: (...args: unknown[]) => mockListTasks(...args),
   logOccurrence: (...args: unknown[]) => mockLogOccurrence(...args),
 }));
 
@@ -57,18 +57,18 @@ jest.mock('../db/pets', () => ({
 }));
 
 // ---------------------------------------------------------------------------
-// choresStore mock (prevents Zustand/SQLite init at import time)
+// tasksStore mock (prevents Zustand/SQLite init at import time)
 // ---------------------------------------------------------------------------
 
-jest.mock('../store/choresStore', () => ({
-  setChoresSyncNotifications: jest.fn(),
+jest.mock('../store/tasksStore', () => ({
+  setTasksSyncNotifications: jest.fn(),
 }));
 
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import type { Chore } from '../db/types';
+import type { Task } from '../db/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,9 +77,9 @@ import type { Chore } from '../db/types';
 const NOW_UTC = new Date('2026-06-21T06:30:00.000Z'); // Tehran 2026-06-21 10:00
 const WINDOW_MS = 60 * 24 * 60 * 60 * 1000; // 60 days in ms
 
-function makeChore(overrides: Partial<Chore> = {}): Chore {
+function makeTask(overrides: Partial<Task> = {}): Task {
   return {
-    id: 'chore-1',
+    id: 'task-1',
     petId: 'pet-1',
     type: 'feeding',
     title: 'Feed',
@@ -114,13 +114,13 @@ afterEach(() => {
 
 describe('syncNotifications – cancel then register', () => {
   test('calls cancelTriggerNotifications before createTriggerNotification', async () => {
-    mockListChores.mockReturnValue([makeChore()]);
+    mockListTasks.mockReturnValue([makeTask()]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCancelTriggerNotifications).toHaveBeenCalledTimes(1);
-    // At least one trigger notification created for an active daily chore
+    // At least one trigger notification created for an active daily task
     expect(mockCreateTriggerNotification).toHaveBeenCalled();
 
     // Cancel called before first create
@@ -129,10 +129,10 @@ describe('syncNotifications – cancel then register', () => {
     expect(cancelOrder).toBeLessThan(createOrder);
   });
 
-  test('calls cancelTriggerNotifications even when no chores', async () => {
-    mockListChores.mockReturnValue([]);
+  test('calls cancelTriggerNotifications even when no tasks', async () => {
+    mockListTasks.mockReturnValue([]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCancelTriggerNotifications).toHaveBeenCalledTimes(1);
@@ -145,25 +145,25 @@ describe('syncNotifications – cancel then register', () => {
 // ---------------------------------------------------------------------------
 
 describe('syncNotifications – active-only', () => {
-  test('skips inactive chores', async () => {
-    mockListChores.mockReturnValue([
-      makeChore({ id: 'c1', active: true }),
-      makeChore({ id: 'c2', active: false }),
+  test('skips inactive tasks', async () => {
+    mockListTasks.mockReturnValue([
+      makeTask({ id: 'c1', active: true }),
+      makeTask({ id: 'c2', active: false }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
-    // All registered notifications must come from active chore only
+    // All registered notifications must come from active task only
     for (const call of mockCreateTriggerNotification.mock.calls) {
-      expect(call[0].data?.choreId).toBe('c1');
+      expect(call[0].data?.taskId).toBe('c1');
     }
   });
 
-  test('no notifications when all chores inactive', async () => {
-    mockListChores.mockReturnValue([makeChore({ active: false })]);
+  test('no notifications when all tasks inactive', async () => {
+    mockListTasks.mockReturnValue([makeTask({ active: false })]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
@@ -176,26 +176,26 @@ describe('syncNotifications – active-only', () => {
 
 describe('syncNotifications – 60-day window', () => {
   test('does not schedule occurrences beyond 60 days from now', async () => {
-    // one_off chore due at exactly now+61 days → outside window
+    // one_off task due at exactly now+61 days → outside window
     const beyond = new Date(NOW_UTC.getTime() + 61 * 24 * 60 * 60 * 1000).toISOString();
-    mockListChores.mockReturnValue([
-      makeChore({ schedule: { kind: 'one_off', at: beyond } }),
+    mockListTasks.mockReturnValue([
+      makeTask({ schedule: { kind: 'one_off', at: beyond } }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
   });
 
   test('schedules occurrences within 60 days', async () => {
-    // one_off chore due tomorrow (within window)
+    // one_off task due tomorrow (within window)
     const soon = new Date(NOW_UTC.getTime() + 24 * 60 * 60 * 1000).toISOString();
-    mockListChores.mockReturnValue([
-      makeChore({ schedule: { kind: 'one_off', at: soon } }),
+    mockListTasks.mockReturnValue([
+      makeTask({ schedule: { kind: 'one_off', at: soon } }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
@@ -207,10 +207,10 @@ describe('syncNotifications – 60-day window', () => {
 // ---------------------------------------------------------------------------
 
 describe('syncNotifications – cap 200, nearest-first', () => {
-  test('caps at 200 triggers total across all chores', async () => {
-    // hourly chore → many occurrences in 60 days (60*24 = 1440)
-    mockListChores.mockReturnValue([
-      makeChore({
+  test('caps at 200 triggers total across all tasks', async () => {
+    // hourly task → many occurrences in 60 days (60*24 = 1440)
+    mockListTasks.mockReturnValue([
+      makeTask({
         schedule: {
           kind: 'interval',
           n: 1,
@@ -220,15 +220,15 @@ describe('syncNotifications – cap 200, nearest-first', () => {
       }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(200);
   });
 
   test('nearest occurrences are scheduled first (timestamps ascending)', async () => {
-    mockListChores.mockReturnValue([
-      makeChore({
+    mockListTasks.mockReturnValue([
+      makeTask({
         schedule: {
           kind: 'interval',
           n: 1,
@@ -238,7 +238,7 @@ describe('syncNotifications – cap 200, nearest-first', () => {
       }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     const timestamps: number[] = mockCreateTriggerNotification.mock.calls.map(
@@ -255,18 +255,18 @@ describe('syncNotifications – cap 200, nearest-first', () => {
 // ---------------------------------------------------------------------------
 
 describe('syncNotifications – payload', () => {
-  test('each trigger notification has choreId + dueAt in data', async () => {
+  test('each trigger notification has taskId + dueAt in data', async () => {
     const soon = new Date(NOW_UTC.getTime() + 60 * 60 * 1000).toISOString();
-    mockListChores.mockReturnValue([
-      makeChore({ id: 'chore-abc', schedule: { kind: 'one_off', at: soon } }),
+    mockListTasks.mockReturnValue([
+      makeTask({ id: 'task-abc', schedule: { kind: 'one_off', at: soon } }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
     const [notif, trigger] = mockCreateTriggerNotification.mock.calls[0];
-    expect(notif.data).toEqual({ choreId: 'chore-abc', dueAt: soon, label: 'Feed', petName: 'Rex' });
+    expect(notif.data).toEqual({ taskId: 'task-abc', dueAt: soon, label: 'Feed', petName: 'Rex' });
     expect(trigger.type).toBe(0); // TriggerType.TIMESTAMP
     expect(trigger.timestamp).toBe(new Date(soon).getTime());
   });
@@ -274,11 +274,11 @@ describe('syncNotifications – payload', () => {
   test('trigger timestamp equals new Date(dueAt).getTime() (no Tehran offset)', async () => {
     // dueAt is absolute UTC; trigger should fire at that exact epoch ms
     const dueAt = '2026-07-01T04:30:00.000Z'; // Tehran 08:00 on 2026-07-01
-    mockListChores.mockReturnValue([
-      makeChore({ schedule: { kind: 'one_off', at: dueAt } }),
+    mockListTasks.mockReturnValue([
+      makeTask({ schedule: { kind: 'one_off', at: dueAt } }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     const [, trigger] = mockCreateTriggerNotification.mock.calls[0];
@@ -294,15 +294,15 @@ describe('syncNotifications – payload', () => {
 describe('syncNotifications – end conditions', () => {
   test('after_n=1 one_off: exactly 1 notification', async () => {
     const soon = new Date(NOW_UTC.getTime() + 60 * 60 * 1000).toISOString();
-    mockListChores.mockReturnValue([
-      makeChore({
+    mockListTasks.mockReturnValue([
+      makeTask({
         schedule: { kind: 'one_off', at: soon },
         endKind: 'after_n',
         endCount: 1,
       }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
@@ -310,15 +310,15 @@ describe('syncNotifications – end conditions', () => {
 
   test('after_n=0: no notifications', async () => {
     const soon = new Date(NOW_UTC.getTime() + 60 * 60 * 1000).toISOString();
-    mockListChores.mockReturnValue([
-      makeChore({
+    mockListTasks.mockReturnValue([
+      makeTask({
         schedule: { kind: 'one_off', at: soon },
         endKind: 'after_n',
         endCount: 0,
       }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
@@ -329,15 +329,15 @@ describe('syncNotifications – end conditions', () => {
     // endUntil = now+20d → only 2 occurrences (now+5d and now+15d)
     const anchor = new Date(NOW_UTC.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString();
     const endUntil = new Date(NOW_UTC.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString();
-    mockListChores.mockReturnValue([
-      makeChore({
+    mockListTasks.mockReturnValue([
+      makeTask({
         schedule: { kind: 'interval', n: 10, unit: 'days', anchor },
         endKind: 'until',
         endUntil,
       }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     // now+5d and now+15d are within endUntil; now+25d > endUntil → only 2
@@ -346,23 +346,23 @@ describe('syncNotifications – end conditions', () => {
 });
 
 // ---------------------------------------------------------------------------
-// 7. Multiple chores — all active contributions merged and capped
+// 7. Multiple tasks — all active contributions merged and capped
 // ---------------------------------------------------------------------------
 
-describe('syncNotifications – multiple chores merged', () => {
-  test('occurrences from multiple chores are combined before cap', async () => {
+describe('syncNotifications – multiple tasks merged', () => {
+  test('occurrences from multiple tasks are combined before cap', async () => {
     const soon1 = new Date(NOW_UTC.getTime() + 1 * 60 * 60 * 1000).toISOString();
     const soon2 = new Date(NOW_UTC.getTime() + 2 * 60 * 60 * 1000).toISOString();
-    mockListChores.mockReturnValue([
-      makeChore({ id: 'c1', schedule: { kind: 'one_off', at: soon1 } }),
-      makeChore({ id: 'c2', schedule: { kind: 'one_off', at: soon2 } }),
+    mockListTasks.mockReturnValue([
+      makeTask({ id: 'c1', schedule: { kind: 'one_off', at: soon1 } }),
+      makeTask({ id: 'c2', schedule: { kind: 'one_off', at: soon2 } }),
     ]);
 
-    const { syncNotifications } = require('../lib/choreNotifications');
+    const { syncNotifications } = require('../lib/taskNotifications');
     await syncNotifications();
 
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(2);
-    const ids = mockCreateTriggerNotification.mock.calls.map((c) => c[0].data?.choreId);
+    const ids = mockCreateTriggerNotification.mock.calls.map((c) => c[0].data?.taskId);
     expect(ids).toContain('c1');
     expect(ids).toContain('c2');
   });
@@ -374,47 +374,47 @@ describe('syncNotifications – multiple chores merged', () => {
 
 describe('handleNotificationEvent – ACTION_PRESS done', () => {
   test('calls logOccurrence with status "done" and does not create a trigger', async () => {
-    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    const { handleNotificationEvent } = require('../lib/taskNotifications');
     await handleNotificationEvent({
       type: 2, // EventType.ACTION_PRESS
       detail: {
         pressAction: { id: 'done' },
-        notification: { data: { choreId: 'chore-1', dueAt: '2026-06-21T06:30:00.000Z' } },
+        notification: { data: { taskId: 'task-1', dueAt: '2026-06-21T06:30:00.000Z' } },
       },
     });
 
     expect(mockLogOccurrence).toHaveBeenCalledTimes(1);
-    expect(mockLogOccurrence).toHaveBeenCalledWith('chore-1', '2026-06-21T06:30:00.000Z', 'done');
+    expect(mockLogOccurrence).toHaveBeenCalledWith('task-1', '2026-06-21T06:30:00.000Z', 'done');
     expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
   });
 });
 
 describe('handleNotificationEvent – ACTION_PRESS skip', () => {
   test('calls logOccurrence with status "skipped" and does not create a trigger', async () => {
-    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    const { handleNotificationEvent } = require('../lib/taskNotifications');
     await handleNotificationEvent({
       type: 2, // EventType.ACTION_PRESS
       detail: {
         pressAction: { id: 'skip' },
-        notification: { data: { choreId: 'chore-2', dueAt: '2026-06-21T07:00:00.000Z' } },
+        notification: { data: { taskId: 'task-2', dueAt: '2026-06-21T07:00:00.000Z' } },
       },
     });
 
     expect(mockLogOccurrence).toHaveBeenCalledTimes(1);
-    expect(mockLogOccurrence).toHaveBeenCalledWith('chore-2', '2026-06-21T07:00:00.000Z', 'skipped');
+    expect(mockLogOccurrence).toHaveBeenCalledWith('task-2', '2026-06-21T07:00:00.000Z', 'skipped');
     expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
   });
 });
 
 describe('handleNotificationEvent – ACTION_PRESS snooze', () => {
   test('creates a +15min trigger with same data, does NOT call logOccurrence', async () => {
-    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    const { handleNotificationEvent } = require('../lib/taskNotifications');
     const dueAt = '2026-06-21T06:30:00.000Z';
     await handleNotificationEvent({
       type: 2, // EventType.ACTION_PRESS
       detail: {
         pressAction: { id: 'snooze' },
-        notification: { data: { choreId: 'chore-3', dueAt } },
+        notification: { data: { taskId: 'task-3', dueAt } },
       },
     });
 
@@ -422,7 +422,7 @@ describe('handleNotificationEvent – ACTION_PRESS snooze', () => {
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
     const [notif, trigger] = mockCreateTriggerNotification.mock.calls[0];
     // label/petName were not present on the incoming notification → rebuilt empty
-    expect(notif.data).toEqual({ choreId: 'chore-3', dueAt, label: '', petName: '' });
+    expect(notif.data).toEqual({ taskId: 'task-3', dueAt, label: '', petName: '' });
     // Trigger should be ~15min from now (Date.now() = NOW_UTC in fake timers)
     const expectedTimestamp = NOW_UTC.getTime() + 15 * 60 * 1000;
     expect(trigger.timestamp).toBe(expectedTimestamp);
@@ -432,11 +432,11 @@ describe('handleNotificationEvent – ACTION_PRESS snooze', () => {
 
 describe('handleNotificationEvent – PRESS (default body tap)', () => {
   test('does not call logOccurrence or createTriggerNotification', async () => {
-    const { handleNotificationEvent } = require('../lib/choreNotifications');
+    const { handleNotificationEvent } = require('../lib/taskNotifications');
     await handleNotificationEvent({
       type: 1, // EventType.PRESS
       detail: {
-        notification: { data: { choreId: 'chore-4', dueAt: '2026-06-21T06:30:00.000Z' } },
+        notification: { data: { taskId: 'task-4', dueAt: '2026-06-21T06:30:00.000Z' } },
       },
     });
 

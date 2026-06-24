@@ -1,5 +1,5 @@
 /**
- * DB-layer tests for src/db/chores.ts.
+ * DB-layer tests for src/db/tasks.ts.
  *
  * The jest.mock factory is hoisted before module-level code runs, so the
  * entire in-memory store lives inside the factory closure. A shared `store`
@@ -16,11 +16,11 @@ import type { Schedule } from '../db/types';
 type Row = Record<string, unknown>;
 
 interface Store {
-  chores: Row[];
-  chore_logs: Row[];
+  tasks: Row[];
+  task_logs: Row[];
 }
 
-const store: Store = { chores: [], chore_logs: [] };
+const store: Store = { tasks: [], task_logs: [] };
 
 // ---------------------------------------------------------------------------
 // expo-sqlite mock  (overrides __mocks__/expo-sqlite.js for this file)
@@ -38,48 +38,48 @@ jest.mock('expo-sqlite', () => {
 
       if (u.startsWith('CREATE TABLE')) return;
 
-      // ---- chores ----
-      if (u.startsWith('INSERT INTO CHORES ')) {
+      // ---- tasks ----
+      if (u.startsWith('INSERT INTO TASKS ')) {
         const [id, pet_id, type, title, schedule_json, end_kind, end_until, end_count, active, created_at, updated_at] =
           params;
-        s.chores.push({ id, pet_id, type, title, schedule_json, end_kind, end_until, end_count, active, created_at, updated_at });
+        s.tasks.push({ id, pet_id, type, title, schedule_json, end_kind, end_until, end_count, active, created_at, updated_at });
         return;
       }
-      if (u.startsWith('UPDATE CHORES SET')) {
+      if (u.startsWith('UPDATE TASKS SET')) {
         const [type, title, schedule_json, end_kind, end_until, end_count, active, updated_at, id] = params;
-        const row = s.chores.find((r) => r.id === id);
+        const row = s.tasks.find((r) => r.id === id);
         if (row) Object.assign(row, { type, title, schedule_json, end_kind, end_until, end_count, active, updated_at });
         return;
       }
-      if (u.startsWith('DELETE FROM CHORES WHERE ID')) {
+      if (u.startsWith('DELETE FROM TASKS WHERE ID')) {
         const [id] = params as string[];
-        s.chores = s.chores.filter((r) => r.id !== id);
+        s.tasks = s.tasks.filter((r) => r.id !== id);
         return;
       }
-      if (u.startsWith('DELETE FROM CHORES WHERE PET_ID')) {
+      if (u.startsWith('DELETE FROM TASKS WHERE PET_ID')) {
         const [pet_id] = params as string[];
-        s.chores = s.chores.filter((r) => r.pet_id !== pet_id);
+        s.tasks = s.tasks.filter((r) => r.pet_id !== pet_id);
         return;
       }
 
-      // ---- chore_logs (upsert) ----
-      if (u.startsWith('INSERT INTO CHORE_LOGS') && u.includes('ON CONFLICT')) {
-        const [id, chore_id, due_at, status, created_at] = params as string[];
-        const existing = s.chore_logs.find(
-          (r) => r.chore_id === chore_id && r.due_at === due_at,
+      // ---- task_logs (upsert) ----
+      if (u.startsWith('INSERT INTO TASK_LOGS') && u.includes('ON CONFLICT')) {
+        const [id, task_id, due_at, status, created_at] = params as string[];
+        const existing = s.task_logs.find(
+          (r) => r.task_id === task_id && r.due_at === due_at,
         );
         if (existing) {
           existing.status = status;
         } else {
-          s.chore_logs.push({ id, chore_id, due_at, status, created_at });
+          s.task_logs.push({ id, task_id, due_at, status, created_at });
         }
         return;
       }
 
-      // ---- delete logs for a chore ----
-      if (u.startsWith('DELETE FROM CHORE_LOGS WHERE CHORE_ID')) {
-        const [chore_id] = params as string[];
-        s.chore_logs = s.chore_logs.filter((r) => r.chore_id !== chore_id);
+      // ---- delete logs for a task ----
+      if (u.startsWith('DELETE FROM TASK_LOGS WHERE TASK_ID')) {
+        const [task_id] = params as string[];
+        s.task_logs = s.task_logs.filter((r) => r.task_id !== task_id);
         return;
       }
     },
@@ -87,31 +87,31 @@ jest.mock('expo-sqlite', () => {
     getAllSync<T>(sql: string, params: unknown[] = []): T[] {
       const u = sql.trim().toUpperCase().replace(/\s+/g, ' ');
 
-      if (u.includes('FROM CHORES') && u.includes('PET_ID')) {
+      if (u.includes('FROM TASKS') && u.includes('PET_ID')) {
         const [pet_id] = params as string[];
-        return s.chores.filter((r) => r.pet_id === pet_id) as unknown as T[];
+        return s.tasks.filter((r) => r.pet_id === pet_id) as unknown as T[];
       }
-      if (u.includes('FROM CHORES')) {
-        return [...s.chores] as unknown as T[];
+      if (u.includes('FROM TASKS')) {
+        return [...s.tasks] as unknown as T[];
       }
-      // chore_id AND due_at exact match (used by logOccurrence post-upsert lookup)
+      // task_id AND due_at exact match (used by logOccurrence post-upsert lookup)
       // Must check for WHERE ... AND DUE_AT (not just ORDER BY due_at)
-      if (u.includes('FROM CHORE_LOGS') && u.includes('AND DUE_AT') && !u.includes('LIKE')) {
-        const [chore_id, due_at] = params as string[];
-        return s.chore_logs.filter(
-          (r) => r.chore_id === chore_id && r.due_at === due_at,
+      if (u.includes('FROM TASK_LOGS') && u.includes('AND DUE_AT') && !u.includes('LIKE')) {
+        const [task_id, due_at] = params as string[];
+        return s.task_logs.filter(
+          (r) => r.task_id === task_id && r.due_at === due_at,
         ) as unknown as T[];
       }
-      // getLogsForChore — chore_id only
-      if (u.includes('FROM CHORE_LOGS') && u.includes('CHORE_ID')) {
-        const [chore_id] = params as string[];
-        return s.chore_logs.filter((r) => r.chore_id === chore_id) as unknown as T[];
+      // getLogsForTask — task_id only
+      if (u.includes('FROM TASK_LOGS') && u.includes('TASK_ID')) {
+        const [task_id] = params as string[];
+        return s.task_logs.filter((r) => r.task_id === task_id) as unknown as T[];
       }
       // getLogsForDay — LIKE day%
-      if (u.includes('FROM CHORE_LOGS') && u.includes('LIKE')) {
+      if (u.includes('FROM TASK_LOGS') && u.includes('LIKE')) {
         const [pattern] = params as string[];
         const day = (pattern as string).replace(/%/g, '');
-        return s.chore_logs.filter((r) =>
+        return s.task_logs.filter((r) =>
           (r.due_at as string).startsWith(day),
         ) as unknown as T[];
       }
@@ -121,9 +121,9 @@ jest.mock('expo-sqlite', () => {
 
     getFirstSync<T>(sql: string, params: unknown[] = []): T | null {
       const u = sql.trim().toUpperCase().replace(/\s+/g, ' ');
-      if (u.includes('FROM CHORES')) {
+      if (u.includes('FROM TASKS')) {
         const [id] = params as string[];
-        return (s.chores.find((r) => r.id === id) ?? null) as T | null;
+        return (s.tasks.find((r) => r.id === id) ?? null) as T | null;
       }
       return null;
     },
@@ -139,12 +139,12 @@ jest.mock('expo-sqlite', () => {
 jest.mock('expo-crypto', () => {
   let callCount = 0;
   const ids = [
-    'uuid-chore-1',
+    'uuid-task-1',
     'uuid-log-1',
     'uuid-log-2',
-    'uuid-chore-2',
+    'uuid-task-2',
     'uuid-log-3',
-    'uuid-chore-3',
+    'uuid-task-3',
     'uuid-log-4',
     'uuid-log-5',
   ];
@@ -158,17 +158,17 @@ jest.mock('expo-crypto', () => {
 // ---------------------------------------------------------------------------
 
 import {
-  insertChore,
-  listChores,
-  listChoresByPet,
-  getChore,
-  updateChore,
-  deleteChore,
+  insertTask,
+  listTasks,
+  listTasksByPet,
+  getTask,
+  updateTask,
+  deleteTask,
   logOccurrence,
-  getLogsForChore,
+  getLogsForTask,
   getLogsForDay,
-  deleteChoresForPet,
-} from '../db/chores';
+  deleteTasksForPet,
+} from '../db/tasks';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -176,7 +176,7 @@ import {
 
 const DAILY_SCHEDULE: Schedule = { kind: 'daily_times', times: ['08:00', '18:00'] };
 
-function makeChoreInput(petId = 'pet-1') {
+function makeTaskInput(petId = 'pet-1') {
   return {
     petId,
     type: 'feeding' as const,
@@ -190,54 +190,54 @@ function makeChoreInput(petId = 'pet-1') {
 }
 
 beforeEach(() => {
-  store.chores = [];
-  store.chore_logs = [];
+  store.tasks = [];
+  store.task_logs = [];
 });
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('insertChore + getChore (round-trip)', () => {
-  it('stores and retrieves a chore with schedule serialized/deserialized', () => {
-    const chore = insertChore(makeChoreInput());
+describe('insertTask + getTask (round-trip)', () => {
+  it('stores and retrieves a task with schedule serialized/deserialized', () => {
+    const task = insertTask(makeTaskInput());
 
-    expect(chore.petId).toBe('pet-1');
-    expect(chore.type).toBe('feeding');
-    expect(chore.title).toBe('Morning feed');
-    expect(chore.active).toBe(true);
+    expect(task.petId).toBe('pet-1');
+    expect(task.type).toBe('feeding');
+    expect(task.title).toBe('Morning feed');
+    expect(task.active).toBe(true);
     // schedule round-trips as deep-equal
-    expect(chore.schedule).toEqual(DAILY_SCHEDULE);
+    expect(task.schedule).toEqual(DAILY_SCHEDULE);
 
-    const fetched = getChore(chore.id);
+    const fetched = getTask(task.id);
     expect(fetched).not.toBeNull();
     expect(fetched!.schedule).toEqual(DAILY_SCHEDULE);
     expect(fetched!.active).toBe(true);
   });
 
   it('returns null for unknown id', () => {
-    expect(getChore('nonexistent')).toBeNull();
+    expect(getTask('nonexistent')).toBeNull();
   });
 });
 
-describe('listChores / listChoresByPet', () => {
-  it('lists all chores and filters by pet', () => {
-    insertChore(makeChoreInput('pet-A'));
-    insertChore(makeChoreInput('pet-B'));
+describe('listTasks / listTasksByPet', () => {
+  it('lists all tasks and filters by pet', () => {
+    insertTask(makeTaskInput('pet-A'));
+    insertTask(makeTaskInput('pet-B'));
 
-    expect(listChores()).toHaveLength(2);
-    expect(listChoresByPet('pet-A')).toHaveLength(1);
-    expect(listChoresByPet('pet-A')[0].petId).toBe('pet-A');
-    expect(listChoresByPet('missing')).toHaveLength(0);
+    expect(listTasks()).toHaveLength(2);
+    expect(listTasksByPet('pet-A')).toHaveLength(1);
+    expect(listTasksByPet('pet-A')[0].petId).toBe('pet-A');
+    expect(listTasksByPet('missing')).toHaveLength(0);
   });
 });
 
-describe('updateChore', () => {
+describe('updateTask', () => {
   it('persists changed fields including schedule and active flag', () => {
-    const chore = insertChore(makeChoreInput());
+    const task = insertTask(makeTaskInput());
     const newSchedule: Schedule = { kind: 'weekdays', days: [1, 3, 5], times: ['09:00'] };
 
-    const updated = updateChore(chore.id, {
+    const updated = updateTask(task.id, {
       type: 'meds',
       title: 'Evening meds',
       schedule: newSchedule,
@@ -252,40 +252,40 @@ describe('updateChore', () => {
     expect(updated.endCount).toBe(10);
     expect(updated.active).toBe(false);
 
-    // Confirm persistence via getChore
-    const fetched = getChore(chore.id);
+    // Confirm persistence via getTask
+    const fetched = getTask(task.id);
     expect(fetched!.active).toBe(false);
     expect(fetched!.schedule).toEqual(newSchedule);
   });
 });
 
-describe('deleteChore', () => {
-  it('removes the chore', () => {
-    const chore = insertChore(makeChoreInput());
-    deleteChore(chore.id);
-    expect(getChore(chore.id)).toBeNull();
-    expect(listChores()).toHaveLength(0);
+describe('deleteTask', () => {
+  it('removes the task', () => {
+    const task = insertTask(makeTaskInput());
+    deleteTask(task.id);
+    expect(getTask(task.id)).toBeNull();
+    expect(listTasks()).toHaveLength(0);
   });
 });
 
 describe('logOccurrence (upsert)', () => {
-  it('inserts a log; re-marking same (choreId,dueAt) flips status with exactly one row', () => {
-    const chore = insertChore(makeChoreInput());
+  it('inserts a log; re-marking same (taskId,dueAt) flips status with exactly one row', () => {
+    const task = insertTask(makeTaskInput());
     const dueAt = '2025-06-01T08:00:00.000Z';
 
     // First mark
-    const log1 = logOccurrence(chore.id, dueAt, 'done');
+    const log1 = logOccurrence(task.id, dueAt, 'done');
     expect(log1.status).toBe('done');
-    expect(log1.choreId).toBe(chore.id);
+    expect(log1.taskId).toBe(task.id);
     expect(log1.dueAt).toBe(dueAt);
 
-    expect(getLogsForChore(chore.id)).toHaveLength(1);
+    expect(getLogsForTask(task.id)).toHaveLength(1);
 
     // Second mark — must flip to skipped, still exactly 1 row
-    const log2 = logOccurrence(chore.id, dueAt, 'skipped');
+    const log2 = logOccurrence(task.id, dueAt, 'skipped');
     expect(log2.status).toBe('skipped');
 
-    const logsAfter = getLogsForChore(chore.id);
+    const logsAfter = getLogsForTask(task.id);
     expect(logsAfter).toHaveLength(1);
     expect(logsAfter[0].status).toBe('skipped');
   });
@@ -293,9 +293,9 @@ describe('logOccurrence (upsert)', () => {
 
 describe('getLogsForDay', () => {
   it('returns only logs whose due_at starts with the given day prefix', () => {
-    const chore = insertChore(makeChoreInput());
-    logOccurrence(chore.id, '2025-06-01T08:00:00.000Z', 'done');
-    logOccurrence(chore.id, '2025-06-02T08:00:00.000Z', 'skipped');
+    const task = insertTask(makeTaskInput());
+    logOccurrence(task.id, '2025-06-01T08:00:00.000Z', 'done');
+    logOccurrence(task.id, '2025-06-02T08:00:00.000Z', 'skipped');
 
     expect(getLogsForDay('2025-06-01')).toHaveLength(1);
     expect(getLogsForDay('2025-06-01')[0].status).toBe('done');
@@ -304,19 +304,19 @@ describe('getLogsForDay', () => {
   });
 });
 
-describe('deleteChoresForPet', () => {
-  it('removes the pet chores and all their logs, leaving other pets untouched', () => {
-    const choreA = insertChore(makeChoreInput('pet-A'));
-    const choreB = insertChore(makeChoreInput('pet-B'));
-    logOccurrence(choreA.id, '2025-06-01T08:00:00.000Z', 'done');
+describe('deleteTasksForPet', () => {
+  it('removes the pet tasks and all their logs, leaving other pets untouched', () => {
+    const taskA = insertTask(makeTaskInput('pet-A'));
+    const taskB = insertTask(makeTaskInput('pet-B'));
+    logOccurrence(taskA.id, '2025-06-01T08:00:00.000Z', 'done');
 
-    deleteChoresForPet('pet-A');
+    deleteTasksForPet('pet-A');
 
-    expect(listChoresByPet('pet-A')).toHaveLength(0);
+    expect(listTasksByPet('pet-A')).toHaveLength(0);
     // No orphan logs
-    expect(getLogsForChore(choreA.id)).toHaveLength(0);
-    // pet-B chore intact
-    expect(listChoresByPet('pet-B')).toHaveLength(1);
-    expect(getChore(choreB.id)).not.toBeNull();
+    expect(getLogsForTask(taskA.id)).toHaveLength(0);
+    // pet-B task intact
+    expect(listTasksByPet('pet-B')).toHaveLength(1);
+    expect(getTask(taskB.id)).not.toBeNull();
   });
 });

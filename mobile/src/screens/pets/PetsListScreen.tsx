@@ -7,12 +7,12 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
-import { useChoresStore } from '../../store/choresStore';
-import { nextOccurrence, toTehranTime } from '../../lib/choreSchedule';
+import { useTasksStore } from '../../store/tasksStore';
+import { nextOccurrence, toTehranTime } from '../../lib/taskSchedule';
 import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
 import { SPECIES_ICON } from '../../theme/icons';
 import type { PetsNavigationProp } from '../../navigation/PetsStack';
-import type { Chore, Pet } from '../../db/types';
+import type { Task, Pet } from '../../db/types';
 
 const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -20,29 +20,29 @@ export default function PetsListScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
   const pets = usePetsStore((s) => s.pets);
-  const chores = useChoresStore((s) => s.chores);
+  const tasks = useTasksStore((s) => s.tasks);
 
-  // Group active chores by pet once per render rather than filtering per card.
-  const choresByPet = React.useMemo(() => {
-    const map = new Map<string, Chore[]>();
-    for (const c of chores) {
+  // Group active tasks by pet once per render rather than filtering per card.
+  const tasksByPet = React.useMemo(() => {
+    const map = new Map<string, Task[]>();
+    for (const c of tasks) {
       if (!c.active) continue;
       const list = map.get(c.petId);
       if (list) list.push(c);
       else map.set(c.petId, [c]);
     }
     return map;
-  }, [chores]);
+  }, [tasks]);
 
   const renderItem = useCallback(
     ({ item }: { item: Pet }) => {
-      const petChores = choresByPet.get(item.id) ?? [];
+      const petTasks = tasksByPet.get(item.id) ?? [];
       let hint: string | null = null;
-      if (petChores.length > 0) {
+      if (petTasks.length > 0) {
         const now = new Date();
-        const next = nextOccurrence(petChores, now, new Date(now.getTime() + NEXT_WINDOW_MS));
-        hint = t('pets.list.chores', { count: petChores.length });
-        if (next) hint += ` · ${t('pets.next_chore', { time: toTehranTime(next) })}`;
+        const next = nextOccurrence(petTasks, now, new Date(now.getTime() + NEXT_WINDOW_MS));
+        hint = t('pets.list.tasks', { count: petTasks.length });
+        if (next) hint += ` · ${t('pets.next_task', { time: toTehranTime(next) })}`;
       }
 
       return (
@@ -82,7 +82,7 @@ export default function PetsListScreen() {
         </Pressable>
       );
     },
-    [navigation, t, choresByPet],
+    [navigation, t, tasksByPet],
   );
 
   if (pets.length === 0) {

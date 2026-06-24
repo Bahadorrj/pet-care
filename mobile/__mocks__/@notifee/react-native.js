@@ -5,13 +5,13 @@
 // src/lib/choreNotifications (→ notifee) for the launch-time sync/tap wiring, so
 // every test that renders App would crash without this. No-op stubs are enough.
 //
-// Tests that assert on notifee calls (choreNotifications.test.ts) provide their
+// Tests that assert on notifee calls (taskNotifications.test.ts) provide their
 // own jest.mock('@notifee/react-native', ...) which takes precedence.
 
 module.exports = {
   __esModule: true,
   default: {
-    createChannel: jest.fn().mockResolvedValue('chores'),
+    createChannel: jest.fn().mockResolvedValue('tasks'),
     requestPermission: jest.fn().mockResolvedValue({ authorizationStatus: 1 }),
     cancelTriggerNotifications: jest.fn().mockResolvedValue(undefined),
     createTriggerNotification: jest.fn().mockResolvedValue(undefined),

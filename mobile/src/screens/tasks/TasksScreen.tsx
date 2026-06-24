@@ -16,17 +16,17 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import Toast from 'react-native-toast-message';
 
-import { useChoresStore } from '../../store/choresStore';
+import { useTasksStore } from '../../store/tasksStore';
 import { usePetsStore } from '../../store/petsStore';
 import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
-import { CHORE_TYPE_ICON } from '../../theme/icons';
+import { TASK_TYPE_ICON } from '../../theme/icons';
 import { utcIsoToTehranJalali, toPersianDigits } from '../../lib/jalali';
 import { bucketOccurrences } from './todayBuckets';
-import type { Occurrence, ChoreType } from '../../db/types';
+import type { Occurrence, TaskType } from '../../db/types';
 import type { TasksNavigationProp } from '../../navigation/TasksStack';
 
 // ── Tehran time helper ─────────────────────────────────────────────────────────
-// ponytail: mirrors utcIsoToTehranTime in ChoreFormScreen — shift +210 min, read UTC fields
+// ponytail: mirrors utcIsoToTehranTime in TaskFormScreen — shift +210 min, read UTC fields
 function toTehranTime(isoUtc: string): string {
   const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
   const d = new Date(tehranMs);
@@ -43,7 +43,7 @@ const STATUS_COLOR: Record<Occurrence['status'], string> = {
   skipped: colors.inkMuted,
 };
 
-const CHORE_TYPES: ChoreType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'other'];
+const TASK_TYPES: TaskType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'other'];
 
 // ── Section list item types ────────────────────────────────────────────────────
 type SectionKind = 'overdue' | 'today' | 'upcoming';
@@ -69,19 +69,19 @@ type RowProps = {
 
 function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
   const { t } = useTranslation();
-  const { chore, dueAt, status } = occ;
+  const { task, dueAt, status } = occ;
   const isFinal = status === 'done' || status === 'skipped';
 
   return (
     <Pressable
-      testID={`tasks-row-${chore.id}`}
+      testID={`tasks-row-${task.id}`}
       style={[styles.row, isFinal && styles.rowDimmed]}
       onPress={onMore}
       accessibilityRole="none"
     >
       {/* Leading checkbox */}
       <Pressable
-        testID={`tasks-check-${chore.id}`}
+        testID={`tasks-check-${task.id}`}
         onPress={onCheck}
         style={styles.checkbox}
         accessibilityRole="checkbox"
@@ -96,11 +96,11 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
 
       {/* Type icon */}
       <MaterialCommunityIcons
-        name={CHORE_TYPE_ICON[chore.type]}
+        name={TASK_TYPE_ICON[task.type]}
         size={22}
         color={isFinal ? colors.inkFaint : colors.primary}
         style={styles.typeIcon}
-        accessibilityLabel={t(`chores.type.${chore.type}`)}
+        accessibilityLabel={t(`tasks.type.${task.type}`)}
       />
 
       {/* Middle: info */}
@@ -108,14 +108,14 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
         <Text style={[styles.petName, isFinal && styles.dimmedText]} numberOfLines={1}>
           {petName}
         </Text>
-        <Text style={[styles.choreTitle, isFinal && styles.dimmedText]} numberOfLines={1}>
-          {chore.title ?? t(`chores.type.${chore.type}`)}
+        <Text style={[styles.taskTitle, isFinal && styles.dimmedText]} numberOfLines={1}>
+          {task.title ?? t(`tasks.type.${task.type}`)}
         </Text>
         <View style={styles.metaRow}>
           <Text style={[styles.time, isFinal && styles.dimmedText]}>{toTehranTime(dueAt)}</Text>
           <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[status] + '22' }]}>
             <Text style={[styles.statusText, { color: STATUS_COLOR[status] }]}>
-              {t(`chores.status.${status}`)}
+              {t(`tasks.status.${status}`)}
             </Text>
           </View>
         </View>
@@ -123,7 +123,7 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
 
       {/* Trailing ⋯ button */}
       <Pressable
-        testID={`tasks-more-${chore.id}`}
+        testID={`tasks-more-${task.id}`}
         onPress={onMore}
         style={styles.moreBtn}
         accessibilityRole="button"
@@ -138,22 +138,22 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
 // ── Type filter modal ──────────────────────────────────────────────────────────
 type TypeFilterModalProps = {
   visible: boolean;
-  selected: Set<ChoreType>;
-  onApply: (next: Set<ChoreType>) => void;
+  selected: Set<TaskType>;
+  onApply: (next: Set<TaskType>) => void;
   onClose: () => void;
 };
 
 function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModalProps) {
   const { t } = useTranslation();
   // Local draft state — committed on Apply
-  const [draft, setDraft] = React.useState<Set<ChoreType>>(new Set(selected));
+  const [draft, setDraft] = React.useState<Set<TaskType>>(new Set(selected));
 
   // Sync draft when modal opens with external selected
   React.useEffect(() => {
     if (visible) setDraft(new Set(selected));
   }, [visible, selected]);
 
-  function toggle(ct: ChoreType) {
+  function toggle(ct: TaskType) {
     setDraft((prev) => {
       const next = new Set(prev);
       if (next.has(ct)) next.delete(ct);
@@ -172,7 +172,7 @@ function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModa
       <Pressable style={styles.modalOverlay} onPress={onClose}>
         <Pressable style={styles.modalSheet} onPress={() => {/* swallow */}}>
           <View style={styles.chipRow}>
-            {CHORE_TYPES.map((ct) => {
+            {TASK_TYPES.map((ct) => {
               const isSelected = draft.has(ct);
               return (
                 <Pressable
@@ -182,7 +182,7 @@ function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModa
                   onPress={() => toggle(ct)}
                 >
                   <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
-                    {t(`chores.type.${ct}`)}
+                    {t(`tasks.type.${ct}`)}
                   </Text>
                 </Pressable>
               );
@@ -217,17 +217,17 @@ export default function TasksScreen() {
   const navigation = useNavigation<TasksNavigationProp>();
   const { showActionSheetWithOptions } = useActionSheet();
 
-  const windowOccurrences = useChoresStore((s) => s.windowOccurrences);
-  const load = useChoresStore((s) => s.load);
-  const markOccurrence = useChoresStore((s) => s.markOccurrence);
-  const unmarkOccurrence = useChoresStore((s) => s.unmarkOccurrence);
-  const deleteChore = useChoresStore((s) => s.deleteChore);
+  const windowOccurrences = useTasksStore((s) => s.windowOccurrences);
+  const load = useTasksStore((s) => s.load);
+  const markOccurrence = useTasksStore((s) => s.markOccurrence);
+  const unmarkOccurrence = useTasksStore((s) => s.unmarkOccurrence);
+  const deleteTask = useTasksStore((s) => s.deleteTask);
 
   const pets = usePetsStore(useShallow((s) => s.pets));
 
   // ── Filter state ─────────────────────────────────────────────────────────────
   const [petFilter, setPetFilter] = React.useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = React.useState<Set<ChoreType>>(new Set());
+  const [typeFilter, setTypeFilter] = React.useState<Set<TaskType>>(new Set());
   const [typeModalVisible, setTypeModalVisible] = React.useState(false);
 
   React.useEffect(() => {
@@ -245,8 +245,8 @@ export default function TasksScreen() {
     () =>
       windowOccurrences.filter(
         (o) =>
-          (petFilter === null || o.chore.petId === petFilter) &&
-          (typeFilter.size === 0 || typeFilter.has(o.chore.type)),
+          (petFilter === null || o.task.petId === petFilter) &&
+          (typeFilter.size === 0 || typeFilter.has(o.task.type)),
       ),
     [windowOccurrences, petFilter, typeFilter],
   );
@@ -332,25 +332,25 @@ export default function TasksScreen() {
   const todayTotal = todayForProgress.length;
 
   function handleCheck(occ: Occurrence) {
-    const { chore, dueAt, status } = occ;
+    const { task, dueAt, status } = occ;
     if (status === 'done' || status === 'skipped') return;
-    markOccurrence(chore.id, dueAt, 'done');
+    markOccurrence(task.id, dueAt, 'done');
     Toast.show({
       type: 'success',
       text1: t('tasks.undo.done'),
       text2: t('tasks.undo.action'),
       visibilityTime: 4000,
       onPress: () => {
-        unmarkOccurrence(chore.id, dueAt);
+        unmarkOccurrence(task.id, dueAt);
         Toast.hide();
       },
     });
   }
 
   function handleMore(occ: Occurrence) {
-    const { chore, dueAt } = occ;
+    const { task, dueAt } = occ;
     const deleteLabel =
-      chore.schedule.kind === 'one_off'
+      task.schedule.kind === 'one_off'
         ? t('tasks.action.delete_one_off')
         : t('tasks.action.delete_recurring');
 
@@ -365,11 +365,11 @@ export default function TasksScreen() {
       { options, destructiveButtonIndex: 2, cancelButtonIndex: 3 },
       (index?: number) => {
         if (index === 0) {
-          markOccurrence(chore.id, dueAt, 'skipped');
+          markOccurrence(task.id, dueAt, 'skipped');
         } else if (index === 1) {
-          navigation.navigate('ChoreForm', { petId: chore.petId, choreId: chore.id });
+          navigation.navigate('TaskForm', { petId: task.petId, taskId: task.id });
         } else if (index === 2) {
-          deleteChore(chore.id);
+          deleteTask(task.id);
         }
       },
     );
@@ -384,7 +384,7 @@ export default function TasksScreen() {
           <View style={styles.progressDotsRow}>
             {todayForProgress.map((o, i) => (
               <View
-                key={`${o.chore.id}-${i}`}
+                key={`${o.task.id}-${i}`}
                 testID="progress-dot"
                 style={[
                   styles.progressDot,
@@ -486,7 +486,7 @@ export default function TasksScreen() {
       <SectionList
         sections={sections}
         keyExtractor={(item, index) => {
-          if (item.kind === 'occ') return `${item.occ.chore.id}-${item.occ.dueAt}`;
+          if (item.kind === 'occ') return `${item.occ.task.id}-${item.occ.dueAt}`;
           if (item.kind === 'day') return `day-${item.label}-${index}`;
           return `empty-${item.sectionKey}`;
         }}
@@ -525,7 +525,7 @@ export default function TasksScreen() {
           return (
             <OccurrenceRow
               occ={occ}
-              petName={petNameById[occ.chore.petId] ?? ''}
+              petName={petNameById[occ.task.petId] ?? ''}
               onCheck={() => handleCheck(occ)}
               onMore={() => handleMore(occ)}
             />
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semibold,
     color: colors.inkMuted,
   },
-  choreTitle: {
+  taskTitle: {
     fontSize: typography.body.fontSize,
     lineHeight: typography.body.lineHeight,
     fontFamily: fonts.medium,

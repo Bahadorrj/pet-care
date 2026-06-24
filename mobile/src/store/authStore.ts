@@ -56,7 +56,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       const username = await SecureStore.getItemAsync(USERNAME_KEY);
       if (token && email) {
         // Session is valid if token+email are present; username is optional
-        // (legacy sessions before Task 3 won't have it stored).
         set({ token, email, username: username ?? null, isAuthenticated: true });
       } else {
         // No complete stored session — clear any in-memory state.

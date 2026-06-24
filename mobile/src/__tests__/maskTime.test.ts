@@ -1,4 +1,4 @@
-import { maskTime } from '../screens/chores/ChoreFormScreen';
+import { maskTime } from '../screens/tasks/TaskFormScreen';
 
 describe('maskTime', () => {
   it('passes a single digit through untouched', () => {

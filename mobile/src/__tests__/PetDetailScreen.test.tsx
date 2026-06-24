@@ -25,17 +25,17 @@ jest.mock('../store/petsStore', () => ({
     selector({ pets: mockPets, remove: mockRemove }),
 }));
 
-// choresStore imports listChores() (SQLite) at module load — mock it too.
+// tasksStore imports listTasks() (SQLite) at module load — mock it too.
 // This mock calls the selector directly, so it verifies the selector LOGIC
 // (filter-by-petId), not the useShallow wrapper: the infinite-render guard
 // lives in zustand's useSyncExternalStore, which is bypassed here. The
 // useShallow fix itself is verified on device (see Flag 1).
-let mockChores: unknown[] = [];
-const mockGetLogsForChore = jest.fn().mockReturnValue([]);
+let mockTasks: unknown[] = [];
+const mockGetLogsForTask = jest.fn().mockReturnValue([]);
 
-jest.mock('../store/choresStore', () => ({
-  useChoresStore: (selector: (s: { chores: unknown[]; getLogsForChore: typeof mockGetLogsForChore }) => unknown) =>
-    selector({ chores: mockChores, getLogsForChore: mockGetLogsForChore }),
+jest.mock('../store/tasksStore', () => ({
+  useTasksStore: (selector: (s: { tasks: unknown[]; getLogsForTask: typeof mockGetLogsForTask }) => unknown) =>
+    selector({ tasks: mockTasks, getLogsForTask: mockGetLogsForTask }),
 }));
 
 // ── DB mock ───────────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ jest.mock('@react-navigation/native', () => ({
 // ── Initialise i18n (real Farsi strings) ─────────────────────────────────────
 import '../i18n';
 import PetDetailScreen from '../screens/pets/PetDetailScreen';
-import type { Chore, Pet } from '../db/types';
+import type { Task, Pet } from '../db/types';
 
 const PET: Pet = {
   id: 'pet-1',
@@ -76,10 +76,10 @@ beforeEach(() => {
   mockGetPet.mockReset();
   mockNavigate.mockClear();
   mockGoBack.mockClear();
-  mockGetLogsForChore.mockClear();
+  mockGetLogsForTask.mockClear();
   mockRouteParams = { petId: PET.id };
   mockPets = [PET];
-  mockChores = []; // default: empty chores list
+  mockTasks = []; // default: empty tasks list
 });
 
 describe('PetDetailScreen – render', () => {
@@ -106,13 +106,13 @@ describe('PetDetailScreen – edit', () => {
   });
 });
 
-// ── Chores section ────────────────────────────────────────────────────────────
+// ── Tasks section ────────────────────────────────────────────────────────────
 // These tests verify the selector logic (filter-by-petId) and the section's
 // render/navigation. They do NOT prove the useShallow infinite-render guard —
 // that path (zustand useSyncExternalStore) is bypassed by the store mock above.
 
-const CHORE_FIXTURE: Chore = {
-  id: 'chore-1',
+const TASK_FIXTURE: Task = {
+  id: 'task-1',
   petId: PET.id,
   type: 'feeding',
   title: 'صبحانه',
@@ -125,36 +125,36 @@ const CHORE_FIXTURE: Chore = {
   updatedAt: '2024-01-01T00:00:00Z',
 };
 
-describe('PetDetailScreen – chores section (useShallow selector stability)', () => {
-  test('renders chore rows for this pet when store has matching chores', async () => {
-    // Inject chores for this pet AND a decoy for another pet
-    mockChores = [
-      CHORE_FIXTURE,
-      { ...CHORE_FIXTURE, id: 'chore-other', petId: 'other-pet', title: 'مزاحم' },
+describe('PetDetailScreen – tasks section (useShallow selector stability)', () => {
+  test('renders task rows for this pet when store has matching tasks', async () => {
+    // Inject tasks for this pet AND a decoy for another pet
+    mockTasks = [
+      TASK_FIXTURE,
+      { ...TASK_FIXTURE, id: 'task-other', petId: 'other-pet', title: 'مزاحم' },
     ];
 
     const { getByTestId, queryByTestId } = await render(<PetDetailScreen />);
 
-    // Only the chore belonging to pet-1 appears
-    expect(getByTestId('petdetail-chore-chore-1')).toBeTruthy();
-    // Decoy chore for other-pet must NOT appear
-    expect(queryByTestId('petdetail-chore-chore-other')).toBeNull();
+    // Only the task belonging to pet-1 appears
+    expect(getByTestId('petdetail-task-task-1')).toBeTruthy();
+    // Decoy task for other-pet must NOT appear
+    expect(queryByTestId('petdetail-task-task-other')).toBeNull();
   });
 
-  test('shows empty state when no chores belong to this pet', async () => {
-    mockChores = []; // default — already set in beforeEach but explicit for clarity
+  test('shows empty state when no tasks belong to this pet', async () => {
+    mockTasks = []; // default — already set in beforeEach but explicit for clarity
     const { getByText } = await render(<PetDetailScreen />);
-    // chores.empty key
+    // tasks.empty key
     expect(getByText('امروز کاری برای انجام ندارید')).toBeTruthy();
   });
 
-  test('tapping a chore row navigates to ChoreForm with petId + choreId', async () => {
-    mockChores = [CHORE_FIXTURE];
+  test('tapping a task row navigates to TaskForm with petId + taskId', async () => {
+    mockTasks = [TASK_FIXTURE];
     const { getByTestId } = await render(<PetDetailScreen />);
-    fireEvent.press(getByTestId('petdetail-chore-chore-1'));
-    expect(mockNavigate).toHaveBeenCalledWith('ChoreForm', {
+    fireEvent.press(getByTestId('petdetail-task-task-1'));
+    expect(mockNavigate).toHaveBeenCalledWith('TaskForm', {
       petId: PET.id,
-      choreId: CHORE_FIXTURE.id,
+      taskId: TASK_FIXTURE.id,
     });
   });
 });

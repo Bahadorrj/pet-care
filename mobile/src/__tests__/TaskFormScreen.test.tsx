@@ -1,17 +1,17 @@
 /**
- * ChoreFormScreen tests — TDD
+ * TaskFormScreen tests — TDD
  *
  * Covers:
- * 1. Add – daily_times: type + default time → correct schedule, addChore called.
+ * 1. Add – daily_times: type + default time → correct schedule, addTask called.
  * 2. Add – daily_times with second time appended → both in schedule.
  * 3. Add – weekdays: days + times → correct schedule.
  * 4. Add – interval: n + unit → correct schedule with UTC anchor.
  * 5. Add – one_off: date + time → UTC ISO `at` (Tehran +03:30 offset verified).
- * 6. Validation – no type selected → translated error shown, addChore not called.
+ * 6. Validation – no type selected → translated error shown, addTask not called.
  * 7. Validation – store throws schedule_empty → translated error shown, goBack not called.
  * 8. Validation – weekdays with no days → store throws, error shown.
- * 9. In-flight guard: rapid double-press calls addChore at most once.
- * 10. Edit mode: pre-fills from getChore; submit calls updateChore (not addChore).
+ * 9. In-flight guard: rapid double-press calls addTask at most once.
+ * 10. Edit mode: pre-fills from getTask; submit calls updateTask (not addTask).
  *
  * Note: this project runs React concurrent mode — fireEvent calls require
  * wrapping in `act` so state updates flush before the next assertion.
@@ -28,27 +28,27 @@ import {
 } from '@testing-library/react-native';
 
 // ── Store mock ────────────────────────────────────────────────────────────────
-const mockAddChore = jest.fn();
-const mockUpdateChore = jest.fn();
+const mockAddTask = jest.fn();
+const mockUpdateTask = jest.fn();
 
-jest.mock('../store/choresStore', () => ({
-  useChoresStore: (
+jest.mock('../store/tasksStore', () => ({
+  useTasksStore: (
     selector: (s: {
-      addChore: typeof mockAddChore;
-      updateChore: typeof mockUpdateChore;
+      addTask: typeof mockAddTask;
+      updateTask: typeof mockUpdateTask;
     }) => unknown,
-  ) => selector({ addChore: mockAddChore, updateChore: mockUpdateChore }),
+  ) => selector({ addTask: mockAddTask, updateTask: mockUpdateTask }),
 }));
 
 // ── DB mock ───────────────────────────────────────────────────────────────────
-const mockGetChore = jest.fn();
-jest.mock('../db/chores', () => ({
-  getChore: (...args: unknown[]) => mockGetChore(...args),
+const mockGetTask = jest.fn();
+jest.mock('../db/tasks', () => ({
+  getTask: (...args: unknown[]) => mockGetTask(...args),
 }));
 
 // ── Navigation mock ───────────────────────────────────────────────────────────
 const mockGoBack = jest.fn();
-let mockRouteParams: { petId: string; choreId?: string } = { petId: 'pet-1' };
+let mockRouteParams: { petId: string; taskId?: string } = { petId: 'pet-1' };
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -58,8 +58,8 @@ jest.mock('@react-navigation/native', () => ({
 
 // ── i18n (real Farsi strings) ─────────────────────────────────────────────────
 import '../i18n';
-import ChoreFormScreen from '../screens/chores/ChoreFormScreen';
-import type { Chore } from '../db/types';
+import TaskFormScreen from '../screens/tasks/TaskFormScreen';
+import type { Task } from '../db/types';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -77,8 +77,8 @@ const changeText = async (el: any, value: string) => {
 
 // ── Fixture ───────────────────────────────────────────────────────────────────
 
-const EXISTING_CHORE: Chore = {
-  id: 'chore-edit-1',
+const EXISTING_TASK: Task = {
+  id: 'task-edit-1',
   petId: 'pet-1',
   type: 'meds',
   title: 'صبح دارو',
@@ -92,26 +92,26 @@ const EXISTING_CHORE: Chore = {
 };
 
 beforeEach(() => {
-  mockAddChore.mockReset();
-  mockUpdateChore.mockReset();
-  mockGetChore.mockReset();
+  mockAddTask.mockReset();
+  mockUpdateTask.mockReset();
+  mockGetTask.mockReset();
   mockGoBack.mockClear();
   mockRouteParams = { petId: 'pet-1' };
 });
 
 // ── 1. Add – daily_times happy path ──────────────────────────────────────────
 
-describe('ChoreFormScreen – Add – daily_times', () => {
-  test('type + default time → addChore with correct schedule, navigates back', async () => {
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId } = await render(<ChoreFormScreen />);
+describe('TaskFormScreen – Add – daily_times', () => {
+  test('type + default time → addTask with correct schedule, navigates back', async () => {
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-feeding'));
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
-    const call = mockAddChore.mock.calls[0][0];
+    const call = mockAddTask.mock.calls[0][0];
     expect(call.petId).toBe('pet-1');
     expect(call.type).toBe('feeding');
     expect(call.schedule.kind).toBe('daily_times');
@@ -120,17 +120,17 @@ describe('ChoreFormScreen – Add – daily_times', () => {
   });
 
   test('second time added → both times in schedule', async () => {
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId } = await render(<ChoreFormScreen />);
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-meds'));
-    await press(getByTestId('choreform-time-add'));
-    await changeText(getByTestId('choreform-time-1'), '20:00');
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-meds'));
+    await press(getByTestId('taskform-time-add'));
+    await changeText(getByTestId('taskform-time-1'), '20:00');
+    await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
-    const call = mockAddChore.mock.calls[0][0];
+    const call = mockAddTask.mock.calls[0][0];
     expect(call.schedule.kind).toBe('daily_times');
     expect(call.schedule.times).toHaveLength(2);
     expect(call.schedule.times).toContain('20:00');
@@ -139,20 +139,20 @@ describe('ChoreFormScreen – Add – daily_times', () => {
 
 // ── 2. Add – weekdays ─────────────────────────────────────────────────────────
 
-describe('ChoreFormScreen – Add – weekdays', () => {
+describe('TaskFormScreen – Add – weekdays', () => {
   test('days + times → correct weekdays schedule', async () => {
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId } = await render(<ChoreFormScreen />);
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-play'));
-    await press(getByTestId('choreform-schedule-weekdays'));
-    await press(getByTestId('choreform-day-1')); // Mon
-    await press(getByTestId('choreform-day-3')); // Wed
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-play'));
+    await press(getByTestId('taskform-schedule-weekdays'));
+    await press(getByTestId('taskform-day-1')); // Mon
+    await press(getByTestId('taskform-day-3')); // Wed
+    await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
-    const call = mockAddChore.mock.calls[0][0];
+    const call = mockAddTask.mock.calls[0][0];
     expect(call.schedule.kind).toBe('weekdays');
     expect(call.schedule.days).toContain(1);
     expect(call.schedule.days).toContain(3);
@@ -163,20 +163,20 @@ describe('ChoreFormScreen – Add – weekdays', () => {
 
 // ── 3. Add – interval ─────────────────────────────────────────────────────────
 
-describe('ChoreFormScreen – Add – interval', () => {
+describe('TaskFormScreen – Add – interval', () => {
   test('n=3, unit=days → correct interval schedule with UTC anchor', async () => {
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId } = await render(<ChoreFormScreen />);
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-grooming'));
-    await press(getByTestId('choreform-schedule-interval'));
-    await changeText(getByTestId('choreform-interval-n'), '3');
-    await press(getByTestId('choreform-unit-days'));
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-grooming'));
+    await press(getByTestId('taskform-schedule-interval'));
+    await changeText(getByTestId('taskform-interval-n'), '3');
+    await press(getByTestId('taskform-unit-days'));
+    await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
-    const call = mockAddChore.mock.calls[0][0];
+    const call = mockAddTask.mock.calls[0][0];
     expect(call.schedule.kind).toBe('interval');
     expect(call.schedule.n).toBe(3);
     expect(call.schedule.unit).toBe('days');
@@ -186,82 +186,82 @@ describe('ChoreFormScreen – Add – interval', () => {
 
 // ── 4. Add – one_off (Jalali input) ──────────────────────────────────────────
 
-describe('ChoreFormScreen – Add – one_off', () => {
+describe('TaskFormScreen – Add – one_off', () => {
   test('Jalali 1405/04/10 at Tehran 10:00 → UTC 06:30 ISO at field', async () => {
     // 1405/04/10 (Jalali) = 2026-07-01 (Gregorian). Tehran +03:30: 10:00 − 210min = 06:30 UTC.
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId } = await render(<ChoreFormScreen />);
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-vet'));
-    await press(getByTestId('choreform-schedule-one_off'));
-    await changeText(getByTestId('choreform-oneoff-date'), '1405/04/10');
-    await changeText(getByTestId('choreform-oneoff-time'), '10:00');
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-vet'));
+    await press(getByTestId('taskform-schedule-one_off'));
+    await changeText(getByTestId('taskform-oneoff-date'), '1405/04/10');
+    await changeText(getByTestId('taskform-oneoff-time'), '10:00');
+    await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
-    const call = mockAddChore.mock.calls[0][0];
+    const call = mockAddTask.mock.calls[0][0];
     expect(call.schedule.kind).toBe('one_off');
     // No Gregorian date reaches the user; UTC conversion must still be correct
     expect(call.schedule.at).toBe('2026-07-01T06:30:00.000Z');
   });
 
-  test('invalid Jalali date → schedule error shown, addChore not called', async () => {
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId, getByText } = await render(<ChoreFormScreen />);
+  test('invalid Jalali date → schedule error shown, addTask not called', async () => {
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-vet'));
-    await press(getByTestId('choreform-schedule-one_off'));
+    await press(getByTestId('taskform-type-vet'));
+    await press(getByTestId('taskform-schedule-one_off'));
     // Type garbage — form-level validation rejects with invalid_date before submit
-    await changeText(getByTestId('choreform-oneoff-date'), 'not-a-date');
-    await press(getByTestId('choreform-submit'));
+    await changeText(getByTestId('taskform-oneoff-date'), 'not-a-date');
+    await press(getByTestId('taskform-submit'));
 
     await waitFor(() => expect(getByText('تاریخ باید به شکل yyyy/MM/dd باشد')).toBeTruthy());
-    expect(mockAddChore).not.toHaveBeenCalled();
+    expect(mockAddTask).not.toHaveBeenCalled();
   });
 });
 
 // ── 4b. end-until Jalali input ────────────────────────────────────────────────
 
-describe('ChoreFormScreen – end-until Jalali input', () => {
+describe('TaskFormScreen – end-until Jalali input', () => {
   test('Jalali end-until 1405/04/10 → correct UTC endUntil on submit', async () => {
     // 1405/04/10 = 2026-07-01 Gregorian. toUtcIso('00:00', '2026-07-01') = '2026-06-30T20:30:00.000Z'
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId } = await render(<ChoreFormScreen />);
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-feeding'));
-    // press the "until" chip (testID = choreform-end-until); then fill the date field
-    await press(getByTestId('choreform-end-until'));
-    await changeText(getByTestId('choreform-end-until-date'), '1405/04/10');
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-feeding'));
+    // press the "until" chip (testID = taskform-end-until); then fill the date field
+    await press(getByTestId('taskform-end-until'));
+    await changeText(getByTestId('taskform-end-until-date'), '1405/04/10');
+    await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
-    const call = mockAddChore.mock.calls[0][0];
+    const call = mockAddTask.mock.calls[0][0];
     expect(call.endKind).toBe('until');
     // Tehran midnight 00:00 on 2026-07-01 = UTC 2026-06-30T20:30:00.000Z
     expect(call.endUntil).toBe('2026-06-30T20:30:00.000Z');
   });
 
   test('end-until "until" with an invalid date is rejected, not silently saved as never', async () => {
-    mockAddChore.mockResolvedValue(undefined);
-    const { getByTestId, getByText } = await render(<ChoreFormScreen />);
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-feeding'));
-    await press(getByTestId('choreform-end-until'));
-    await changeText(getByTestId('choreform-end-until-date'), 'garbage');
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId('taskform-end-until'));
+    await changeText(getByTestId('taskform-end-until-date'), 'garbage');
+    await press(getByTestId('taskform-submit'));
 
     await waitFor(() => expect(getByText('تاریخ باید به شکل yyyy/MM/dd باشد')).toBeTruthy());
-    expect(mockAddChore).not.toHaveBeenCalled();
+    expect(mockAddTask).not.toHaveBeenCalled();
   });
 });
 
 // ── 4c. Edit mode prefill: Jalali, not Gregorian ──────────────────────────────
 
-describe('ChoreFormScreen – Edit mode Jalali prefill', () => {
-  const CHORE_WITH_UNTIL: Chore = {
-    id: 'chore-edit-until',
+describe('TaskFormScreen – Edit mode Jalali prefill', () => {
+  const TASK_WITH_UNTIL: Task = {
+    id: 'task-edit-until',
     petId: 'pet-1',
     type: 'meds',
     title: null,
@@ -276,13 +276,13 @@ describe('ChoreFormScreen – Edit mode Jalali prefill', () => {
   };
 
   beforeEach(() => {
-    mockRouteParams = { petId: 'pet-1', choreId: CHORE_WITH_UNTIL.id };
-    mockGetChore.mockReturnValue(CHORE_WITH_UNTIL);
+    mockRouteParams = { petId: 'pet-1', taskId: TASK_WITH_UNTIL.id };
+    mockGetTask.mockReturnValue(TASK_WITH_UNTIL);
   });
 
   test('end-until prefill shows Jalali yyyy/MM/dd, not Gregorian YYYY-MM-DD', async () => {
-    const { getByTestId } = await render(<ChoreFormScreen />);
-    const field = getByTestId('choreform-end-until-date');
+    const { getByTestId } = await render(<TaskFormScreen />);
+    const field = getByTestId('taskform-end-until-date');
     const val: string = field.props.value;
     // endUntil 2026-06-30T20:30:00Z = Tehran 2026-07-01 00:00 = Jalali 1405/04/10.
     // (Slicing the raw UTC date would wrongly give 2026-06-30 → 1405/04/09.)
@@ -292,8 +292,8 @@ describe('ChoreFormScreen – Edit mode Jalali prefill', () => {
   test('one_off edit prefills the stored Tehran date AND time (not 09:00)', async () => {
     // at = 2026-06-30T22:30:00Z = Tehran 2026-07-01 02:00 (crosses UTC day).
     // Date must be the Tehran day (1405/04/10), time the stored 02:00 — not 09:00.
-    const CHORE_ONE_OFF: Chore = {
-      id: 'chore-edit-oneoff',
+    const TASK_ONE_OFF: Task = {
+      id: 'task-edit-oneoff',
       petId: 'pet-1',
       type: 'vet',
       title: null,
@@ -305,40 +305,40 @@ describe('ChoreFormScreen – Edit mode Jalali prefill', () => {
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
     };
-    mockRouteParams = { petId: 'pet-1', choreId: CHORE_ONE_OFF.id };
-    mockGetChore.mockReturnValue(CHORE_ONE_OFF);
+    mockRouteParams = { petId: 'pet-1', taskId: TASK_ONE_OFF.id };
+    mockGetTask.mockReturnValue(TASK_ONE_OFF);
 
-    const { getByTestId } = await render(<ChoreFormScreen />);
-    expect(getByTestId('choreform-oneoff-date').props.value).toBe('1405/04/10');
-    expect(getByTestId('choreform-oneoff-time').props.value).toBe('02:00');
+    const { getByTestId } = await render(<TaskFormScreen />);
+    expect(getByTestId('taskform-oneoff-date').props.value).toBe('1405/04/10');
+    expect(getByTestId('taskform-oneoff-time').props.value).toBe('02:00');
   });
 });
 
 // ── 5. Validation – no type ───────────────────────────────────────────────────
 
-describe('ChoreFormScreen – validation – no type', () => {
-  test('submit with no type shows translated error; addChore not called', async () => {
-    const { getByTestId, getByText } = await render(<ChoreFormScreen />);
+describe('TaskFormScreen – validation – no type', () => {
+  test('submit with no type shows translated error; addTask not called', async () => {
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-submit'));
 
     await waitFor(() =>
       expect(getByText('انتخاب نوع کار الزامی است')).toBeTruthy(),
     );
-    expect(mockAddChore).not.toHaveBeenCalled();
+    expect(mockAddTask).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 });
 
 // ── 6. Validation – store throws schedule_empty ───────────────────────────────
 
-describe('ChoreFormScreen – validation – schedule_empty from store', () => {
+describe('TaskFormScreen – validation – schedule_empty from store', () => {
   test('daily_times: store rejects schedule_empty → translated error; goBack not called', async () => {
-    mockAddChore.mockRejectedValue(new Error('chores.error.schedule_empty'));
-    const { getByTestId, getByText } = await render(<ChoreFormScreen />);
+    mockAddTask.mockRejectedValue(new Error('tasks.error.schedule_empty'));
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-feeding'));
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId('taskform-submit'));
 
     await waitFor(() =>
       expect(getByText('زمان‌بندی الزامی است')).toBeTruthy(),
@@ -347,13 +347,13 @@ describe('ChoreFormScreen – validation – schedule_empty from store', () => {
   });
 
   test('weekdays with no days: store rejects → translated error; goBack not called', async () => {
-    mockAddChore.mockRejectedValue(new Error('chores.error.schedule_empty'));
-    const { getByTestId, getByText } = await render(<ChoreFormScreen />);
+    mockAddTask.mockRejectedValue(new Error('tasks.error.schedule_empty'));
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-type-play'));
-    await press(getByTestId('choreform-schedule-weekdays'));
+    await press(getByTestId('taskform-type-play'));
+    await press(getByTestId('taskform-schedule-weekdays'));
     // No days selected — form-level validation rejects with days_required
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-submit'));
 
     await waitFor(() =>
       expect(getByText('حداقل یک روز الزامی است')).toBeTruthy(),
@@ -364,21 +364,21 @@ describe('ChoreFormScreen – validation – schedule_empty from store', () => {
 
 // ── 7. In-flight guard ────────────────────────────────────────────────────────
 
-describe('ChoreFormScreen – in-flight guard', () => {
-  test('rapid double-press calls addChore at most once', async () => {
+describe('TaskFormScreen – in-flight guard', () => {
+  test('rapid double-press calls addTask at most once', async () => {
     let resolveAdd!: () => void;
-    mockAddChore.mockImplementation(
+    mockAddTask.mockImplementation(
       () => new Promise<void>((resolve) => { resolveAdd = resolve; }),
     );
 
-    const { getByTestId } = await render(<ChoreFormScreen />);
-    await press(getByTestId('choreform-type-feeding'));
+    const { getByTestId } = await render(<TaskFormScreen />);
+    await press(getByTestId('taskform-type-feeding'));
 
     await rnAct(async () => {
-      fireEvent.press(getByTestId('choreform-submit'));
-      fireEvent.press(getByTestId('choreform-submit'));
+      fireEvent.press(getByTestId('taskform-submit'));
+      fireEvent.press(getByTestId('taskform-submit'));
       await Promise.resolve();
-      expect(mockAddChore).toHaveBeenCalledTimes(1);
+      expect(mockAddTask).toHaveBeenCalledTimes(1);
       resolveAdd();
     });
   });
@@ -386,30 +386,30 @@ describe('ChoreFormScreen – in-flight guard', () => {
 
 // ── 8. Edit mode ──────────────────────────────────────────────────────────────
 
-describe('ChoreFormScreen – Edit mode', () => {
+describe('TaskFormScreen – Edit mode', () => {
   beforeEach(() => {
-    mockRouteParams = { petId: 'pet-1', choreId: EXISTING_CHORE.id };
-    mockGetChore.mockReturnValue(EXISTING_CHORE);
+    mockRouteParams = { petId: 'pet-1', taskId: EXISTING_TASK.id };
+    mockGetTask.mockReturnValue(EXISTING_TASK);
   });
 
-  test('pre-fills title from existing chore', async () => {
-    const { getByTestId } = await render(<ChoreFormScreen />);
-    expect(getByTestId('choreform-title').props.value).toBe('صبح دارو');
+  test('pre-fills title from existing task', async () => {
+    const { getByTestId } = await render(<TaskFormScreen />);
+    expect(getByTestId('taskform-title').props.value).toBe('صبح دارو');
   });
 
-  test('submit calls updateChore (not addChore) and navigates back', async () => {
-    mockUpdateChore.mockResolvedValue(undefined);
-    const { getByTestId } = await render(<ChoreFormScreen />);
+  test('submit calls updateTask (not addTask) and navigates back', async () => {
+    mockUpdateTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('choreform-submit'));
+    await press(getByTestId('taskform-submit'));
 
     await waitFor(() => {
-      expect(mockUpdateChore).toHaveBeenCalledTimes(1);
-      expect(mockUpdateChore).toHaveBeenCalledWith(
-        EXISTING_CHORE.id,
+      expect(mockUpdateTask).toHaveBeenCalledTimes(1);
+      expect(mockUpdateTask).toHaveBeenCalledWith(
+        EXISTING_TASK.id,
         expect.objectContaining({ type: 'meds' }),
       );
-      expect(mockAddChore).not.toHaveBeenCalled();
+      expect(mockAddTask).not.toHaveBeenCalled();
       expect(mockGoBack).toHaveBeenCalledTimes(1);
     });
   });

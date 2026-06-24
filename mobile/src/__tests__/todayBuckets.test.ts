@@ -15,7 +15,7 @@
  */
 
 import { bucketOccurrences } from '../screens/tasks/todayBuckets';
-import type { Chore, Occurrence } from '../db/types';
+import type { Task, Occurrence } from '../db/types';
 
 // ── Fixed clock ───────────────────────────────────────────────────────────────
 const NOW = new Date('2026-06-24T12:00:00Z');
@@ -24,8 +24,8 @@ const NOW = new Date('2026-06-24T12:00:00Z');
 // Tehran midnight = 2026-06-23T20:30:00Z (UTC).
 // End of Tehran today = 2026-06-24T20:30:00Z (UTC).
 
-// ── Minimal chore stub ────────────────────────────────────────────────────────
-const stubChore = (id: string): Chore =>
+// ── Minimal task stub ────────────────────────────────────────────────────────
+const stubTask = (id: string): Task =>
   ({
     id,
     petId: 'pet-1',
@@ -38,10 +38,10 @@ const stubChore = (id: string): Chore =>
     active: true,
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
-  } as Chore);
+  } as Task);
 
 const occ = (id: string, dueAt: string, status: Occurrence['status']): Occurrence => ({
-  chore: stubChore(id),
+  task: stubTask(id),
   dueAt,
   status,
 });
@@ -77,7 +77,7 @@ describe('bucketOccurrences', () => {
   test('yesterday pending → overdue bucket', () => {
     const { overdue, today, upcoming } = bucketOccurrences([YESTERDAY], NOW);
     expect(overdue).toHaveLength(1);
-    expect(overdue[0].chore.id).toBe('c-yesterday');
+    expect(overdue[0].task.id).toBe('c-yesterday');
     expect(today).toHaveLength(0);
     expect(upcoming).toHaveLength(0);
   });
@@ -85,7 +85,7 @@ describe('bucketOccurrences', () => {
   test('today occurrence → today bucket', () => {
     const { overdue, today, upcoming } = bucketOccurrences([TODAY], NOW);
     expect(today).toHaveLength(1);
-    expect(today[0].chore.id).toBe('c-today');
+    expect(today[0].task.id).toBe('c-today');
     expect(overdue).toHaveLength(0);
     expect(upcoming).toHaveLength(0);
   });
@@ -93,7 +93,7 @@ describe('bucketOccurrences', () => {
   test('+3 days → upcoming bucket', () => {
     const { overdue, today, upcoming } = bucketOccurrences([UPCOMING], NOW);
     expect(upcoming).toHaveLength(1);
-    expect(upcoming[0].chore.id).toBe('c-upcoming');
+    expect(upcoming[0].task.id).toBe('c-upcoming');
     expect(overdue).toHaveLength(0);
     expect(today).toHaveLength(0);
   });
@@ -123,8 +123,8 @@ describe('bucketOccurrences', () => {
     // Both are in today's window → both in today[]
     // But sort should put missed (overdue-flagged) first despite later dueAt
     expect(today).toHaveLength(2);
-    expect(today[0].chore.id).toBe('c-sort-overdue');   // missed → sorts first
-    expect(today[1].chore.id).toBe('c-sort-today');     // pending → sorts after
+    expect(today[0].task.id).toBe('c-sort-overdue');   // missed → sorts first
+    expect(today[1].task.id).toBe('c-sort-today');     // pending → sorts after
     expect(overdue).toHaveLength(0);
   });
 
@@ -132,7 +132,7 @@ describe('bucketOccurrences', () => {
     const early = occ('c-up-early', '2026-06-27T04:00:00Z', 'pending');
     const late = occ('c-up-late', '2026-06-27T10:00:00Z', 'pending');
     const { upcoming } = bucketOccurrences([late, early], NOW);
-    expect(upcoming[0].chore.id).toBe('c-up-early');
-    expect(upcoming[1].chore.id).toBe('c-up-late');
+    expect(upcoming[0].task.id).toBe('c-up-early');
+    expect(upcoming[1].task.id).toBe('c-up-late');
   });
 });

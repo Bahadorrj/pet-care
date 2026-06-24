@@ -1,6 +1,6 @@
 /**
  * Pure bucketing helper — no I/O, no react-native import.
- * Mirrors the lib/choreSchedule.ts pattern so it unit-tests without RN.
+ * Mirrors the lib/taskSchedule.ts pattern so it unit-tests without RN.
  *
  * Tehran = fixed UTC+03:30 (no DST, per ADR).
  */

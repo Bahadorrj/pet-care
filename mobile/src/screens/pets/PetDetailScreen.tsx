@@ -7,13 +7,13 @@ import { useShallow } from 'zustand/react/shallow';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { usePetsStore } from '../../store/petsStore';
-import { useChoresStore } from '../../store/choresStore';
+import { useTasksStore } from '../../store/tasksStore';
 import { getPet } from '../../db/pets';
-import { streak, adherence, nextOccurrence, toTehranTime } from '../../lib/choreSchedule';
+import { streak, adherence, nextOccurrence, toTehranTime } from '../../lib/taskSchedule';
 import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
-import { SPECIES_ICON, CHORE_TYPE_ICON } from '../../theme/icons';
+import { SPECIES_ICON, TASK_TYPE_ICON } from '../../theme/icons';
 import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
-import type { Chore, ChoreLog } from '../../db/types';
+import type { Task, TaskLog } from '../../db/types';
 
 type PetDetailRouteProp = RouteProp<PetsStackParamList, 'PetDetail'>;
 
@@ -21,33 +21,33 @@ const HERO_HEIGHT = 280;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
-/** Short schedule summary for the chores list row */
-function scheduleLabel(t: (key: string) => string, chore: { schedule: { kind: string } }): string {
-  const kind = chore.schedule.kind;
-  return t(`chores.schedule.${kind}`);
+/** Short schedule summary for the tasks list row */
+function scheduleLabel(t: (key: string) => string, task: { schedule: { kind: string } }): string {
+  const kind = task.schedule.kind;
+  return t(`tasks.schedule.${kind}`);
 }
 
 // 30-day adherence window
 const ADHERENCE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Secondary stats per chore row: streak chip + adherence bar (hidden if no history). */
-function ChoreStats({
-  chore,
-  getLogsForChore,
+/** Secondary stats per task row: streak chip + adherence bar (hidden if no history). */
+function TaskStats({
+  task,
+  getLogsForTask,
   t,
 }: {
-  chore: Chore;
-  getLogsForChore: (id: string) => ChoreLog[];
+  task: Task;
+  getLogsForTask: (id: string) => TaskLog[];
   t: (key: string, opts?: Record<string, unknown>) => string;
 }) {
   const now = new Date();
   const since = new Date(now.getTime() - ADHERENCE_WINDOW_MS);
-  const logs = getLogsForChore(chore.id);
+  const logs = getLogsForTask(task.id);
 
-  const streakCount = streak(chore, logs, now);
-  const adh = adherence(chore, logs, since, now);
+  const streakCount = streak(task, logs, now);
+  const adh = adherence(task, logs, since, now);
 
-  // Render if either stat has a value; skips the new-chore case (0 streak / null
+  // Render if either stat has a value; skips the new-task case (0 streak / null
   // adherence). Partial states (streak-only or adherence-only) are intentional.
   if (adh === null && streakCount === 0) return null;
 
@@ -58,7 +58,7 @@ function ChoreStats({
       {streakCount > 0 && (
         <View
           style={styles.streakChip}
-          accessibilityLabel={t('chores.stat.streak', { count: streakCount })}
+          accessibilityLabel={t('tasks.stat.streak', { count: streakCount })}
         >
           <MaterialCommunityIcons name="fire" size={14} color={colors.ink} />
           <Text style={styles.streakChipText}>{streakCount}</Text>
@@ -67,7 +67,7 @@ function ChoreStats({
       {percent !== null && (
         <View
           style={styles.adhWrap}
-          accessibilityLabel={t('chores.stat.adherence', { percent })}
+          accessibilityLabel={t('tasks.stat.adherence', { percent })}
         >
           <View style={styles.adhTrack}>
             <View style={[styles.adhFill, { width: `${percent}%` }]} />
@@ -89,19 +89,19 @@ export default function PetDetailScreen() {
   // Prefer the in-memory store list; fall back to a direct read.
   const pet = usePetsStore((s) => s.pets.find((p) => p.id === petId)) ?? getPet(petId);
 
-  // Chores for this pet — useShallow prevents infinite re-render from new array ref each call (zustand v5)
-  const petChores = useChoresStore(useShallow((s) => s.chores.filter((c) => c.petId === petId)));
-  const getLogsForChore = useChoresStore((s) => s.getLogsForChore);
+  // Tasks for this pet — useShallow prevents infinite re-render from new array ref each call (zustand v5)
+  const petTasks = useTasksStore(useShallow((s) => s.tasks.filter((c) => c.petId === petId)));
+  const getLogsForTask = useTasksStore((s) => s.getLogsForTask);
 
   if (!pet) return null;
 
-  const activeChores = petChores.filter((c) => c.active);
-  let choresSummary: string | null = null;
-  if (activeChores.length > 0) {
+  const activeTasks = petTasks.filter((c) => c.active);
+  let tasksSummary: string | null = null;
+  if (activeTasks.length > 0) {
     const now = new Date();
-    const next = nextOccurrence(activeChores, now, new Date(now.getTime() + NEXT_WINDOW_MS));
-    choresSummary = t('pets.active_chores', { count: activeChores.length });
-    if (next) choresSummary += ` · ${t('pets.next_chore', { time: toTehranTime(next) })}`;
+    const next = nextOccurrence(activeTasks, now, new Date(now.getTime() + NEXT_WINDOW_MS));
+    tasksSummary = t('pets.active_tasks', { count: activeTasks.length });
+    if (next) tasksSummary += ` · ${t('pets.next_task', { time: toTehranTime(next) })}`;
   }
 
   const handleDelete = () => {
@@ -181,58 +181,58 @@ export default function PetDetailScreen() {
           )}
         </View>
 
-        {/* ── Chores section ──────────────────────────────────────────────── */}
-        <View style={styles.choresSection}>
-          <Text style={styles.choresSectionTitle}>{t('chores.section_title')}</Text>
+        {/* ── Tasks section ──────────────────────────────────────────────── */}
+        <View style={styles.tasksSection}>
+          <Text style={styles.tasksSectionTitle}>{t('tasks.section_title')}</Text>
 
-          {choresSummary && (
+          {tasksSummary && (
             <View style={styles.summaryCard}>
               <MaterialCommunityIcons
                 name="clipboard-text-outline"
                 size={18}
                 color={colors.primary}
               />
-              <Text style={styles.summaryText}>{choresSummary}</Text>
+              <Text style={styles.summaryText}>{tasksSummary}</Text>
             </View>
           )}
 
           <Pressable
-            testID="petdetail-add-chore"
-            onPress={() => navigation.navigate('ChoreForm', { petId })}
-            style={({ pressed }) => [styles.addChoreButton, pressed && styles.addChoreButtonPressed]}
+            testID="petdetail-add-task"
+            onPress={() => navigation.navigate('TaskForm', { petId })}
+            style={({ pressed }) => [styles.addTaskButton, pressed && styles.addTaskButtonPressed]}
             accessibilityRole="button"
-            accessibilityLabel={t('chores.add')}
+            accessibilityLabel={t('tasks.add')}
           >
-            <Text style={styles.addChoreText}>{t('chores.add')}</Text>
+            <Text style={styles.addTaskText}>{t('tasks.add')}</Text>
           </Pressable>
 
-          {petChores.length === 0 ? (
-            <Text style={styles.choresEmpty}>{t('chores.empty')}</Text>
+          {petTasks.length === 0 ? (
+            <Text style={styles.tasksEmpty}>{t('tasks.empty')}</Text>
           ) : (
-            petChores.map((chore, idx) => (
+            petTasks.map((task, idx) => (
               <Pressable
-                key={chore.id}
-                testID={`petdetail-chore-${chore.id}`}
-                onPress={() => navigation.navigate('ChoreForm', { petId, choreId: chore.id })}
+                key={task.id}
+                testID={`petdetail-task-${task.id}`}
+                onPress={() => navigation.navigate('TaskForm', { petId, taskId: task.id })}
                 accessibilityRole="button"
                 style={({ pressed }) => [
-                  styles.choreRow,
-                  idx < petChores.length - 1 && styles.choreRowBorder,
-                  pressed && styles.choreRowPressed,
+                  styles.taskRow,
+                  idx < petTasks.length - 1 && styles.taskRowBorder,
+                  pressed && styles.taskRowPressed,
                 ]}
               >
                 <MaterialCommunityIcons
-                  name={CHORE_TYPE_ICON[chore.type]}
+                  name={TASK_TYPE_ICON[task.type]}
                   size={22}
                   color={colors.primary}
-                  style={styles.choreIcon}
+                  style={styles.taskIcon}
                 />
-                <View style={styles.choreInfo}>
-                  <Text style={styles.choreTitle}>
-                    {chore.title ?? t(`chores.type.${chore.type}`)}
+                <View style={styles.taskInfo}>
+                  <Text style={styles.taskTitle}>
+                    {task.title ?? t(`tasks.type.${task.type}`)}
                   </Text>
-                  <Text style={styles.choreSchedule}>{scheduleLabel(t, chore)}</Text>
-                  <ChoreStats chore={chore} getLogsForChore={getLogsForChore} t={t} />
+                  <Text style={styles.taskSchedule}>{scheduleLabel(t, task)}</Text>
+                  <TaskStats task={task} getLogsForTask={getLogsForTask} t={t} />
                 </View>
               </Pressable>
             ))
@@ -361,12 +361,12 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: 'right',
   },
-  // ── Chores section ──────────────────────────────────────────────────────────
-  choresSection: {
+  // ── Tasks section ──────────────────────────────────────────────────────────
+  tasksSection: {
     marginHorizontal: spacing.xl,
     gap: spacing.sm,
   },
-  choresSectionTitle: {
+  tasksSectionTitle: {
     fontSize: typography.label.fontSize,
     lineHeight: typography.label.lineHeight,
     fontFamily: fonts.semibold,
@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     color: colors.primary,
   },
-  addChoreButton: {
+  addTaskButton: {
     alignSelf: 'flex-start',
     minHeight: 36,
     borderRadius: radius.sm,
@@ -395,50 +395,50 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primarySoft,
   },
-  addChoreButtonPressed: {
+  addTaskButtonPressed: {
     opacity: 0.7,
   },
-  addChoreText: {
+  addTaskText: {
     fontSize: typography.caption.fontSize,
     fontFamily: fonts.semibold,
     color: colors.primary,
   },
-  choreRow: {
+  taskRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
     paddingVertical: spacing.md,
     minHeight: 56,
   },
-  choreRowBorder: {
+  taskRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  choreRowPressed: {
+  taskRowPressed: {
     backgroundColor: colors.surfaceSunken,
     borderRadius: radius.sm,
   },
-  choreIcon: {
+  taskIcon: {
     width: 32,
     textAlign: 'center',
   },
-  choreInfo: {
+  taskInfo: {
     flex: 1,
     gap: spacing.xs,
   },
-  choreTitle: {
+  taskTitle: {
     fontSize: typography.body.fontSize,
     lineHeight: typography.body.lineHeight,
     fontFamily: fonts.medium,
     color: colors.ink,
   },
-  choreSchedule: {
+  taskSchedule: {
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
   },
-  // ── Per-chore stats ──────────────────────────────────────────────────────────
+  // ── Per-task stats ──────────────────────────────────────────────────────────
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.inkMuted,
   },
-  choresEmpty: {
+  tasksEmpty: {
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { insertPet, updatePet, deletePet, listPets, getPet } from '../db/pets';
-import { deleteChoresForPet } from '../db/chores';
+import { deleteTasksForPet } from '../db/tasks';
 import { savePhoto, deletePhoto } from '../lib/petPhoto';
 import type { Pet, Species } from '../db/types';
 
@@ -57,7 +57,7 @@ export const usePetsStore = create<PetsState>((set) => ({
 
   remove: async (id) => {
     const p = getPet(id);
-    deleteChoresForPet(id);
+    deleteTasksForPet(id);
     deletePet(id);
     if (p?.photoUri) await deletePhoto(p.photoUri);
     set({ pets: listPets() });

@@ -17,13 +17,13 @@ import notifee from '@notifee/react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import type { RootTabParamList } from './src/navigation/RootNavigator';
 import { useAuthStore } from './src/store/authStore';
-import { initChoreNotifications, handleNotificationEvent } from './src/lib/choreNotifications';
+import { initTaskNotifications, handleNotificationEvent } from './src/lib/taskNotifications';
 
 // Register background handler at module top-level (before render), per Notifee requirement.
-// Background JS context: handleNotificationEvent only touches db/chores — safe for headless.
+// Background JS context: handleNotificationEvent only touches db/tasks — safe for headless.
 notifee.onBackgroundEvent(handleNotificationEvent);
 
-// Navigation ref shared with choreNotifications for tap-to-open Tasks tab.
+// Navigation ref shared with taskNotifications for tap-to-open Tasks tab.
 const navRef = createNavigationContainerRef<RootTabParamList>();
 
 export default function App() {
@@ -43,7 +43,7 @@ export default function App() {
   useEffect(() => {
     if (!hasHydrated || !fontsLoaded || !navReady || notifInitDone.current) return;
     notifInitDone.current = true;
-    initChoreNotifications(navRef).catch(() => {});
+    initTaskNotifications(navRef).catch(() => {});
   }, [hasHydrated, fontsLoaded, navReady]);
 
   // Hold the first render until both the persisted session and the fonts are

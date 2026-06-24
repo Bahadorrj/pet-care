@@ -72,16 +72,16 @@ const mockFakeDb = {
       fakeRows = fakeRows.filter((r) => r.id !== id);
       return;
     }
-    // Cascade deletes from deleteChoresForPet — petsStore now calls it on remove.
-    // No chore rows exist in this fake, so these are no-ops.
-    if (s.startsWith('DELETE FROM CHORE_LOGS')) return;
-    if (s.startsWith('DELETE FROM CHORES')) return;
+    // Cascade deletes from deleteTasksForPet — petsStore now calls it on remove.
+    // No task rows exist in this fake, so these are no-ops.
+    if (s.startsWith('DELETE FROM TASK_LOGS')) return;
+    if (s.startsWith('DELETE FROM TASKS')) return;
     throw new Error(`fakeDb.runSync: unhandled SQL: ${sql}`);
   },
   getAllSync<T>(sql: string): T[] {
     const u = sql.trim().toUpperCase();
-    // Cascade: deleteChoresForPet queries chores by pet_id — return empty (no chores seeded here)
-    if (u.includes('FROM CHORES')) return [] as unknown as T[];
+    // Cascade: deleteTasksForPet queries tasks by pet_id — return empty (no tasks seeded here)
+    if (u.includes('FROM TASKS')) return [] as unknown as T[];
     // SELECT * FROM pets ORDER BY created_at DESC
     return [...fakeRows].sort((a, b) =>
       a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0,

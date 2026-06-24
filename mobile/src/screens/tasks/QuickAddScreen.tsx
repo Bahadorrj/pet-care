@@ -1,10 +1,10 @@
 /**
- * QuickAddScreen — lightweight one-off chore entry presented as a formSheet.
+ * QuickAddScreen — lightweight one-off task entry presented as a formSheet.
  *
  * Design choices:
  * - Plain TextFields for date + time (no picker lib — ADR-0010).
  * - Pet picker as horizontal chips; defaults to the only pet when there's one.
- * - "More options →" carries title + petId into the full ChoreFormScreen.
+ * - "More options →" carries title + petId into the full TaskFormScreen.
  * - Add is disabled until a pet is selected (when there are multiple pets).
  * - Time default = next round hour in Tehran wall-clock (e.g. 14:23 → "15:00").
  */
@@ -26,9 +26,9 @@ import { useShallow } from 'zustand/react/shallow';
 
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
-import { useChoresStore } from '../../store/choresStore';
+import { useTasksStore } from '../../store/tasksStore';
 import { usePetsStore } from '../../store/petsStore';
-import { toUtcIso } from '../../lib/choreSchedule';
+import { toUtcIso } from '../../lib/taskSchedule';
 import { jalaliToGregorian, tehranTodayJalali } from '../../lib/jalali';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
 import type { TasksNavigationProp } from '../../navigation/TasksStack';
@@ -54,7 +54,7 @@ export default function QuickAddScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<TasksNavigationProp>();
 
-  const addChore = useChoresStore((s) => s.addChore);
+  const addTask = useTasksStore((s) => s.addTask);
   const pets = usePetsStore(useShallow((s) => s.pets));
 
   // Default-select the only pet when there's exactly one
@@ -63,7 +63,7 @@ export default function QuickAddScreen() {
   );
   const [title, setTitle] = useState('');
   // one_off = single dated task; daily_times = repeats every day at `time`.
-  // Weekly/interval stay in the full ChoreForm via "More options".
+  // Weekly/interval stay in the full TaskForm via "More options".
   const [kind, setKind] = useState<'one_off' | 'daily_times'>('one_off');
   const [dateJalali, setDateJalali] = useState(tehranTodayJalali);
   const [time, setTime] = useState(nextRoundHourTehran);
@@ -90,14 +90,14 @@ export default function QuickAddScreen() {
     // Date only matters for one_off; daily repeats forever from `time`.
     const greg = kind === 'one_off' ? jalaliToGregorian(dateJalali) : 'n/a';
     if (!greg) {
-      setDateError(t('chores.error.invalid_date'));
+      setDateError(t('tasks.error.invalid_date'));
       valid = false;
     } else {
       setDateError('');
     }
 
     if (!isValidTime(time)) {
-      setTimeError(t('chores.error.invalid_time'));
+      setTimeError(t('tasks.error.invalid_time'));
       valid = false;
     } else {
       setTimeError('');
@@ -111,7 +111,7 @@ export default function QuickAddScreen() {
         kind === 'one_off'
           ? { kind: 'one_off' as const, at: toUtcIso(time, greg!) }
           : { kind: 'daily_times' as const, times: [time] };
-      await addChore({
+      await addTask({
         petId,
         type: 'other',
         title: title.trim() || null,
@@ -129,7 +129,7 @@ export default function QuickAddScreen() {
 
   const handleMoreOptions = () => {
     if (!petId) return;
-    navigation.navigate('ChoreForm', {
+    navigation.navigate('TaskForm', {
       petId,
       title: title.trim() || undefined,
     });
@@ -183,7 +183,7 @@ export default function QuickAddScreen() {
 
           {/* ── Repeat (one-off vs daily) ────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('chores.field.schedule')}</Text>
+            <Text style={styles.label}>{t('tasks.field.schedule')}</Text>
             <View style={styles.chipRow}>
               {(['one_off', 'daily_times'] as const).map((k) => (
                 <Pressable
@@ -195,7 +195,7 @@ export default function QuickAddScreen() {
                   accessibilityState={{ selected: kind === k }}
                 >
                   <Text style={[styles.chipText, kind === k && styles.chipTextSelected]}>
-                    {t(`chores.schedule.${k}`)}
+                    {t(`tasks.schedule.${k}`)}
                   </Text>
                 </Pressable>
               ))}

@@ -1,5 +1,5 @@
 /**
- * choresStore tests — TDD Red → Green
+ * tasksStore tests — TDD Red → Green
  *
  * Covers:
  * 1. add → list reflects in store state
@@ -7,8 +7,8 @@
  * 3. delete reflects in store state
  * 4. markOccurrence writes a log and refreshes today's occurrences
  * 5. toggleActive flips the active flag
- * 6. deleting a pet via petsStore removes its chores + logs (no orphans)
- * 7. validation: rejects a chore with an empty schedule
+ * 6. deleting a pet via petsStore removes its tasks + logs (no orphans)
+ * 7. validation: rejects a task with an empty schedule
  *
  * The `mock`-prefix trick: jest.mock factories are hoisted to the top of the
  * file, before any imports. Variables referenced inside the factory must be
@@ -24,12 +24,12 @@ type Row = Record<string, unknown>;
 
 interface MockStore {
   pets: Row[];
-  chores: Row[];
-  chore_logs: Row[];
+  tasks: Row[];
+  task_logs: Row[];
 }
 
 // `mock`-prefixed name is required by jest hoisting rules
-const mockStore: MockStore = { pets: [], chores: [], chore_logs: [] };
+const mockStore: MockStore = { pets: [], tasks: [], task_logs: [] };
 
 // ---------------------------------------------------------------------------
 // expo-sqlite mock
@@ -63,45 +63,45 @@ jest.mock('expo-sqlite', () => {
         return;
       }
 
-      // ---- chores ----
-      if (u.startsWith('INSERT INTO CHORES ')) {
+      // ---- tasks ----
+      if (u.startsWith('INSERT INTO TASKS ')) {
         const [id, pet_id, type, title, schedule_json, end_kind, end_until, end_count, active, created_at, updated_at] = params;
-        s.chores.push({ id, pet_id, type, title, schedule_json, end_kind, end_until, end_count, active, created_at, updated_at });
+        s.tasks.push({ id, pet_id, type, title, schedule_json, end_kind, end_until, end_count, active, created_at, updated_at });
         return;
       }
-      if (u.startsWith('UPDATE CHORES SET')) {
+      if (u.startsWith('UPDATE TASKS SET')) {
         const [type, title, schedule_json, end_kind, end_until, end_count, active, updated_at, id] = params;
-        const row = s.chores.find((r) => r.id === id);
+        const row = s.tasks.find((r) => r.id === id);
         if (row) Object.assign(row, { type, title, schedule_json, end_kind, end_until, end_count, active, updated_at });
         return;
       }
-      if (u.startsWith('DELETE FROM CHORES WHERE ID')) {
+      if (u.startsWith('DELETE FROM TASKS WHERE ID')) {
         const [id] = params as string[];
-        s.chores = s.chores.filter((r) => r.id !== id);
+        s.tasks = s.tasks.filter((r) => r.id !== id);
         return;
       }
-      if (u.startsWith('DELETE FROM CHORES WHERE PET_ID')) {
+      if (u.startsWith('DELETE FROM TASKS WHERE PET_ID')) {
         const [pet_id] = params as string[];
-        s.chores = s.chores.filter((r) => r.pet_id !== pet_id);
+        s.tasks = s.tasks.filter((r) => r.pet_id !== pet_id);
         return;
       }
 
-      // ---- chore_logs ----
-      if (u.startsWith('INSERT INTO CHORE_LOGS') && u.includes('ON CONFLICT')) {
-        const [id, chore_id, due_at, status, created_at] = params as string[];
-        const existing = s.chore_logs.find(
-          (r) => r.chore_id === chore_id && r.due_at === due_at,
+      // ---- task_logs ----
+      if (u.startsWith('INSERT INTO TASK_LOGS') && u.includes('ON CONFLICT')) {
+        const [id, task_id, due_at, status, created_at] = params as string[];
+        const existing = s.task_logs.find(
+          (r) => r.task_id === task_id && r.due_at === due_at,
         );
         if (existing) {
           existing.status = status;
         } else {
-          s.chore_logs.push({ id, chore_id, due_at, status, created_at });
+          s.task_logs.push({ id, task_id, due_at, status, created_at });
         }
         return;
       }
-      if (u.startsWith('DELETE FROM CHORE_LOGS WHERE CHORE_ID')) {
-        const [chore_id] = params as string[];
-        s.chore_logs = s.chore_logs.filter((r) => r.chore_id !== chore_id);
+      if (u.startsWith('DELETE FROM TASK_LOGS WHERE TASK_ID')) {
+        const [task_id] = params as string[];
+        s.task_logs = s.task_logs.filter((r) => r.task_id !== task_id);
         return;
       }
     },
@@ -116,33 +116,33 @@ jest.mock('expo-sqlite', () => {
         ) as unknown as T[];
       }
 
-      // chores by pet
-      if (u.includes('FROM CHORES') && u.includes('PET_ID')) {
+      // tasks by pet
+      if (u.includes('FROM TASKS') && u.includes('PET_ID')) {
         const [pet_id] = params as string[];
-        return s.chores.filter((r) => r.pet_id === pet_id) as unknown as T[];
+        return s.tasks.filter((r) => r.pet_id === pet_id) as unknown as T[];
       }
-      // all chores
-      if (u.includes('FROM CHORES')) {
-        return [...s.chores] as unknown as T[];
+      // all tasks
+      if (u.includes('FROM TASKS')) {
+        return [...s.tasks] as unknown as T[];
       }
 
-      // chore_id + due_at exact match (post-upsert lookup)
-      if (u.includes('FROM CHORE_LOGS') && u.includes('AND DUE_AT') && !u.includes('LIKE')) {
-        const [chore_id, due_at] = params as string[];
-        return s.chore_logs.filter(
-          (r) => r.chore_id === chore_id && r.due_at === due_at,
+      // task_id + due_at exact match (post-upsert lookup)
+      if (u.includes('FROM TASK_LOGS') && u.includes('AND DUE_AT') && !u.includes('LIKE')) {
+        const [task_id, due_at] = params as string[];
+        return s.task_logs.filter(
+          (r) => r.task_id === task_id && r.due_at === due_at,
         ) as unknown as T[];
       }
-      // getLogsForChore
-      if (u.includes('FROM CHORE_LOGS') && u.includes('CHORE_ID')) {
-        const [chore_id] = params as string[];
-        return s.chore_logs.filter((r) => r.chore_id === chore_id) as unknown as T[];
+      // getLogsForTask
+      if (u.includes('FROM TASK_LOGS') && u.includes('TASK_ID')) {
+        const [task_id] = params as string[];
+        return s.task_logs.filter((r) => r.task_id === task_id) as unknown as T[];
       }
       // getLogsForDay
-      if (u.includes('FROM CHORE_LOGS') && u.includes('LIKE')) {
+      if (u.includes('FROM TASK_LOGS') && u.includes('LIKE')) {
         const [pattern] = params as string[];
         const day = (pattern as string).replace(/%/g, '');
-        return s.chore_logs.filter((r) =>
+        return s.task_logs.filter((r) =>
           (r.due_at as string).startsWith(day),
         ) as unknown as T[];
       }
@@ -157,9 +157,9 @@ jest.mock('expo-sqlite', () => {
         const [id] = params as string[];
         return (s.pets.find((r) => r.id === id) ?? null) as T | null;
       }
-      if (u.includes('FROM CHORES')) {
+      if (u.includes('FROM TASKS')) {
         const [id] = params as string[];
-        return (s.chores.find((r) => r.id === id) ?? null) as T | null;
+        return (s.tasks.find((r) => r.id === id) ?? null) as T | null;
       }
       return null;
     },
@@ -196,10 +196,10 @@ import type { Schedule } from '../db/types';
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** A daily_times chore due at 08:00 Tehran */
+/** A daily_times task due at 08:00 Tehran */
 const DAILY_SCHEDULE: Schedule = { kind: 'daily_times', times: ['08:00'] };
 
-function makeChoreInput(petId = 'pet-1') {
+function makeTaskInput(petId = 'pet-1') {
   return {
     petId,
     type: 'feeding' as const,
@@ -212,11 +212,11 @@ function makeChoreInput(petId = 'pet-1') {
   };
 }
 
-/** Load a fresh choresStore module (re-executes module-level listChores()) */
-function loadFreshChoresStore() {
-  let mod: typeof import('../store/choresStore');
+/** Load a fresh tasksStore module (re-executes module-level listTasks()) */
+function loadFreshTasksStore() {
+  let mod: typeof import('../store/tasksStore');
   jest.isolateModules(() => {
-    mod = require('../store/choresStore');
+    mod = require('../store/tasksStore');
   });
   return mod!;
 }
@@ -236,8 +236,8 @@ function loadFreshPetsStore() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockStore.pets = [];
-  mockStore.chores = [];
-  mockStore.chore_logs = [];
+  mockStore.tasks = [];
+  mockStore.task_logs = [];
   mockUuidState.counter = 0;
   jest.useFakeTimers();
   // "now" = Tehran 2026-06-20 10:00 → UTC 2026-06-20T06:30:00Z
@@ -253,17 +253,17 @@ afterEach(() => {
 // 1. add → list
 // ---------------------------------------------------------------------------
 
-describe('choresStore – add', () => {
-  test('addChore inserts a chore and it appears in store.chores', async () => {
-    const { useChoresStore } = loadFreshChoresStore();
+describe('tasksStore – add', () => {
+  test('addTask inserts a task and it appears in store.tasks', async () => {
+    const { useTasksStore } = loadFreshTasksStore();
 
-    await useChoresStore.getState().addChore(makeChoreInput());
+    await useTasksStore.getState().addTask(makeTaskInput());
 
-    const { chores } = useChoresStore.getState();
-    expect(chores).toHaveLength(1);
-    expect(chores[0].petId).toBe('pet-1');
-    expect(chores[0].type).toBe('feeding');
-    expect(chores[0].active).toBe(true);
+    const { tasks } = useTasksStore.getState();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].petId).toBe('pet-1');
+    expect(tasks[0].type).toBe('feeding');
+    expect(tasks[0].active).toBe(true);
   });
 });
 
@@ -271,14 +271,14 @@ describe('choresStore – add', () => {
 // 2. update
 // ---------------------------------------------------------------------------
 
-describe('choresStore – update', () => {
-  test('updateChore changes type+title and reflects in store', async () => {
-    const { useChoresStore } = loadFreshChoresStore();
+describe('tasksStore – update', () => {
+  test('updateTask changes type+title and reflects in store', async () => {
+    const { useTasksStore } = loadFreshTasksStore();
 
-    await useChoresStore.getState().addChore(makeChoreInput());
-    const id = useChoresStore.getState().chores[0].id;
+    await useTasksStore.getState().addTask(makeTaskInput());
+    const id = useTasksStore.getState().tasks[0].id;
 
-    await useChoresStore.getState().updateChore(id, {
+    await useTasksStore.getState().updateTask(id, {
       type: 'meds',
       title: 'Evening meds',
       schedule: DAILY_SCHEDULE,
@@ -288,9 +288,9 @@ describe('choresStore – update', () => {
       active: true,
     });
 
-    const { chores } = useChoresStore.getState();
-    expect(chores[0].type).toBe('meds');
-    expect(chores[0].title).toBe('Evening meds');
+    const { tasks } = useTasksStore.getState();
+    expect(tasks[0].type).toBe('meds');
+    expect(tasks[0].title).toBe('Evening meds');
   });
 });
 
@@ -298,16 +298,16 @@ describe('choresStore – update', () => {
 // 3. delete
 // ---------------------------------------------------------------------------
 
-describe('choresStore – delete', () => {
-  test('deleteChore removes the chore from store', async () => {
-    const { useChoresStore } = loadFreshChoresStore();
+describe('tasksStore – delete', () => {
+  test('deleteTask removes the task from store', async () => {
+    const { useTasksStore } = loadFreshTasksStore();
 
-    await useChoresStore.getState().addChore(makeChoreInput());
-    const id = useChoresStore.getState().chores[0].id;
+    await useTasksStore.getState().addTask(makeTaskInput());
+    const id = useTasksStore.getState().tasks[0].id;
 
-    await useChoresStore.getState().deleteChore(id);
+    await useTasksStore.getState().deleteTask(id);
 
-    expect(useChoresStore.getState().chores).toHaveLength(0);
+    expect(useTasksStore.getState().tasks).toHaveLength(0);
   });
 });
 
@@ -315,16 +315,16 @@ describe('choresStore – delete', () => {
 // 4. toggleActive
 // ---------------------------------------------------------------------------
 
-describe('choresStore – toggleActive', () => {
+describe('tasksStore – toggleActive', () => {
   test('toggleActive flips the active flag from true to false', async () => {
-    const { useChoresStore } = loadFreshChoresStore();
+    const { useTasksStore } = loadFreshTasksStore();
 
-    await useChoresStore.getState().addChore(makeChoreInput()); // active: true
-    const id = useChoresStore.getState().chores[0].id;
+    await useTasksStore.getState().addTask(makeTaskInput()); // active: true
+    const id = useTasksStore.getState().tasks[0].id;
 
-    await useChoresStore.getState().toggleActive(id);
+    await useTasksStore.getState().toggleActive(id);
 
-    expect(useChoresStore.getState().chores[0].active).toBe(false);
+    expect(useTasksStore.getState().tasks[0].active).toBe(false);
   });
 });
 
@@ -332,49 +332,49 @@ describe('choresStore – toggleActive', () => {
 // 5. markOccurrence → refreshes occurrences
 // ---------------------------------------------------------------------------
 
-describe('choresStore – markOccurrence', () => {
+describe('tasksStore – markOccurrence', () => {
   test('markOccurrence writes a log and status flips to done in today occurrences', async () => {
     // createdAt must be before today so origin ≤ today
     jest.setSystemTime(new Date('2026-06-18T10:00:00.000Z'));
-    const { useChoresStore } = loadFreshChoresStore();
-    await useChoresStore.getState().addChore(makeChoreInput());
-    const id = useChoresStore.getState().chores[0].id;
+    const { useTasksStore } = loadFreshTasksStore();
+    await useTasksStore.getState().addTask(makeTaskInput());
+    const id = useTasksStore.getState().tasks[0].id;
 
     // Move to "now" = Tehran 2026-06-20 10:00 (after 08:00 occurrence)
     jest.setSystemTime(new Date('2026-06-20T06:30:00.000Z'));
 
     // load() recomputes today's occurrences
-    await useChoresStore.getState().load();
+    await useTasksStore.getState().load();
 
-    const occs = useChoresStore.getState().occurrences;
+    const occs = useTasksStore.getState().occurrences;
     expect(occs.length).toBeGreaterThan(0);
 
     const occ = occs[0];
     expect(occ.status).toBe('missed'); // past due, no log yet
 
-    await useChoresStore.getState().markOccurrence(occ.chore.id, occ.dueAt, 'done');
+    await useTasksStore.getState().markOccurrence(occ.task.id, occ.dueAt, 'done');
 
-    const occsAfter = useChoresStore.getState().occurrences;
+    const occsAfter = useTasksStore.getState().occurrences;
     const marked = occsAfter.find(
-      (o) => o.chore.id === occ.chore.id && o.dueAt === occ.dueAt,
+      (o) => o.task.id === occ.task.id && o.dueAt === occ.dueAt,
     );
     expect(marked?.status).toBe('done');
   });
 
   test('markOccurrence with skipped also refreshes occurrence to skipped', async () => {
     jest.setSystemTime(new Date('2026-06-18T10:00:00.000Z'));
-    const { useChoresStore } = loadFreshChoresStore();
-    await useChoresStore.getState().addChore(makeChoreInput());
+    const { useTasksStore } = loadFreshTasksStore();
+    await useTasksStore.getState().addTask(makeTaskInput());
 
     jest.setSystemTime(new Date('2026-06-20T06:30:00.000Z'));
-    await useChoresStore.getState().load();
+    await useTasksStore.getState().load();
 
-    const occ = useChoresStore.getState().occurrences[0];
-    await useChoresStore.getState().markOccurrence(occ.chore.id, occ.dueAt, 'skipped');
+    const occ = useTasksStore.getState().occurrences[0];
+    await useTasksStore.getState().markOccurrence(occ.task.id, occ.dueAt, 'skipped');
 
-    const marked = useChoresStore
+    const marked = useTasksStore
       .getState()
-      .occurrences.find((o) => o.chore.id === occ.chore.id && o.dueAt === occ.dueAt);
+      .occurrences.find((o) => o.task.id === occ.task.id && o.dueAt === occ.dueAt);
     expect(marked?.status).toBe('skipped');
   });
 });
@@ -383,8 +383,8 @@ describe('choresStore – markOccurrence', () => {
 // 6. Pet-delete cascade
 // ---------------------------------------------------------------------------
 
-describe('petsStore – remove cascades to chores + logs', () => {
-  test('deleting a pet removes its chores and logs, other pet chores survive', async () => {
+describe('petsStore – remove cascades to tasks + logs', () => {
+  test('deleting a pet removes its tasks and logs, other pet tasks survive', async () => {
     // Two pets
     const { usePetsStore } = loadFreshPetsStore();
     await usePetsStore.getState().add({
@@ -406,31 +406,31 @@ describe('petsStore – remove cascades to chores + logs', () => {
     const petA = pets.find((p) => p.name === 'Buddy')!;
     const petB = pets.find((p) => p.name === 'Kitty')!;
 
-    // Chores for both pets
-    const { useChoresStore } = loadFreshChoresStore();
-    await useChoresStore.getState().addChore(makeChoreInput(petA.id));
-    const choreA = useChoresStore.getState().chores[0];
+    // Tasks for both pets
+    const { useTasksStore } = loadFreshTasksStore();
+    await useTasksStore.getState().addTask(makeTaskInput(petA.id));
+    const taskA = useTasksStore.getState().tasks[0];
 
-    await useChoresStore.getState().addChore(makeChoreInput(petB.id));
+    await useTasksStore.getState().addTask(makeTaskInput(petB.id));
 
-    // A log for choreA
-    const { logOccurrence, listChoresByPet, getLogsForChore } = require('../db/chores');
-    logOccurrence(choreA.id, '2026-06-20T04:30:00.000Z', 'done');
+    // A log for taskA
+    const { logOccurrence, listTasksByPet, getLogsForTask } = require('../db/tasks');
+    logOccurrence(taskA.id, '2026-06-20T04:30:00.000Z', 'done');
 
-    expect(listChoresByPet(petA.id)).toHaveLength(1);
-    expect(listChoresByPet(petB.id)).toHaveLength(1);
-    expect(getLogsForChore(choreA.id)).toHaveLength(1);
+    expect(listTasksByPet(petA.id)).toHaveLength(1);
+    expect(listTasksByPet(petB.id)).toHaveLength(1);
+    expect(getLogsForTask(taskA.id)).toHaveLength(1);
 
-    // Delete petA — should cascade to chores + logs
+    // Delete petA — should cascade to tasks + logs
     await usePetsStore.getState().remove(petA.id);
 
-    expect(listChoresByPet(petA.id)).toHaveLength(0);
-    expect(getLogsForChore(choreA.id)).toHaveLength(0);
-    expect(listChoresByPet(petB.id)).toHaveLength(1);
+    expect(listTasksByPet(petA.id)).toHaveLength(0);
+    expect(getLogsForTask(taskA.id)).toHaveLength(0);
+    expect(listTasksByPet(petB.id)).toHaveLength(1);
 
-    // Reload the chores store and confirm in-memory state
-    await useChoresStore.getState().load();
-    const remaining = useChoresStore.getState().chores;
+    // Reload the tasks store and confirm in-memory state
+    await useTasksStore.getState().load();
+    const remaining = useTasksStore.getState().tasks;
     expect(remaining.some((c) => c.petId === petA.id)).toBe(false);
     expect(remaining.some((c) => c.petId === petB.id)).toBe(true);
   });
@@ -440,82 +440,82 @@ describe('petsStore – remove cascades to chores + logs', () => {
 // 7. Validation — empty schedule rejected
 // ---------------------------------------------------------------------------
 
-describe('choresStore – validation', () => {
-  test('rejects a daily_times chore with no times', async () => {
-    const { useChoresStore } = loadFreshChoresStore();
+describe('tasksStore – validation', () => {
+  test('rejects a daily_times task with no times', async () => {
+    const { useTasksStore } = loadFreshTasksStore();
 
     await expect(
-      useChoresStore.getState().addChore({
-        ...makeChoreInput(),
+      useTasksStore.getState().addTask({
+        ...makeTaskInput(),
         schedule: { kind: 'daily_times', times: [] },
       }),
-    ).rejects.toThrow('chores.error.schedule_empty');
+    ).rejects.toThrow('tasks.error.schedule_empty');
 
-    expect(useChoresStore.getState().chores).toHaveLength(0);
+    expect(useTasksStore.getState().tasks).toHaveLength(0);
   });
 
-  test('rejects a weekdays chore with no days', async () => {
-    const { useChoresStore } = loadFreshChoresStore();
+  test('rejects a weekdays task with no days', async () => {
+    const { useTasksStore } = loadFreshTasksStore();
 
     await expect(
-      useChoresStore.getState().addChore({
-        ...makeChoreInput(),
+      useTasksStore.getState().addTask({
+        ...makeTaskInput(),
         schedule: { kind: 'weekdays', days: [], times: ['08:00'] },
       }),
-    ).rejects.toThrow('chores.error.schedule_empty');
+    ).rejects.toThrow('tasks.error.schedule_empty');
 
-    expect(useChoresStore.getState().chores).toHaveLength(0);
+    expect(useTasksStore.getState().tasks).toHaveLength(0);
   });
 
-  test('rejects a weekdays chore with no times', async () => {
-    const { useChoresStore } = loadFreshChoresStore();
+  test('rejects a weekdays task with no times', async () => {
+    const { useTasksStore } = loadFreshTasksStore();
 
     await expect(
-      useChoresStore.getState().addChore({
-        ...makeChoreInput(),
+      useTasksStore.getState().addTask({
+        ...makeTaskInput(),
         schedule: { kind: 'weekdays', days: [1, 3], times: [] },
       }),
-    ).rejects.toThrow('chores.error.schedule_empty');
+    ).rejects.toThrow('tasks.error.schedule_empty');
 
-    expect(useChoresStore.getState().chores).toHaveLength(0);
+    expect(useTasksStore.getState().tasks).toHaveLength(0);
   });
 });
 
 // ---------------------------------------------------------------------------
-// 8. toggleActive removes chore from Today occurrences
+// 8. toggleActive removes task from Today occurrences
 // ---------------------------------------------------------------------------
 
-describe('choresStore – toggleActive excludes from occurrences', () => {
-  test('inactive chore is absent from occurrences; active chore remains present', async () => {
-    // Create both chores before "today" so their origin ≤ today
+describe('tasksStore – toggleActive excludes from occurrences', () => {
+  test('inactive task is absent from occurrences; active task remains present', async () => {
+    // Create both tasks before "today" so their origin ≤ today
     jest.setSystemTime(new Date('2026-06-18T10:00:00.000Z'));
-    const { useChoresStore } = loadFreshChoresStore();
+    const { useTasksStore } = loadFreshTasksStore();
 
-    // Add two active chores
-    await useChoresStore.getState().addChore(makeChoreInput());
-    await useChoresStore.getState().addChore(makeChoreInput());
+    // Add two active tasks
+    await useTasksStore.getState().addTask(makeTaskInput());
+    await useTasksStore.getState().addTask(makeTaskInput());
 
-    const [choreA, choreB] = useChoresStore.getState().chores;
+    const [taskA, taskB] = useTasksStore.getState().tasks;
 
     // Advance to "now" = Tehran 2026-06-20 10:00 (after 08:00 occurrence)
     jest.setSystemTime(new Date('2026-06-20T06:30:00.000Z'));
 
-    // Both chores should appear before toggling
-    await useChoresStore.getState().load();
+    // Both tasks should appear before toggling
+    await useTasksStore.getState().load();
     expect(
-      useChoresStore.getState().occurrences.some((o) => o.chore.id === choreA.id),
+      useTasksStore.getState().occurrences.some((o) => o.task.id === taskA.id),
     ).toBe(true);
     expect(
-      useChoresStore.getState().occurrences.some((o) => o.chore.id === choreB.id),
+      useTasksStore.getState().occurrences.some((o) => o.task.id === taskB.id),
     ).toBe(true);
 
-    // Toggle choreA inactive
-    await useChoresStore.getState().toggleActive(choreA.id);
+    // Toggle taskA inactive
+    await useTasksStore.getState().toggleActive(taskA.id);
 
-    const occs = useChoresStore.getState().occurrences;
-    // Inactive chore must be absent
-    expect(occs.some((o) => o.chore.id === choreA.id)).toBe(false);
-    // Active chore must still be present
-    expect(occs.some((o) => o.chore.id === choreB.id)).toBe(true);
+    const occs = useTasksStore.getState().occurrences;
+    // Inactive task must be absent
+    expect(occs.some((o) => o.task.id === taskA.id)).toBe(false);
+    // Active task must still be present
+    expect(occs.some((o) => o.task.id === taskB.id)).toBe(true);
   });
 });

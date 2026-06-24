@@ -1,5 +1,5 @@
 /**
- * Tests for lib/choreSchedule.ts — pure schedule engine.
+ * Tests for lib/taskSchedule.ts — pure schedule engine.
  * TDD: all tests written BEFORE implementation.
  */
 
@@ -9,14 +9,14 @@ import {
   toUtcIso,
   streak,
   adherence,
-} from '../lib/choreSchedule';
-import type { Chore, ChoreLog, Occurrence } from '../db/types';
+} from '../lib/taskSchedule';
+import type { Task, TaskLog, Occurrence } from '../db/types';
 
 // ---------------------------------------------------------------------------
-// Helpers — build minimal Chore stubs
+// Helpers — build minimal Task stubs
 // ---------------------------------------------------------------------------
 
-function makeChore(overrides: Partial<Chore> & { schedule: Chore['schedule'] }): Chore {
+function makeTask(overrides: Partial<Task> & { schedule: Task['schedule'] }): Task {
   return {
     id: 'c1',
     petId: 'p1',
@@ -32,10 +32,10 @@ function makeChore(overrides: Partial<Chore> & { schedule: Chore['schedule'] }):
   };
 }
 
-function makeLog(choreId: string, dueAt: string, status: 'done' | 'skipped' = 'done'): ChoreLog {
+function makeLog(taskId: string, dueAt: string, status: 'done' | 'skipped' = 'done'): TaskLog {
   return {
     id: `log-${dueAt}`,
-    choreId,
+    taskId,
     dueAt,
     status,
     createdAt: dueAt,
@@ -72,11 +72,11 @@ describe('toUtcIso', () => {
 
 describe('expandOccurrences — one_off', () => {
   test('returns the single occurrence when it falls in range', () => {
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'one_off', at: '2025-06-20T10:00:00.000Z' },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-21T00:00:00.000Z'),
     );
@@ -84,11 +84,11 @@ describe('expandOccurrences — one_off', () => {
   });
 
   test('returns empty when one_off is before range', () => {
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'one_off', at: '2025-06-19T10:00:00.000Z' },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-21T00:00:00.000Z'),
     );
@@ -96,11 +96,11 @@ describe('expandOccurrences — one_off', () => {
   });
 
   test('returns empty when one_off equals toUtc (half-open range)', () => {
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'one_off', at: '2025-06-21T00:00:00.000Z' },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-21T00:00:00.000Z'),
     );
@@ -115,14 +115,14 @@ describe('expandOccurrences — one_off', () => {
 describe('expandOccurrences — daily_times', () => {
   // createdAt is 2025-01-01T00:00:00.000Z = 2025-01-01 03:30 Tehran
   // so origin calendar day in Tehran = 2025-01-01
-  const chore = makeChore({
+  const task = makeTask({
     createdAt: '2025-01-01T00:00:00.000Z',
     schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
   });
 
   test('returns both times for a single day', () => {
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-21T00:00:00.000Z'),
     );
@@ -135,7 +135,7 @@ describe('expandOccurrences — daily_times', () => {
 
   test('returns 4 occurrences over 2 days', () => {
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-22T00:00:00.000Z'),
     );
@@ -147,12 +147,12 @@ describe('expandOccurrences — daily_times', () => {
   test('Tehran wall-clock midnight crosses UTC date boundary', () => {
     // 00:30 Tehran = 21:00 UTC previous day
     // Occurrence at Tehran-day 2025-06-20 00:30 should be UTC 2025-06-19T21:00
-    const chore2 = makeChore({
+    const task2 = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'daily_times', times: ['00:30'] },
     });
     const result = expandOccurrences(
-      chore2,
+      task2,
       // range covers the UTC time 2025-06-19T21:00 (which is Tehran 2025-06-20 00:30)
       new Date('2025-06-19T20:00:00.000Z'),
       new Date('2025-06-20T00:00:00.000Z'),
@@ -168,13 +168,13 @@ describe('expandOccurrences — daily_times', () => {
 describe('expandOccurrences — weekdays', () => {
   test('only fires on listed weekdays (Tehran calendar)', () => {
     // 2025-06-20 is a Friday (day 5). Let's check that with days=[5] only Friday fires.
-    const chore = makeChore({
+    const task = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'weekdays', days: [5], times: ['09:00'] }, // Fridays only
     });
     // Range: Mon 2025-06-16 to Sun 2025-06-22 (inclusive start, exclusive end Mon)
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-16T00:00:00.000Z'),
       new Date('2025-06-23T00:00:00.000Z'),
     );
@@ -184,13 +184,13 @@ describe('expandOccurrences — weekdays', () => {
 
   test('fires on multiple weekdays with multiple times', () => {
     // Sat (6) and Sun (0) with 08:00 Tehran
-    const chore = makeChore({
+    const task = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'weekdays', days: [0, 6], times: ['08:00'] },
     });
     // Week of 2025-06-15 (Sun) to 2025-06-22 (Sun)
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-15T00:00:00.000Z'),
       new Date('2025-06-22T00:00:00.000Z'),
     );
@@ -206,12 +206,12 @@ describe('expandOccurrences — weekdays', () => {
     // 2025-06-20 00:30 Tehran = 2025-06-19 21:00 UTC (Friday in Tehran, Thursday in UTC)
     // With days=[5] (Friday), this occurrence should be INCLUDED
     // With days=[4] (Thursday), it should NOT be included
-    const choreFri = makeChore({
+    const taskFri = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'weekdays', days: [5], times: ['00:30'] }, // Friday 00:30 Tehran
     });
     const result = expandOccurrences(
-      choreFri,
+      taskFri,
       new Date('2025-06-19T20:00:00.000Z'),
       new Date('2025-06-20T02:00:00.000Z'),
     );
@@ -227,11 +227,11 @@ describe('expandOccurrences — weekdays', () => {
 describe('expandOccurrences — interval hours', () => {
   test('fires every 6 hours from anchor', () => {
     const anchor = '2025-06-20T06:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'interval', n: 6, unit: 'hours', anchor },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-21T00:00:00.000Z'),
     );
@@ -245,11 +245,11 @@ describe('expandOccurrences — interval hours', () => {
 
   test('does not include occurrences before anchor', () => {
     const anchor = '2025-06-20T06:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'interval', n: 6, unit: 'hours', anchor },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-19T00:00:00.000Z'),
       new Date('2025-06-20T10:00:00.000Z'),
     );
@@ -265,11 +265,11 @@ describe('expandOccurrences — interval hours', () => {
 describe('expandOccurrences — interval days', () => {
   test('fires every 3 days from anchor', () => {
     const anchor = '2025-06-01T08:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'interval', n: 3, unit: 'days', anchor },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-01T00:00:00.000Z'),
       new Date('2025-06-15T00:00:00.000Z'),
     );
@@ -291,11 +291,11 @@ describe('expandOccurrences — interval days', () => {
 describe('expandOccurrences — interval months + rollover', () => {
   test('fires monthly from anchor', () => {
     const anchor = '2025-01-15T10:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'interval', n: 1, unit: 'months', anchor },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-01-01T00:00:00.000Z'),
       new Date('2025-04-01T00:00:00.000Z'),
     );
@@ -308,11 +308,11 @@ describe('expandOccurrences — interval months + rollover', () => {
 
   test('month rollover: Jan 31 + 1 month = Feb 28 (2025 is not a leap year)', () => {
     const anchor = '2025-01-31T10:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'interval', n: 1, unit: 'months', anchor },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-01-01T00:00:00.000Z'),
       new Date('2025-04-01T00:00:00.000Z'),
     );
@@ -326,11 +326,11 @@ describe('expandOccurrences — interval months + rollover', () => {
 
   test('year rollover: Nov 2025 + 3 months = Feb 2026', () => {
     const anchor = '2025-11-10T08:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       schedule: { kind: 'interval', n: 3, unit: 'months', anchor },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-11-01T00:00:00.000Z'),
       new Date('2026-05-01T00:00:00.000Z'),
     );
@@ -349,14 +349,14 @@ describe('expandOccurrences — end_kind until', () => {
   test('stops including occurrences after endUntil date', () => {
     // endUntil = 2025-06-21T00:00:00.000Z means "stop after" that date
     // Spec says: "stops after the date" — occurrences ON that date are included
-    const chore = makeChore({
+    const task = makeTask({
       endKind: 'until',
       endUntil: '2025-06-21T23:59:59.000Z', // end of June 21
       schedule: { kind: 'daily_times', times: ['08:00'] },
       createdAt: '2025-01-01T00:00:00.000Z',
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-23T00:00:00.000Z'),
     );
@@ -371,14 +371,14 @@ describe('expandOccurrences — end_kind until', () => {
 
   test('boundary: occurrence exactly at endUntil is included', () => {
     // endUntil = exact UTC of an occurrence
-    const chore = makeChore({
+    const task = makeTask({
       endKind: 'until',
       endUntil: '2025-06-20T04:30:00.000Z',
       schedule: { kind: 'daily_times', times: ['08:00'] },
       createdAt: '2025-01-01T00:00:00.000Z',
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-22T00:00:00.000Z'),
     );
@@ -393,7 +393,7 @@ describe('expandOccurrences — end_kind after_n', () => {
     // createdAt 2025-01-01T00:00:00.000Z = origin day in Tehran = 2025-01-01
     // daily_times 08:00 Tehran = origin counts from 2025-01-01
     // endCount = 3 → only 3 total occurrences ever
-    const chore = makeChore({
+    const task = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       endKind: 'after_n',
       endCount: 3,
@@ -401,7 +401,7 @@ describe('expandOccurrences — end_kind after_n', () => {
     });
     // Query a range that starts AFTER the origin (Jan 1, 2, 3 are the 3 occurrences)
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-01-01T00:00:00.000Z'),
       new Date('2025-01-10T00:00:00.000Z'),
     );
@@ -413,8 +413,8 @@ describe('expandOccurrences — end_kind after_n', () => {
     ]);
   });
 
-  test('after_n: query window starts mid-sequence — already-exhausted chore returns empty', () => {
-    const chore = makeChore({
+  test('after_n: query window starts mid-sequence — already-exhausted task returns empty', () => {
+    const task = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       endKind: 'after_n',
       endCount: 3,
@@ -422,7 +422,7 @@ describe('expandOccurrences — end_kind after_n', () => {
     });
     // Occurrences 1-3 are Jan 1-3. Query from Jan 5 onwards → no occurrences left
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-01-05T00:00:00.000Z'),
       new Date('2025-01-10T00:00:00.000Z'),
     );
@@ -432,14 +432,14 @@ describe('expandOccurrences — end_kind after_n', () => {
   test('after_n with interval: counts from anchor', () => {
     // anchor = first occurrence, endCount = 2 → only 2 occurrences ever
     const anchor = '2025-06-01T08:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       endKind: 'after_n',
       endCount: 2,
       schedule: { kind: 'interval', n: 1, unit: 'days', anchor },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-01T00:00:00.000Z'),
       new Date('2025-06-10T00:00:00.000Z'),
     );
@@ -450,13 +450,13 @@ describe('expandOccurrences — end_kind after_n', () => {
   });
 
   test('after_n with one_off: count=1 is the single occurrence', () => {
-    const chore = makeChore({
+    const task = makeTask({
       endKind: 'after_n',
       endCount: 1,
       schedule: { kind: 'one_off', at: '2025-06-20T10:00:00.000Z' },
     });
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-20T00:00:00.000Z'),
       new Date('2025-06-21T00:00:00.000Z'),
     );
@@ -467,7 +467,7 @@ describe('expandOccurrences — end_kind after_n', () => {
     // Fridays only (day 5) at 09:00 Tehran. createdAt = 2025-06-13 (a Friday).
     // endCount = 3 → 3 Fridays total: Jun 13, Jun 20, Jun 27. Jun 27 is the last.
     // Non-matching weekdays must NOT increment the count.
-    const chore = makeChore({
+    const task = makeTask({
       createdAt: '2025-06-13T05:30:00.000Z', // 2025-06-13T09:00 Tehran = UTC 05:30
       endKind: 'after_n',
       endCount: 3,
@@ -475,7 +475,7 @@ describe('expandOccurrences — end_kind after_n', () => {
     });
     // Query spans all 3 Fridays and beyond to verify cutoff
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-06-13T00:00:00.000Z'),
       new Date('2025-07-11T00:00:00.000Z'),
     );
@@ -490,7 +490,7 @@ describe('expandOccurrences — end_kind after_n', () => {
   test('after_n with interval months: N monthly occurrences from anchor then stops', () => {
     // Monthly from Jan 15, endCount = 3 → Jan 15, Feb 15, Mar 15 only.
     const anchor = '2025-01-15T10:00:00.000Z';
-    const chore = makeChore({
+    const task = makeTask({
       createdAt: '2025-01-01T00:00:00.000Z',
       endKind: 'after_n',
       endCount: 3,
@@ -498,7 +498,7 @@ describe('expandOccurrences — end_kind after_n', () => {
     });
     // Query beyond the 3rd occurrence to confirm hard cutoff
     const result = expandOccurrences(
-      chore,
+      task,
       new Date('2025-01-01T00:00:00.000Z'),
       new Date('2025-06-01T00:00:00.000Z'),
     );
@@ -515,7 +515,7 @@ describe('expandOccurrences — end_kind after_n', () => {
 // ---------------------------------------------------------------------------
 
 describe('occurrencesForDay', () => {
-  const chore = makeChore({
+  const task = makeTask({
     id: 'c1',
     createdAt: '2025-01-01T00:00:00.000Z',
     schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
@@ -529,7 +529,7 @@ describe('occurrencesForDay', () => {
 
   test('marks past occurrence with no log as missed', () => {
     const now = new Date('2025-06-20T10:00:00.000Z'); // after 04:30, before 16:30
-    const result = occurrencesForDay([chore], [], { start: dayStart, end: dayEnd }, now);
+    const result = occurrencesForDay([task], [], { start: dayStart, end: dayEnd }, now);
 
     const missed = result.filter(o => o.status === 'missed');
     expect(missed).toHaveLength(1);
@@ -538,7 +538,7 @@ describe('occurrencesForDay', () => {
 
   test('marks future occurrence as pending', () => {
     const now = new Date('2025-06-20T10:00:00.000Z');
-    const result = occurrencesForDay([chore], [], { start: dayStart, end: dayEnd }, now);
+    const result = occurrencesForDay([task], [], { start: dayStart, end: dayEnd }, now);
 
     const pending = result.filter(o => o.status === 'pending');
     expect(pending).toHaveLength(1);
@@ -548,7 +548,7 @@ describe('occurrencesForDay', () => {
   test('marks logged occurrence as done', () => {
     const now = new Date('2025-06-20T10:00:00.000Z');
     const log = makeLog('c1', '2025-06-20T04:30:00.000Z', 'done');
-    const result = occurrencesForDay([chore], [log], { start: dayStart, end: dayEnd }, now);
+    const result = occurrencesForDay([task], [log], { start: dayStart, end: dayEnd }, now);
 
     const done = result.filter(o => o.status === 'done');
     expect(done).toHaveLength(1);
@@ -558,30 +558,30 @@ describe('occurrencesForDay', () => {
   test('marks logged occurrence as skipped', () => {
     const now = new Date('2025-06-20T10:00:00.000Z');
     const log = makeLog('c1', '2025-06-20T04:30:00.000Z', 'skipped');
-    const result = occurrencesForDay([chore], [log], { start: dayStart, end: dayEnd }, now);
+    const result = occurrencesForDay([task], [log], { start: dayStart, end: dayEnd }, now);
 
     const skipped = result.filter(o => o.status === 'skipped');
     expect(skipped).toHaveLength(1);
     expect(skipped[0].dueAt).toBe('2025-06-20T04:30:00.000Z');
   });
 
-  test('handles multiple chores correctly', () => {
-    const chore2 = makeChore({
+  test('handles multiple tasks correctly', () => {
+    const task2 = makeTask({
       id: 'c2',
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'daily_times', times: ['12:00'] },
     });
     const now = new Date('2025-06-20T10:00:00.000Z');
     // c2's 12:00 Tehran = 08:30 UTC — in the past
-    const result = occurrencesForDay([chore, chore2], [], { start: dayStart, end: dayEnd }, now);
+    const result = occurrencesForDay([task, task2], [], { start: dayStart, end: dayEnd }, now);
 
-    expect(result).toHaveLength(3); // 2 from chore, 1 from chore2
-    const c2occ = result.filter(o => o.chore.id === 'c2');
+    expect(result).toHaveLength(3); // 2 from task, 1 from task2
+    const c2occ = result.filter(o => o.task.id === 'c2');
     expect(c2occ).toHaveLength(1);
     expect(c2occ[0].status).toBe('missed'); // 08:30 UTC < now 10:00 UTC
   });
 
-  test('empty chores list returns empty array', () => {
+  test('empty tasks list returns empty array', () => {
     const now = new Date('2025-06-20T10:00:00.000Z');
     const result = occurrencesForDay([], [], { start: dayStart, end: dayEnd }, now);
     expect(result).toEqual([]);
@@ -594,7 +594,7 @@ describe('occurrencesForDay', () => {
 
 describe('streak', () => {
   // daily_times 08:00 Tehran = 04:30 UTC; 20:00 Tehran = 16:30 UTC
-  const dailyChore = makeChore({
+  const dailyTask = makeTask({
     id: 'c-streak',
     createdAt: '2025-01-01T00:00:00.000Z',
     schedule: { kind: 'daily_times', times: ['08:00'] },
@@ -603,13 +603,13 @@ describe('streak', () => {
   test('returns 0 when there are no past-due occurrences', () => {
     // now is before any occurrence could have been due
     const now = new Date('2025-01-01T00:00:00.000Z');
-    expect(streak(dailyChore, [], now)).toBe(0);
+    expect(streak(dailyTask, [], now)).toBe(0);
   });
 
   test('returns 0 when there are past-due occurrences but none logged', () => {
     // Several occurrences in the past but no logs → first is missed → streak 0
     const now = new Date('2025-06-20T10:00:00.000Z'); // after 04:30 Jun 20
-    expect(streak(dailyChore, [], now)).toBe(0);
+    expect(streak(dailyTask, [], now)).toBe(0);
   });
 
   test('returns 1 when last past-due occurrence is done but the one before is missed', () => {
@@ -617,13 +617,13 @@ describe('streak', () => {
     // Jun 19 08:00 Tehran = 2025-06-19T04:30Z (past, missed)
     const now = new Date('2025-06-20T10:00:00.000Z');
     const logs = [makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done')];
-    expect(streak(dailyChore, logs, now)).toBe(1);
+    expect(streak(dailyTask, logs, now)).toBe(1);
   });
 
   test('returns 0 when last past-due occurrence is skipped', () => {
     const now = new Date('2025-06-20T10:00:00.000Z');
     const logs = [makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'skipped')];
-    expect(streak(dailyChore, logs, now)).toBe(0);
+    expect(streak(dailyTask, logs, now)).toBe(0);
   });
 
   test('counts consecutive done occurrences walking backward', () => {
@@ -634,7 +634,7 @@ describe('streak', () => {
       makeLog('c-streak', '2025-06-19T04:30:00.000Z', 'done'),
       makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done'),
     ];
-    expect(streak(dailyChore, logs, now)).toBe(3);
+    expect(streak(dailyTask, logs, now)).toBe(3);
   });
 
   test('stops at a skipped occurrence mid-run', () => {
@@ -645,7 +645,7 @@ describe('streak', () => {
       makeLog('c-streak', '2025-06-19T04:30:00.000Z', 'skipped'),
       makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done'),
     ];
-    expect(streak(dailyChore, logs, now)).toBe(1);
+    expect(streak(dailyTask, logs, now)).toBe(1);
   });
 
   test('stops at a missing-log occurrence mid-run (missed counts as break)', () => {
@@ -655,13 +655,13 @@ describe('streak', () => {
       makeLog('c-streak', '2025-06-18T04:30:00.000Z', 'done'),
       makeLog('c-streak', '2025-06-20T04:30:00.000Z', 'done'),
     ];
-    expect(streak(dailyChore, logs, now)).toBe(1);
+    expect(streak(dailyTask, logs, now)).toBe(1);
   });
 
   test('ignores future occurrences — only past-due count', () => {
     // now is between 08:00 and 20:00 Tehran on Jun 20
     // 20:00 Tehran on Jun 20 = 2025-06-20T16:30Z which is in the future
-    const multiTimeChore = makeChore({
+    const multiTimeTask = makeTask({
       id: 'c-multi',
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
@@ -670,13 +670,13 @@ describe('streak', () => {
     const logs = [makeLog('c-multi', '2025-06-20T04:30:00.000Z', 'done')];
     // Only 1 past-due occurrence (08:00), and it's done → streak = 1
     // 20:00 occurrence is future → not counted
-    expect(streak(multiTimeChore, logs, now)).toBe(1);
+    expect(streak(multiTimeTask, logs, now)).toBe(1);
   });
 
-  test('multi-time chore: each time is its own occurrence (occurrence-level, not day-level)', () => {
+  test('multi-time task: each time is its own occurrence (occurrence-level, not day-level)', () => {
     // // ponytail: occurrence-level streak — a day with 2 times = 2 separate occurrences
     // Jun 20 08:00 done, Jun 20 20:00 done, Jun 21 08:00 done, Jun 21 20:00 done
-    const multiTimeChore = makeChore({
+    const multiTimeTask = makeTask({
       id: 'c-multi2',
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
@@ -689,11 +689,11 @@ describe('streak', () => {
       makeLog('c-multi2', '2025-06-21T04:30:00.000Z', 'done'),
       makeLog('c-multi2', '2025-06-21T16:30:00.000Z', 'done'),
     ];
-    expect(streak(multiTimeChore, logs, now)).toBe(4);
+    expect(streak(multiTimeTask, logs, now)).toBe(4);
   });
 
-  test('after_n bounded chore: streak respects the bound (no occurrences after endCount)', () => {
-    const boundedChore = makeChore({
+  test('after_n bounded task: streak respects the bound (no occurrences after endCount)', () => {
+    const boundedTask = makeTask({
       id: 'c-bounded',
       createdAt: '2025-01-01T00:00:00.000Z',
       endKind: 'after_n',
@@ -706,11 +706,11 @@ describe('streak', () => {
       makeLog('c-bounded', '2025-01-01T04:30:00.000Z', 'done'),
       makeLog('c-bounded', '2025-01-02T04:30:00.000Z', 'done'),
     ];
-    expect(streak(boundedChore, logs, now)).toBe(2);
+    expect(streak(boundedTask, logs, now)).toBe(2);
   });
 
-  test('until bounded chore: streak respects until date', () => {
-    const untilChore = makeChore({
+  test('until bounded task: streak respects until date', () => {
+    const untilTask = makeTask({
       id: 'c-until',
       createdAt: '2025-01-01T00:00:00.000Z',
       endKind: 'until',
@@ -722,7 +722,7 @@ describe('streak', () => {
       makeLog('c-until', '2025-06-18T04:30:00.000Z', 'done'),
     ];
     // Jun 19 and Jun 20 occurrences are beyond endUntil — not generated → only Jun 18
-    expect(streak(untilChore, logs, now)).toBe(1);
+    expect(streak(untilTask, logs, now)).toBe(1);
   });
 });
 
@@ -731,7 +731,7 @@ describe('streak', () => {
 // ---------------------------------------------------------------------------
 
 describe('adherence', () => {
-  const dailyChore = makeChore({
+  const dailyTask = makeTask({
     id: 'c-adh',
     createdAt: '2025-01-01T00:00:00.000Z',
     schedule: { kind: 'daily_times', times: ['08:00'] },
@@ -741,13 +741,13 @@ describe('adherence', () => {
     // since and now are before any occurrence
     const since = new Date('2025-01-01T00:00:00.000Z');
     const now = new Date('2025-01-01T00:00:00.000Z');
-    expect(adherence(dailyChore, [], since, now)).toBeNull();
+    expect(adherence(dailyTask, [], since, now)).toBeNull();
   });
 
   test('returns 0 when all due occurrences are missed (no logs)', () => {
     const since = new Date('2025-06-18T00:00:00.000Z');
     const now = new Date('2025-06-20T10:00:00.000Z'); // Jun 18, 19, 20 04:30Z are past-due
-    expect(adherence(dailyChore, [], since, now)).toBe(0);
+    expect(adherence(dailyTask, [], since, now)).toBe(0);
   });
 
   test('returns 1 when all due occurrences are done', () => {
@@ -758,7 +758,7 @@ describe('adherence', () => {
       makeLog('c-adh', '2025-06-19T04:30:00.000Z', 'done'),
       makeLog('c-adh', '2025-06-20T04:30:00.000Z', 'done'),
     ];
-    expect(adherence(dailyChore, logs, since, now)).toBe(1);
+    expect(adherence(dailyTask, logs, since, now)).toBe(1);
   });
 
   test('returns correct fraction (2 done out of 3 due)', () => {
@@ -769,7 +769,7 @@ describe('adherence', () => {
       makeLog('c-adh', '2025-06-19T04:30:00.000Z', 'done'),
       // Jun 20 missed (no log)
     ];
-    expect(adherence(dailyChore, logs, since, now)).toBeCloseTo(2 / 3);
+    expect(adherence(dailyTask, logs, since, now)).toBeCloseTo(2 / 3);
   });
 
   test('skipped counts as not-done (lowers adherence)', () => {
@@ -781,37 +781,37 @@ describe('adherence', () => {
       makeLog('c-adh', '2025-06-20T04:30:00.000Z', 'done'),
     ];
     // 2 done / 3 total
-    expect(adherence(dailyChore, logs, since, now)).toBeCloseTo(2 / 3);
+    expect(adherence(dailyTask, logs, since, now)).toBeCloseTo(2 / 3);
   });
 
   test('future occurrences (dueAt > now) are excluded from denominator', () => {
     const since = new Date('2025-06-20T00:00:00.000Z');
     // now is before 20:00 occurrence on Jun 20
     const now = new Date('2025-06-20T10:00:00.000Z'); // 04:30 is past, 16:30 would be future
-    const multiTimeChore = makeChore({
+    const multiTimeTask = makeTask({
       id: 'c-adh-multi',
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
     });
     // Only 04:30Z occurrence is past-due; 16:30Z is future → denominator = 1
     const logs = [makeLog('c-adh-multi', '2025-06-20T04:30:00.000Z', 'done')];
-    expect(adherence(multiTimeChore, logs, since, now)).toBe(1);
+    expect(adherence(multiTimeTask, logs, since, now)).toBe(1);
   });
 
-  test('multi-time chore: correct fraction with partial done', () => {
+  test('multi-time task: correct fraction with partial done', () => {
     const since = new Date('2025-06-20T00:00:00.000Z');
     const now = new Date('2025-06-21T00:00:00.000Z'); // both Jun 20 times are past
-    const multiTimeChore = makeChore({
+    const multiTimeTask = makeTask({
       id: 'c-adh-m2',
       createdAt: '2025-01-01T00:00:00.000Z',
       schedule: { kind: 'daily_times', times: ['08:00', '20:00'] },
     });
     const logs = [makeLog('c-adh-m2', '2025-06-20T04:30:00.000Z', 'done')]; // 1 of 2 done
-    expect(adherence(multiTimeChore, logs, since, now)).toBeCloseTo(0.5);
+    expect(adherence(multiTimeTask, logs, since, now)).toBeCloseTo(0.5);
   });
 
-  test('after_n bounded chore: only includes occurrences up to the bound', () => {
-    const boundedChore = makeChore({
+  test('after_n bounded task: only includes occurrences up to the bound', () => {
+    const boundedTask = makeTask({
       id: 'c-adh-bounded',
       createdAt: '2025-01-01T00:00:00.000Z',
       endKind: 'after_n',
@@ -826,6 +826,6 @@ describe('adherence', () => {
       makeLog('c-adh-bounded', '2025-01-02T04:30:00.000Z', 'done'),
       // Jan 3 missed
     ];
-    expect(adherence(boundedChore, logs, since, now)).toBeCloseTo(2 / 3);
+    expect(adherence(boundedTask, logs, since, now)).toBeCloseTo(2 / 3);
   });
 });

@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-import type { ChoreType, Species } from '../db/types';
+import type { TaskType, Species } from '../db/types';
 
 // Minimal monochrome glyphs replacing the old colorful emoji. Single source of
 // truth — both the pets screens and Tasks render from these maps.
@@ -15,7 +15,7 @@ export const SPECIES_ICON: Record<Species, IconName> = {
   other: 'paw',
 };
 
-export const CHORE_TYPE_ICON: Record<ChoreType, IconName> = {
+export const TASK_TYPE_ICON: Record<TaskType, IconName> = {
   feeding: 'food-drumstick-outline',
   meds: 'pill',
   play: 'tennis-ball',

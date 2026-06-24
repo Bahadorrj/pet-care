@@ -1,9 +1,9 @@
 /**
  * Pure schedule engine — no I/O, no side effects.
- * All date math for chore occurrence expansion and status resolution.
+ * All date math for task occurrence expansion and status resolution.
  */
 
-import type { Chore, ChoreLog, Occurrence } from '../db/types';
+import type { Task, TaskLog, Occurrence } from '../db/types';
 
 // ponytail: fixed +03:30, revisit only if Iran reinstates DST
 const TEHRAN_OFFSET_MINUTES = 3 * 60 + 30; // 210 minutes
@@ -94,11 +94,11 @@ function eachTehranDay(fromUtc: Date, toUtc: Date, cb: (dateStr: string) => void
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the Tehran calendar date string for the chore's "origin" for
+ * Returns the Tehran calendar date string for the task's "origin" for
  * daily_times and weekdays schedules (= createdAt calendar day in Tehran).
  */
-function originTehranDate(chore: Chore): string {
-  return tehranDateStr(new Date(chore.createdAt));
+function originTehranDate(task: Task): string {
+  return tehranDateStr(new Date(task.createdAt));
 }
 
 // ---------------------------------------------------------------------------
@@ -106,11 +106,11 @@ function originTehranDate(chore: Chore): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns all UTC ISO strings of due occurrences for `chore` in [fromUtc, toUtc).
+ * Returns all UTC ISO strings of due occurrences for `task` in [fromUtc, toUtc).
  * Honors end conditions (until / after_n).
  */
-export function expandOccurrences(chore: Chore, fromUtc: Date, toUtc: Date): string[] {
-  const { schedule, endKind, endUntil, endCount } = chore;
+export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): string[] {
+  const { schedule, endKind, endUntil, endCount } = task;
 
   const endUntilMs = endKind === 'until' && endUntil ? new Date(endUntil).getTime() : Infinity;
 
@@ -162,7 +162,7 @@ export function expandOccurrences(chore: Chore, fromUtc: Date, toUtc: Date): str
     let monthStep = 0;
 
     // Fast-forward hours/days to the first occurrence >= fromUtc to avoid O(N) iteration
-    // when anchor is far before the query window (e.g. hourly chore created months ago).
+    // when anchor is far before the query window (e.g. hourly task created months ago).
     // Occurrences skipped before fromUtc STILL count toward the origin-based after_n total.
     // ponytail: months stays on the additive-from-anchor path below because day-clamping
     // (e.g. Jan 31 → Feb 28) makes the step size non-uniform; arithmetic skip would
@@ -219,7 +219,7 @@ export function expandOccurrences(chore: Chore, fromUtc: Date, toUtc: Date): str
   // Instead, we scan from the earlier of (origin, fromUtc - buffer) to toUtc,
   // counting all occurrences, and stop at endCount or endUntil.
 
-  const originStr = originTehranDate(chore);
+  const originStr = originTehranDate(task);
   const originUtcMs = new Date(toUtcIso('00:00', originStr)).getTime();
   // Scan from origin or fromUtc (whichever is earlier) to build count
   const scanFrom = Math.min(originUtcMs, fromUtc.getTime());
@@ -272,12 +272,12 @@ export function toTehranTime(isoUtc: string): string {
 }
 
 /**
- * Earliest active-chore occurrence (UTC ISO) in [from, to), or null when none.
+ * Earliest active-task occurrence (UTC ISO) in [from, to), or null when none.
  * ISO UTC strings sort lexicographically === chronologically.
  */
-export function nextOccurrence(chores: Chore[], from: Date, to: Date): string | null {
+export function nextOccurrence(tasks: Task[], from: Date, to: Date): string | null {
   let earliest: string | null = null;
-  for (const c of chores) {
+  for (const c of tasks) {
     if (!c.active) continue;
     for (const iso of expandOccurrences(c, from, to)) {
       if (earliest === null || iso < earliest) earliest = iso;
@@ -295,13 +295,13 @@ export function nextOccurrence(chores: Chore[], from: Date, to: Date): string | 
  * that each have a 'done' log. Stops at the first occurrence that is skipped
  * OR has no log (missed). Future occurrences are ignored.
  *
- * // ponytail: occurrence-level, not day-level — multi-time chores count each
+ * // ponytail: occurrence-level, not day-level — multi-time tasks count each
  * time slot as its own streak unit.
  */
-export function streak(chore: Chore, logs: ChoreLog[], now: Date = new Date()): number {
+export function streak(task: Task, logs: TaskLog[], now: Date = new Date()): number {
   // ponytail: 365-day lookback cap; streaks longer than a year are under-counted
   const windowStart = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
-  const all = expandOccurrences(chore, windowStart, now); // dueAt < now (half-open)
+  const all = expandOccurrences(task, windowStart, now); // dueAt < now (half-open)
   // Also include the exact-now boundary: expandOccurrences uses [from, to)
   // so dueAt === now is excluded — that's correct (future = not yet due).
 
@@ -309,7 +309,7 @@ export function streak(chore: Chore, logs: ChoreLog[], now: Date = new Date()): 
   // missing) breaks the streak, so only 'done' needs tracking.
   const doneSet = new Set<string>();
   for (const log of logs) {
-    if (log.choreId === chore.id && log.status === 'done') doneSet.add(log.dueAt);
+    if (log.taskId === task.id && log.status === 'done') doneSet.add(log.dueAt);
   }
 
   // `all` is already past-due (expandOccurrences is half-open [from, now), so
@@ -339,13 +339,13 @@ export function streak(chore: Chore, logs: ChoreLog[], now: Date = new Date()): 
  * 'skipped' and missing-log both count as not-done.
  */
 export function adherence(
-  chore: Chore,
-  logs: ChoreLog[],
+  task: Task,
+  logs: TaskLog[],
   since: Date,
   now: Date = new Date(),
 ): number | null {
   // Expand the full window to collect all scheduled occurrences
-  const all = expandOccurrences(chore, since, now);
+  const all = expandOccurrences(task, since, now);
 
   const nowMs = now.getTime();
   const sinceMs = since.getTime();
@@ -360,7 +360,7 @@ export function adherence(
 
   const doneSet = new Set<string>();
   for (const log of logs) {
-    if (log.choreId === chore.id && log.status === 'done') {
+    if (log.taskId === task.id && log.status === 'done') {
       doneSet.add(log.dueAt);
     }
   }
@@ -380,29 +380,29 @@ export interface DayRange {
 
 /**
  * Build today's agenda with status resolved for each occurrence.
- * - Log match (choreId + dueAt) → done or skipped
+ * - Log match (taskId + dueAt) → done or skipped
  * - No log + dueAt < now → missed
  * - No log + dueAt >= now → pending
  */
 export function occurrencesForDay(
-  chores: Chore[],
-  logs: ChoreLog[],
+  tasks: Task[],
+  logs: TaskLog[],
   dayUtcRange: DayRange,
   now: Date = new Date(),
 ): Occurrence[] {
-  // Build a lookup: `${choreId}|${dueAt}` → log status
+  // Build a lookup: `${taskId}|${dueAt}` → log status
   const logMap = new Map<string, 'done' | 'skipped'>();
   for (const log of logs) {
-    logMap.set(`${log.choreId}|${log.dueAt}`, log.status);
+    logMap.set(`${log.taskId}|${log.dueAt}`, log.status);
   }
 
   const result: Occurrence[] = [];
   const nowMs = now.getTime();
 
-  for (const chore of chores) {
-    const dueTimes = expandOccurrences(chore, dayUtcRange.start, dayUtcRange.end);
+  for (const task of tasks) {
+    const dueTimes = expandOccurrences(task, dayUtcRange.start, dayUtcRange.end);
     for (const dueAt of dueTimes) {
-      const key = `${chore.id}|${dueAt}`;
+      const key = `${task.id}|${dueAt}`;
       const logStatus = logMap.get(key);
 
       let status: Occurrence['status'];
@@ -414,7 +414,7 @@ export function occurrencesForDay(
         status = 'pending';
       }
 
-      result.push({ chore, dueAt, status });
+      result.push({ task, dueAt, status });
     }
   }
 

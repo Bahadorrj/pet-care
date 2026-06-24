@@ -3,21 +3,21 @@
  *
  * Covers:
  * 1. Renders with 1 pet — pet pre-selected, Add enabled.
- * 2. Add button → addChore called with correct shape (one_off other, endKind:never).
- * 3. "More options →" → navigate to ChoreForm with petId + title.
+ * 2. Add button → addTask called with correct shape (one_off other, endKind:never).
+ * 3. "More options →" → navigate to TaskForm with petId + title.
  * 4. With 2 pets, no default selection — Add disabled until pet chosen.
- * 5. Invalid date → validation error shown, addChore not called.
+ * 5. Invalid date → validation error shown, addTask not called.
  */
 
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 
 // ── Store mocks ───────────────────────────────────────────────────────────────
-const mockAddChore = jest.fn();
+const mockAddTask = jest.fn();
 
-jest.mock('../store/choresStore', () => ({
-  useChoresStore: (selector: (s: { addChore: typeof mockAddChore }) => unknown) =>
-    selector({ addChore: mockAddChore }),
+jest.mock('../store/tasksStore', () => ({
+  useTasksStore: (selector: (s: { addTask: typeof mockAddTask }) => unknown) =>
+    selector({ addTask: mockAddTask }),
 }));
 
 let mockPets: { id: string; name: string }[] = [{ id: 'pet-1', name: 'رکسی' }];
@@ -47,7 +47,7 @@ const press = async (el: any) => { await act(async () => { fireEvent.press(el); 
 const changeText = async (el: any, value: string) => { await act(async () => { fireEvent.changeText(el, value); }); };
 
 beforeEach(() => {
-  mockAddChore.mockReset();
+  mockAddTask.mockReset();
   mockNavigate.mockClear();
   mockGoBack.mockClear();
   mockPets = [{ id: 'pet-1', name: 'رکسی' }];
@@ -69,10 +69,10 @@ describe('QuickAddScreen – single pet pre-selected', () => {
   });
 });
 
-// ── 2. Add → addChore called with correct shape ───────────────────────────────
+// ── 2. Add → addTask called with correct shape ───────────────────────────────
 describe('QuickAddScreen – Add submission', () => {
-  test('Add calls addChore once with one_off other chore, then goBack', async () => {
-    mockAddChore.mockResolvedValue(undefined);
+  test('Add calls addTask once with one_off other task, then goBack', async () => {
+    mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<QuickAddScreen />);
 
     // Fill title
@@ -84,9 +84,9 @@ describe('QuickAddScreen – Add submission', () => {
 
     await press(getByTestId('quickadd-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
-    const call = mockAddChore.mock.calls[0][0];
+    const call = mockAddTask.mock.calls[0][0];
     expect(call).toMatchObject({
       petId: 'pet-1',
       type: 'other',
@@ -106,8 +106,8 @@ describe('QuickAddScreen – Add submission', () => {
     await waitFor(() => expect(mockGoBack).toHaveBeenCalledTimes(1));
   });
 
-  test('empty title → title field in addChore is null', async () => {
-    mockAddChore.mockResolvedValue(undefined);
+  test('empty title → title field in addTask is null', async () => {
+    mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<QuickAddScreen />);
 
     await changeText(getByTestId('quickadd-date'), '1405/04/10');
@@ -115,21 +115,21 @@ describe('QuickAddScreen – Add submission', () => {
 
     await press(getByTestId('quickadd-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
-    expect(mockAddChore.mock.calls[0][0].title).toBeNull();
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
+    expect(mockAddTask.mock.calls[0][0].title).toBeNull();
   });
 });
 
 // ── 3. "More options →" navigation ────────────────────────────────────────────
 describe('QuickAddScreen – More options', () => {
-  test('More options → navigate ChoreForm with petId and title', async () => {
+  test('More options → navigate TaskForm with petId and title', async () => {
     const { getByTestId } = await render(<QuickAddScreen />);
 
     await changeText(getByTestId('quickadd-title'), 'حمام کردن');
     await press(getByTestId('quickadd-more'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      'ChoreForm',
+      'TaskForm',
       expect.objectContaining({ petId: 'pet-1', title: 'حمام کردن' }),
     );
   });
@@ -140,7 +140,7 @@ describe('QuickAddScreen – More options', () => {
     await press(getByTestId('quickadd-more'));
 
     expect(mockNavigate).toHaveBeenCalledWith(
-      'ChoreForm',
+      'TaskForm',
       expect.objectContaining({ petId: 'pet-1' }),
     );
     const args = mockNavigate.mock.calls[0][1];
@@ -165,7 +165,7 @@ describe('QuickAddScreen – multiple pets', () => {
   });
 
   test('selecting a pet enables Add and submits with that petId', async () => {
-    mockAddChore.mockResolvedValue(undefined);
+    mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<QuickAddScreen />);
 
     await press(getByTestId('quickadd-pet-pet-2'));
@@ -173,15 +173,15 @@ describe('QuickAddScreen – multiple pets', () => {
     await changeText(getByTestId('quickadd-time'), '10:00');
     await press(getByTestId('quickadd-submit'));
 
-    await waitFor(() => expect(mockAddChore).toHaveBeenCalledTimes(1));
-    expect(mockAddChore.mock.calls[0][0].petId).toBe('pet-2');
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
+    expect(mockAddTask.mock.calls[0][0].petId).toBe('pet-2');
   });
 });
 
 // ── 5. Validation ─────────────────────────────────────────────────────────────
 describe('QuickAddScreen – validation', () => {
-  test('invalid Jalali date → error shown, addChore not called', async () => {
-    mockAddChore.mockResolvedValue(undefined);
+  test('invalid Jalali date → error shown, addTask not called', async () => {
+    mockAddTask.mockResolvedValue(undefined);
     const { getByTestId, getByText } = await render(<QuickAddScreen />);
 
     await changeText(getByTestId('quickadd-date'), 'bad-date');
@@ -190,6 +190,6 @@ describe('QuickAddScreen – validation', () => {
     await waitFor(() =>
       expect(getByText('تاریخ باید به شکل yyyy/MM/dd باشد')).toBeTruthy(),
     );
-    expect(mockAddChore).not.toHaveBeenCalled();
+    expect(mockAddTask).not.toHaveBeenCalled();
   });
 });

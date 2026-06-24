@@ -12,9 +12,9 @@ export interface Pet {
   updatedAt: string; // UTC ISO
 }
 
-// Chore types
+// Task types
 
-export type ChoreType = 'feeding' | 'meds' | 'play' | 'grooming' | 'vet' | 'other';
+export type TaskType = 'feeding' | 'meds' | 'play' | 'grooming' | 'vet' | 'other';
 export type EndKind = 'never' | 'until' | 'after_n';
 
 export type Schedule =
@@ -23,10 +23,10 @@ export type Schedule =
   | { kind: 'interval'; n: number; unit: 'hours' | 'days' | 'months'; anchor: string } // anchor = UTC ISO of first occurrence
   | { kind: 'one_off'; at: string };                         // at = UTC ISO
 
-export interface Chore {
+export interface Task {
   id: string;
   petId: string;
-  type: ChoreType;
+  type: TaskType;
   title: string | null;
   schedule: Schedule;
   endKind: EndKind;
@@ -37,9 +37,9 @@ export interface Chore {
   updatedAt: string;
 }
 
-export interface ChoreLog {
+export interface TaskLog {
   id: string;
-  choreId: string;
+  taskId: string;
   dueAt: string;             // UTC ISO
   status: 'done' | 'skipped';
   createdAt: string;
@@ -47,7 +47,7 @@ export interface ChoreLog {
 
 // A derived view, not a table row:
 export interface Occurrence {
-  chore: Chore;
+  task: Task;
   dueAt: string;             // UTC ISO
   status: 'pending' | 'done' | 'skipped' | 'missed';
 }
