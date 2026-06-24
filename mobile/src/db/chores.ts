@@ -179,6 +179,18 @@ export function getLogsForDay(dayPrefix: string): ChoreLog[] {
   return rows.map(rowToChoreLog);
 }
 
+export function getLogsInRange(startPrefix: string, endPrefix: string): ChoreLog[] {
+  const rows = db.getAllSync<ChoreLogRow>(
+    'SELECT * FROM chore_logs WHERE due_at >= ? AND due_at < ? ORDER BY due_at ASC',
+    [startPrefix, endPrefix],
+  );
+  return rows.map(rowToChoreLog);
+}
+
+export function removeLog(choreId: string, dueAt: string): void {
+  db.runSync('DELETE FROM chore_logs WHERE chore_id = ? AND due_at = ?', [choreId, dueAt]);
+}
+
 // ---------------------------------------------------------------------------
 // Cascade delete
 // ---------------------------------------------------------------------------
