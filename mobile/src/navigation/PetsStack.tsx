@@ -12,7 +12,7 @@ export type PetsStackParamList = {
   PetsList: undefined;
   PetDetail: { petId: string };
   PetForm: { petId?: string }; // no param / undefined = Add mode; { petId } = Edit mode
-  ChoreForm: { petId: string; choreId?: string }; // Add mode: no choreId; Edit mode: choreId set
+  ChoreForm: { petId: string; choreId?: string; title?: string }; // Add mode: no choreId; Edit mode: choreId set
 };
 
 export type PetsNavigationProp = NativeStackNavigationProp<PetsStackParamList>;

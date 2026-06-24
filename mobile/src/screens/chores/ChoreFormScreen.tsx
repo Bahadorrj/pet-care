@@ -143,7 +143,7 @@ export default function ChoreFormScreen() {
   const [choreType, setChoreType] = useState<ChoreType | null>(existing?.type ?? null);
 
   // ── Title (optional) ────────────────────────────────────────────────────────
-  const [title, setTitle] = useState(existing?.title ?? '');
+  const [title, setTitle] = useState(existing?.title ?? route.params.title ?? '');
 
   // ── Schedule kind ────────────────────────────────────────────────────────────
   const [scheduleKind, setScheduleKind] = useState<ScheduleKind>(
