@@ -23,7 +23,7 @@ import { initChoreNotifications, handleNotificationEvent } from './src/lib/chore
 // Background JS context: handleNotificationEvent only touches db/chores — safe for headless.
 notifee.onBackgroundEvent(handleNotificationEvent);
 
-// Navigation ref shared with choreNotifications for tap-to-open Today tab.
+// Navigation ref shared with choreNotifications for tap-to-open Tasks tab.
 const navRef = createNavigationContainerRef<RootTabParamList>();
 
 export default function App() {

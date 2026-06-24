@@ -14,7 +14,7 @@
  * 6. sort: overdue-first ordering within the overdue+today mix
  */
 
-import { bucketOccurrences } from '../screens/today/todayBuckets';
+import { bucketOccurrences } from '../screens/tasks/todayBuckets';
 import type { Chore, Occurrence } from '../db/types';
 
 // ── Fixed clock ───────────────────────────────────────────────────────────────

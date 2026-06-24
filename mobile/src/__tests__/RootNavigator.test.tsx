@@ -2,8 +2,8 @@
  * RootNavigator tests
  *
  * Verifies:
- * - All three tab labels render in Farsi ("امروز", "حیوانات من", "پروفایل").
- * - Today is the default/active tab on first render (today-empty testID visible).
+ * - All three tab labels render in Farsi ("وظایف", "حیوانات من", "پروفایل").
+ * - Tasks is the default/active tab on first render (tasks-empty testID visible).
  *
  * expo-secure-store is mocked to prevent native module access (authStore calls
  * hydrate() at module load which hits SecureStore).
@@ -36,7 +36,7 @@ jest.mock('../store/petsStore', () => ({
   usePetsStore: jest.fn().mockReturnValue([]),
 }));
 
-// Today is the default tab → TodayScreen renders on mount. Mock choresStore so it
+// Tasks is the default tab → TasksScreen renders on mount. Mock choresStore so it
 // shows the empty state without touching SQLite or the real derived occurrences.
 jest.mock('../store/choresStore', () => ({
   useChoresStore: (
@@ -76,9 +76,9 @@ function renderNavigator() {
 }
 
 describe('RootNavigator', () => {
-  test('renders the Today tab label in Farsi', async () => {
+  test('renders the Tasks tab label in Farsi', async () => {
     renderNavigator();
-    await waitFor(() => expect(screen.getByText('امروز')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('وظایف')).toBeTruthy());
   });
 
   test('renders the Pets tab label in Farsi', async () => {
@@ -94,14 +94,14 @@ describe('RootNavigator', () => {
   test('renders 3 tabs total', async () => {
     renderNavigator();
     await waitFor(() => {
-      expect(screen.getByText('امروز')).toBeTruthy();
+      expect(screen.getByText('وظایف')).toBeTruthy();
       expect(screen.getByText('حیوانات من')).toBeTruthy();
       expect(screen.getByText('پروفایل')).toBeTruthy();
     });
   });
 
-  test('Today tab is active by default (today-empty testID is present)', async () => {
+  test('Tasks tab is active by default (tasks-empty testID is present)', async () => {
     renderNavigator();
-    await waitFor(() => expect(screen.getByTestId('today-empty')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('tasks-empty')).toBeTruthy());
   });
 });

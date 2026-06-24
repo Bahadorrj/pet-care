@@ -22,7 +22,7 @@ import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
 import { CHORE_TYPE_ICON } from '../../theme/icons';
 import { bucketOccurrences } from './todayBuckets';
 import type { Occurrence, ChoreType } from '../../db/types';
-import type { TodayNavigationProp } from '../../navigation/TodayStack';
+import type { TasksNavigationProp } from '../../navigation/TasksStack';
 
 // ── Tehran time helper ─────────────────────────────────────────────────────────
 // ponytail: mirrors utcIsoToTehranTime in ChoreFormScreen — shift +210 min, read UTC fields
@@ -83,14 +83,14 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
 
   return (
     <Pressable
-      testID={`today-row-${chore.id}`}
+      testID={`tasks-row-${chore.id}`}
       style={[styles.row, isFinal && styles.rowDimmed]}
       onPress={onMore}
       accessibilityRole="none"
     >
       {/* Leading checkbox */}
       <Pressable
-        testID={`today-check-${chore.id}`}
+        testID={`tasks-check-${chore.id}`}
         onPress={onCheck}
         style={styles.checkbox}
         accessibilityRole="checkbox"
@@ -132,7 +132,7 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
 
       {/* Trailing ⋯ button */}
       <Pressable
-        testID={`today-more-${chore.id}`}
+        testID={`tasks-more-${chore.id}`}
         onPress={onMore}
         style={styles.moreBtn}
         accessibilityRole="button"
@@ -203,14 +203,14 @@ function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModa
               style={styles.modalClearBtn}
               onPress={() => setDraft(new Set())}
             >
-              <Text style={styles.modalClearText}>{t('today.filter.clear')}</Text>
+              <Text style={styles.modalClearText}>{t('tasks.filter.clear')}</Text>
             </Pressable>
             <Pressable
               testID="type-filter-apply"
               style={styles.modalApplyBtn}
               onPress={() => onApply(draft)}
             >
-              <Text style={styles.modalApplyText}>{t('today.filter.apply')}</Text>
+              <Text style={styles.modalApplyText}>{t('tasks.filter.apply')}</Text>
             </Pressable>
           </View>
         </Pressable>
@@ -220,10 +220,10 @@ function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModa
 }
 
 // ── Screen ─────────────────────────────────────────────────────────────────────
-export default function TodayScreen() {
+export default function TasksScreen() {
   const { t } = useTranslation();
   const isFocused = useIsFocused();
-  const navigation = useNavigation<TodayNavigationProp>();
+  const navigation = useNavigation<TasksNavigationProp>();
   const { showActionSheetWithOptions } = useActionSheet();
 
   const windowOccurrences = useChoresStore((s) => s.windowOccurrences);
@@ -274,13 +274,13 @@ export default function TodayScreen() {
   if (windowIsEmpty) {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
-        <View style={styles.emptyContainer} testID="today-empty">
+        <View style={styles.emptyContainer} testID="tasks-empty">
           <MaterialCommunityIcons name="leaf" size={48} color={colors.inkFaint} />
-          <Text style={styles.emptyTitle}>{t('today.empty_title')}</Text>
-          <Text style={styles.emptySubtitle}>{t('today.empty_subtitle')}</Text>
+          <Text style={styles.emptyTitle}>{t('tasks.empty_title')}</Text>
+          <Text style={styles.emptySubtitle}>{t('tasks.empty_subtitle')}</Text>
         </View>
         <Pressable
-          testID="today-fab"
+          testID="tasks-fab"
           onPress={() => navigation.navigate('QuickAdd')}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
           accessibilityRole="button"
@@ -335,7 +335,7 @@ export default function TodayScreen() {
     upcoming: upcoming.length,
   };
 
-  // Progress: today-bucket items excluding skipped
+  // Progress: tasks-bucket items excluding skipped
   const todayForProgress = today.filter((o) => o.status !== 'skipped');
   const todayDone = todayForProgress.filter((o) => o.status === 'done').length;
   const todayTotal = todayForProgress.length;
@@ -346,8 +346,8 @@ export default function TodayScreen() {
     markOccurrence(chore.id, dueAt, 'done');
     Toast.show({
       type: 'success',
-      text1: t('today.undo.done'),
-      text2: t('today.undo.action'),
+      text1: t('tasks.undo.done'),
+      text2: t('tasks.undo.action'),
       visibilityTime: 4000,
       onPress: () => {
         unmarkOccurrence(chore.id, dueAt);
@@ -360,14 +360,14 @@ export default function TodayScreen() {
     const { chore, dueAt } = occ;
     const deleteLabel =
       chore.schedule.kind === 'one_off'
-        ? t('today.action.delete_one_off')
-        : t('today.action.delete_recurring');
+        ? t('tasks.action.delete_one_off')
+        : t('tasks.action.delete_recurring');
 
     const options = [
-      t('today.action.skip'),
-      t('today.action.edit'),
+      t('tasks.action.skip'),
+      t('tasks.action.edit'),
       deleteLabel,
-      t('today.action.cancel'),
+      t('tasks.action.cancel'),
     ];
 
     showActionSheetWithOptions(
@@ -389,7 +389,7 @@ export default function TodayScreen() {
     <View>
       {/* Progress indicator (today only, hidden when denominator is 0) */}
       {todayTotal > 0 && (
-        <View style={styles.progressContainer} testID="today-progress">
+        <View style={styles.progressContainer} testID="tasks-progress">
           <View style={styles.progressDotsRow}>
             {todayForProgress.map((o, i) => (
               <View
@@ -403,7 +403,7 @@ export default function TodayScreen() {
             ))}
           </View>
           <Text style={styles.progressText}>
-            {t('today.progress', { done: todayDone, total: todayTotal })}
+            {t('tasks.progress', { done: todayDone, total: todayTotal })}
           </Text>
         </View>
       )}
@@ -412,18 +412,18 @@ export default function TodayScreen() {
       <View style={styles.filterBar}>
         {/* Pet chips: All + one per pet */}
         <Pressable
-          testID="today-filter-pet-all"
+          testID="tasks-filter-pet-all"
           style={[styles.filterChip, petFilter === null && styles.filterChipSelected]}
           onPress={() => setPetFilter(null)}
         >
           <Text style={[styles.filterChipText, petFilter === null && styles.filterChipTextSelected]}>
-            {t('today.filter.all')}
+            {t('tasks.filter.all')}
           </Text>
         </Pressable>
         {pets.map((p) => (
           <Pressable
             key={p.id}
-            testID={`today-filter-pet-${p.id}`}
+            testID={`tasks-filter-pet-${p.id}`}
             style={[styles.filterChip, petFilter === p.id && styles.filterChipSelected]}
             onPress={() => setPetFilter(petFilter === p.id ? null : p.id)}
           >
@@ -440,7 +440,7 @@ export default function TodayScreen() {
 
         {/* Type filter button */}
         <Pressable
-          testID="today-type-filter"
+          testID="tasks-type-filter"
           style={[styles.filterChip, typeFilter.size > 0 && styles.filterChipSelected]}
           onPress={() => setTypeModalVisible(true)}
         >
@@ -450,7 +450,7 @@ export default function TodayScreen() {
               typeFilter.size > 0 && styles.filterChipTextSelected,
             ]}
           >
-            {t('today.filter.type')}
+            {t('tasks.filter.type')}
             {typeFilter.size > 0 ? ` (${typeFilter.size})` : ''}
           </Text>
         </Pressable>
@@ -458,15 +458,15 @@ export default function TodayScreen() {
 
       {/* No-match state when filters empty everything but window has data */}
       {allBucketsEmpty && hasFilters && (
-        <View style={styles.noMatchContainer} testID="today-no-match">
-          <Text style={styles.noMatchText}>{t('today.no_match')}</Text>
+        <View style={styles.noMatchContainer} testID="tasks-no-match">
+          <Text style={styles.noMatchText}>{t('tasks.no_match')}</Text>
           <Pressable
             onPress={() => {
               setPetFilter(null);
               setTypeFilter(new Set());
             }}
           >
-            <Text style={styles.clearFiltersText}>{t('today.filter.clear')}</Text>
+            <Text style={styles.clearFiltersText}>{t('tasks.filter.clear')}</Text>
           </Pressable>
         </View>
       )}
@@ -485,7 +485,7 @@ export default function TodayScreen() {
         onClose={() => setTypeModalVisible(false)}
       />
       <Pressable
-        testID="today-fab"
+        testID="tasks-fab"
         onPress={() => navigation.navigate('QuickAdd')}
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         accessibilityRole="button"
@@ -506,9 +506,9 @@ export default function TodayScreen() {
           const sec = section as Section;
           const count = counts[sec.sectionKey];
           return (
-            <View style={styles.sectionHeader} testID={`today-section-${sec.sectionKey}`}>
+            <View style={styles.sectionHeader} testID={`tasks-section-${sec.sectionKey}`}>
               <Text style={styles.sectionTitle}>
-                {`${t(`today.section.${sec.sectionKey}`)} · ${count}`}
+                {`${t(`tasks.section.${sec.sectionKey}`)} · ${count}`}
               </Text>
             </View>
           );
@@ -517,8 +517,8 @@ export default function TodayScreen() {
         renderItem={({ item }) => {
           if (item.kind === 'empty') {
             return (
-              <View style={styles.sectionEmptyRow} testID={`today-empty-${item.sectionKey}`}>
-                <Text style={styles.sectionEmptyText}>{t(`today.empty.${item.sectionKey}`)}</Text>
+              <View style={styles.sectionEmptyRow} testID={`tasks-empty-${item.sectionKey}`}>
+                <Text style={styles.sectionEmptyText}>{t(`tasks.empty.${item.sectionKey}`)}</Text>
               </View>
             );
           }

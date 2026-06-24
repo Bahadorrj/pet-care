@@ -38,7 +38,7 @@ jest.mock('@react-navigation/native', () => ({
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 import '../i18n';
-import QuickAddScreen from '../screens/today/QuickAddScreen';
+import QuickAddScreen from '../screens/tasks/QuickAddScreen';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

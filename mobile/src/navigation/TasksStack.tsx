@@ -2,22 +2,22 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-import TodayScreen from '../screens/today/TodayScreen';
+import TasksScreen from '../screens/tasks/TasksScreen';
 import ChoreFormScreen from '../screens/chores/ChoreFormScreen';
-import QuickAddScreen from '../screens/today/QuickAddScreen';
+import QuickAddScreen from '../screens/tasks/QuickAddScreen';
 import { colors } from '../theme/theme';
 
-export type TodayStackParamList = {
-  Today: undefined;
+export type TasksStackParamList = {
+  Tasks: undefined;
   ChoreForm: { petId: string; choreId?: string; title?: string };
   QuickAdd: undefined;
 };
 
-export type TodayNavigationProp = NativeStackNavigationProp<TodayStackParamList>;
+export type TasksNavigationProp = NativeStackNavigationProp<TasksStackParamList>;
 
-const Stack = createNativeStackNavigator<TodayStackParamList>();
+const Stack = createNativeStackNavigator<TasksStackParamList>();
 
-export default function TodayStack() {
+export default function TasksStack() {
   return (
     <Stack.Navigator
       screenOptions={{
@@ -29,7 +29,7 @@ export default function TodayStack() {
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="Today" component={TodayScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Tasks" component={TasksScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ChoreForm" component={ChoreFormScreen} />
       <Stack.Screen name="QuickAdd" component={QuickAddScreen} options={{ presentation: 'formSheet' }} />
     </Stack.Navigator>

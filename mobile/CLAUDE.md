@@ -25,7 +25,7 @@ Requires `EXPO_PUBLIC_API_BASE_URL` in `.env` (default `http://10.0.2.2:8000`, t
 
 ## Architecture
 
-Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with three tabs: `Pets` (PetsStack), `Today` (TodayStack), and `Profile` (ProfileStack). `RootTabParamList` is the root typed contract. `TodayStack` is a native stack inside the Today tab hosting `TodayScreen` (Tasks hub), `ChoreForm`, and `QuickAdd`; `TodayStackParamList` / `TodayNavigationProp` are the typed contracts for that stack. `ProfileStack` is a native stack inside the Profile tab hosting `ProfileMain`, `Signin`, and `Signup` screens; `ProfileStackParamList` / `ProfileNavigationProp` are the typed contracts for that stack.
+Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with three tabs: `Pets` (PetsStack), `Tasks` (TasksStack), and `Profile` (ProfileStack). `RootTabParamList` is the root typed contract. `TasksStack` is a native stack inside the Tasks tab hosting `TasksScreen` (Tasks hub), `ChoreForm`, and `QuickAdd`; `TasksStackParamList` / `TasksNavigationProp` are the typed contracts for that stack. `ProfileStack` is a native stack inside the Profile tab hosting `ProfileMain`, `Signin`, and `Signup` screens; `ProfileStackParamList` / `ProfileNavigationProp` are the typed contracts for that stack.
 
 **Auth & session** — `src/store/authStore.ts` is a Zustand store holding the JWT + email, persisted to `expo-secure-store`. It hydrates **asynchronously** at module load; `App.tsx` gates first render on `hasHydrated` (and `fontsLoaded`) so guest UI never flashes. `login`/`logout` write SecureStore *before* mutating in-memory state so the two never disagree.
 

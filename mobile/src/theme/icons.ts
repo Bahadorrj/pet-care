@@ -4,7 +4,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ChoreType, Species } from '../db/types';
 
 // Minimal monochrome glyphs replacing the old colorful emoji. Single source of
-// truth — both the pets screens and Today render from these maps.
+// truth — both the pets screens and Tasks render from these maps.
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export const SPECIES_ICON: Record<Species, IconName> = {

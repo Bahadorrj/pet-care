@@ -31,7 +31,7 @@ import { usePetsStore } from '../../store/petsStore';
 import { toUtcIso } from '../../lib/choreSchedule';
 import { jalaliToGregorian, tehranTodayJalali } from '../../lib/jalali';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
-import type { TodayNavigationProp } from '../../navigation/TodayStack';
+import type { TasksNavigationProp } from '../../navigation/TasksStack';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ function isValidTime(s: string): boolean {
 
 export default function QuickAddScreen() {
   const { t } = useTranslation();
-  const navigation = useNavigation<TodayNavigationProp>();
+  const navigation = useNavigation<TasksNavigationProp>();
 
   const addChore = useChoresStore((s) => s.addChore);
   const pets = usePetsStore(useShallow((s) => s.pets));
@@ -78,7 +78,7 @@ export default function QuickAddScreen() {
     let valid = true;
 
     if (!petId) {
-      setPetError(t('today.quick.pet'));
+      setPetError(t('tasks.quick.pet'));
       valid = false;
     } else {
       setPetError('');
@@ -140,10 +140,10 @@ export default function QuickAddScreen() {
         >
           {/* ── Title ────────────────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('today.quick.title')}</Text>
+            <Text style={styles.label}>{t('tasks.quick.title')}</Text>
             <TextField
               testID="quickadd-title"
-              placeholder={t('today.quick.title')}
+              placeholder={t('tasks.quick.title')}
               value={title}
               onChangeText={setTitle}
             />
@@ -151,7 +151,7 @@ export default function QuickAddScreen() {
 
           {/* ── Pet picker ───────────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('today.quick.pet')}</Text>
+            <Text style={styles.label}>{t('tasks.quick.pet')}</Text>
             <View style={styles.chipRow}>
               {pets.map((p) => (
                 <Pressable
@@ -176,9 +176,9 @@ export default function QuickAddScreen() {
 
           {/* ── When (date + time) ───────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('today.quick.when')}</Text>
+            <Text style={styles.label}>{t('tasks.quick.when')}</Text>
 
-            <Text style={styles.subLabel}>{t('today.quick.date')}</Text>
+            <Text style={styles.subLabel}>{t('tasks.quick.date')}</Text>
             <TextField
               testID="quickadd-date"
               placeholder="yyyy/MM/dd"
@@ -191,7 +191,7 @@ export default function QuickAddScreen() {
             />
             {dateError !== '' && <Text style={styles.errorText}>{dateError}</Text>}
 
-            <Text style={[styles.subLabel, { marginTop: spacing.sm }]}>{t('today.quick.time')}</Text>
+            <Text style={[styles.subLabel, { marginTop: spacing.sm }]}>{t('tasks.quick.time')}</Text>
             <TextField
               testID="quickadd-time"
               placeholder="HH:MM"
@@ -208,7 +208,7 @@ export default function QuickAddScreen() {
           {/* ── Add button ───────────────────────────────────────────────── */}
           <Button
             testID="quickadd-submit"
-            label={t('today.quick.add')}
+            label={t('tasks.quick.add')}
             onPress={handleAdd}
             loading={isSubmitting}
             disabled={!canAdd}
@@ -222,7 +222,7 @@ export default function QuickAddScreen() {
               style={styles.moreOptions}
               accessibilityRole="button"
             >
-              <Text style={styles.moreOptionsText}>{t('today.quick.more_options')}</Text>
+              <Text style={styles.moreOptionsText}>{t('tasks.quick.more_options')}</Text>
             </Pressable>
           )}
         </ScrollView>

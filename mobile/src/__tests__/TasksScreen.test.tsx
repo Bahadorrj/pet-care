@@ -1,5 +1,5 @@
 /**
- * TodayScreen tests — rewritten for Task 6 (SectionList + checkbox/undo/action-sheet)
+ * TasksScreen tests — rewritten for Task 6 (SectionList + checkbox/undo/action-sheet)
  * Extended for Task 7 (progress indicator + pet/type filters)
  *
  * Key design choices:
@@ -58,7 +58,7 @@ jest.mock('@react-navigation/native', () => ({
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 import '../i18n';
-import TodayScreen from '../screens/today/TodayScreen';
+import TasksScreen from '../screens/tasks/TasksScreen';
 import type { Occurrence } from '../db/types';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import Toast from 'react-native-toast-message';
@@ -131,56 +131,56 @@ beforeEach(() => {
 });
 
 // ── 1. Whole-screen empty state ───────────────────────────────────────────────
-describe('TodayScreen – empty state', () => {
+describe('TasksScreen – empty state', () => {
   test('shows whole-screen empty state when all buckets are empty', async () => {
     mockWindowOccurrences = [];
-    const { getByTestId } = await render(<TodayScreen />);
-    expect(getByTestId('today-empty')).toBeTruthy();
+    const { getByTestId } = await render(<TasksScreen />);
+    expect(getByTestId('tasks-empty')).toBeTruthy();
   });
 
   test('does NOT show whole-screen empty when any bucket has items', async () => {
     mockWindowOccurrences = [OCC_TODAY];
-    const { queryByTestId } = await render(<TodayScreen />);
-    expect(queryByTestId('today-empty')).toBeNull();
+    const { queryByTestId } = await render(<TasksScreen />);
+    expect(queryByTestId('tasks-empty')).toBeNull();
   });
 });
 
 // ── 2. Section headers + count badges ────────────────────────────────────────
-describe('TodayScreen – section headers', () => {
+describe('TasksScreen – section headers', () => {
   test('renders all three section headers', async () => {
     mockWindowOccurrences = [OCC_OVERDUE, OCC_TODAY, OCC_UPCOMING];
-    const { getByTestId } = await render(<TodayScreen />);
-    expect(getByTestId('today-section-overdue')).toBeTruthy();
-    expect(getByTestId('today-section-today')).toBeTruthy();
-    expect(getByTestId('today-section-upcoming')).toBeTruthy();
+    const { getByTestId } = await render(<TasksScreen />);
+    expect(getByTestId('tasks-section-overdue')).toBeTruthy();
+    expect(getByTestId('tasks-section-today')).toBeTruthy();
+    expect(getByTestId('tasks-section-upcoming')).toBeTruthy();
   });
 
   test('section header text includes count', async () => {
     mockWindowOccurrences = [OCC_OVERDUE, OCC_TODAY, OCC_TODAY_LATE, OCC_UPCOMING];
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
     // Section header view wraps a Text child — verify both sections have content
-    expect(getByTestId('today-section-overdue')).toBeTruthy();
-    expect(getByTestId('today-section-today')).toBeTruthy();
+    expect(getByTestId('tasks-section-overdue')).toBeTruthy();
+    expect(getByTestId('tasks-section-today')).toBeTruthy();
   });
 
   test('per-section empty rows render when bucket is empty', async () => {
     // Only today item — overdue and upcoming buckets empty
     mockWindowOccurrences = [OCC_TODAY];
-    const { getByTestId, queryByTestId } = await render(<TodayScreen />);
-    expect(getByTestId('today-empty-overdue')).toBeTruthy();
-    expect(getByTestId('today-empty-upcoming')).toBeTruthy();
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+    expect(getByTestId('tasks-empty-overdue')).toBeTruthy();
+    expect(getByTestId('tasks-empty-upcoming')).toBeTruthy();
     // today bucket has an item — no per-section empty for it
-    expect(queryByTestId('today-empty-today')).toBeNull();
+    expect(queryByTestId('tasks-empty-today')).toBeNull();
   });
 });
 
 // ── 3. Checkbox → markOccurrence + Toast ─────────────────────────────────────
-describe('TodayScreen – checkbox', () => {
+describe('TasksScreen – checkbox', () => {
   test('pressing checkbox calls markOccurrence(id, dueAt, "done") and shows toast', async () => {
     mockWindowOccurrences = [OCC_TODAY];
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-check-chore-today'));
+    fireEvent.press(getByTestId('tasks-check-chore-today'));
 
     await waitFor(() => {
       expect(mockMarkOccurrence).toHaveBeenCalledWith(
@@ -204,17 +204,17 @@ describe('TodayScreen – checkbox', () => {
 
   test('pressing checkbox on already-done row does nothing', async () => {
     mockWindowOccurrences = [OCC_DONE];
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-check-chore-done'));
+    fireEvent.press(getByTestId('tasks-check-chore-done'));
     expect(mockMarkOccurrence).not.toHaveBeenCalled();
     expect(Toast.show).not.toHaveBeenCalled();
   });
 
   test('done row renders dimmed (opacity 0.5)', async () => {
     mockWindowOccurrences = [OCC_DONE];
-    const { getByTestId } = await render(<TodayScreen />);
-    const row = getByTestId('today-row-chore-done');
+    const { getByTestId } = await render(<TasksScreen />);
+    const row = getByTestId('tasks-row-chore-done');
     const flatStyle = Array.isArray(row.props.style)
       ? Object.assign({}, ...row.props.style.filter(Boolean))
       : row.props.style;
@@ -223,13 +223,13 @@ describe('TodayScreen – checkbox', () => {
 });
 
 // ── 4. ⋯ button → action sheet ───────────────────────────────────────────────
-describe('TodayScreen – action sheet', () => {
+describe('TasksScreen – action sheet', () => {
   test('pressing ⋯ calls showActionSheetWithOptions', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-chore-today'));
 
     expect(showActionSheetWithOptions).toHaveBeenCalledTimes(1);
   });
@@ -237,9 +237,9 @@ describe('TodayScreen – action sheet', () => {
   test('action-sheet index 0 (skip) → markOccurrence(..., "skipped")', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-chore-today'));
 
     const [, callback] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     callback(0);
@@ -250,9 +250,9 @@ describe('TodayScreen – action sheet', () => {
   test('action-sheet index 1 (edit) → navigate to ChoreForm', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-chore-today'));
 
     const [, callback] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     callback(1);
@@ -266,9 +266,9 @@ describe('TodayScreen – action sheet', () => {
   test('action-sheet index 2 (delete) → deleteChore(id)', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-chore-today'));
 
     const [, callback] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     callback(2);
@@ -279,9 +279,9 @@ describe('TodayScreen – action sheet', () => {
   test('delete label is the recurring-delete translation for recurring chore', async () => {
     mockWindowOccurrences = [OCC_TODAY]; // daily_times schedule
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-chore-today'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     expect(opts.options[2]).toBe('حذف این کار و همه تکرارهای آن');
@@ -290,9 +290,9 @@ describe('TodayScreen – action sheet', () => {
   test('delete label is the one-off-delete translation for one-off chore', async () => {
     mockWindowOccurrences = [OCC_ONE_OFF]; // one_off schedule
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-more-chore-oneoff'));
+    fireEvent.press(getByTestId('tasks-more-chore-oneoff'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     expect(opts.options[2]).toBe('حذف این کار');
@@ -301,9 +301,9 @@ describe('TodayScreen – action sheet', () => {
   test('destructiveButtonIndex is 2, cancelButtonIndex is 3', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-more-chore-today'));
+    fireEvent.press(getByTestId('tasks-more-chore-today'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
     expect(opts.destructiveButtonIndex).toBe(2);
@@ -312,7 +312,7 @@ describe('TodayScreen – action sheet', () => {
 });
 
 // ── 5. Tehran time display ────────────────────────────────────────────────────
-describe('TodayScreen – Tehran time display', () => {
+describe('TasksScreen – Tehran time display', () => {
   test('shows Tehran wall-clock time HH:MM (not UTC)', async () => {
     // Compute the expected Tehran display for DUE_TODAY
     const expectedTehran = (() => {
@@ -324,43 +324,43 @@ describe('TodayScreen – Tehran time display', () => {
     })();
 
     mockWindowOccurrences = [makeOcc('chore-time', DUE_TODAY)];
-    const { getByText } = await render(<TodayScreen />);
+    const { getByText } = await render(<TasksScreen />);
     expect(getByText(expectedTehran)).toBeTruthy();
   });
 });
 
 // ── 6. Skipped row is dimmed, no action on checkbox ──────────────────────────
-describe('TodayScreen – skipped row', () => {
+describe('TasksScreen – skipped row', () => {
   test('skipped row renders dimmed and checkbox press does nothing', async () => {
     mockWindowOccurrences = [OCC_SKIPPED];
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    const row = getByTestId('today-row-chore-skipped');
+    const row = getByTestId('tasks-row-chore-skipped');
     const flatStyle = Array.isArray(row.props.style)
       ? Object.assign({}, ...row.props.style.filter(Boolean))
       : row.props.style;
     expect(flatStyle.opacity).toBe(0.5);
 
-    fireEvent.press(getByTestId('today-check-chore-skipped'));
+    fireEvent.press(getByTestId('tasks-check-chore-skipped'));
     expect(mockMarkOccurrence).not.toHaveBeenCalled();
   });
 });
 
 // ── 7. Row body tap → action sheet ───────────────────────────────────────────
-describe('TodayScreen – row body tap', () => {
+describe('TasksScreen – row body tap', () => {
   test('tapping row body also opens action sheet', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
-    fireEvent.press(getByTestId('today-row-chore-today'));
+    fireEvent.press(getByTestId('tasks-row-chore-today'));
 
     expect(showActionSheetWithOptions).toHaveBeenCalledTimes(1);
   });
 });
 
 // ── 8. Progress indicator ─────────────────────────────────────────────────────
-describe('TodayScreen – progress indicator', () => {
+describe('TasksScreen – progress indicator', () => {
   test('shows today-progress with correct "N of M" (skipped excluded from denominator)', async () => {
     // 1 done + 2 pending + 1 skipped → denominator = 3 (skipped excluded), numerator = 1
     // If skipped were wrongly included the count would be 4, not 3.
@@ -370,8 +370,8 @@ describe('TodayScreen – progress indicator', () => {
       makeOcc('t-pend2', DUE_TODAY_LATE, 'pending'),
       makeOcc('t-skip', DUE_TODAY, 'skipped'),
     ];
-    const { getByTestId, getAllByTestId } = await render(<TodayScreen />);
-    expect(getByTestId('today-progress')).toBeTruthy();
+    const { getByTestId, getAllByTestId } = await render(<TasksScreen />);
+    expect(getByTestId('tasks-progress')).toBeTruthy();
     // Each dot represents one item counted in the denominator (skipped excluded).
     // Expected 3 dots (done + pend1 + pend2). Would be 4 if skipped were wrongly counted.
     expect(getAllByTestId('progress-dot')).toHaveLength(3);
@@ -380,20 +380,20 @@ describe('TodayScreen – progress indicator', () => {
   test('progress hidden when today denominator is 0 (no today items)', async () => {
     // Only overdue and upcoming, nothing in today
     mockWindowOccurrences = [OCC_OVERDUE, OCC_UPCOMING];
-    const { queryByTestId } = await render(<TodayScreen />);
-    expect(queryByTestId('today-progress')).toBeNull();
+    const { queryByTestId } = await render(<TasksScreen />);
+    expect(queryByTestId('tasks-progress')).toBeNull();
   });
 
   test('skipped-only today items: progress hidden (denominator 0)', async () => {
     // All today items are skipped → todayTotal = 0 → progress hidden
     mockWindowOccurrences = [makeOcc('t-skip', DUE_TODAY, 'skipped')];
-    const { queryByTestId } = await render(<TodayScreen />);
-    expect(queryByTestId('today-progress')).toBeNull();
+    const { queryByTestId } = await render(<TasksScreen />);
+    expect(queryByTestId('tasks-progress')).toBeNull();
   });
 });
 
 // ── 9. Pet filter ─────────────────────────────────────────────────────────────
-describe('TodayScreen – pet filter', () => {
+describe('TasksScreen – pet filter', () => {
   test('selecting a pet chip narrows rendered rows to that pet only', async () => {
     mockPets = [
       { id: 'pet-1', name: 'رکسی' },
@@ -403,20 +403,20 @@ describe('TodayScreen – pet filter', () => {
     const occ2 = makeOcc('chore-pet2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-2');
     mockWindowOccurrences = [occ1, occ2];
 
-    const { getByTestId, queryByTestId } = await render(<TodayScreen />);
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
 
     // Both rows visible initially
-    expect(getByTestId('today-row-chore-pet1')).toBeTruthy();
-    expect(getByTestId('today-row-chore-pet2')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-pet1')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-pet2')).toBeTruthy();
 
     // Select pet-1 chip
     await act(async () => {
-      fireEvent.press(getByTestId('today-filter-pet-pet-1'));
+      fireEvent.press(getByTestId('tasks-filter-pet-pet-1'));
     });
 
     // pet-1 row still visible, pet-2 row gone
-    expect(getByTestId('today-row-chore-pet1')).toBeTruthy();
-    expect(queryByTestId('today-row-chore-pet2')).toBeNull();
+    expect(getByTestId('tasks-row-chore-pet1')).toBeTruthy();
+    expect(queryByTestId('tasks-row-chore-pet2')).toBeNull();
   });
 
   test('tapping selected pet chip resets to All', async () => {
@@ -428,38 +428,38 @@ describe('TodayScreen – pet filter', () => {
     const occ2 = makeOcc('chore-p2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-2');
     mockWindowOccurrences = [occ1, occ2];
 
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
     // Select pet-1, then tap again to deselect
     await act(async () => {
-      fireEvent.press(getByTestId('today-filter-pet-pet-1'));
+      fireEvent.press(getByTestId('tasks-filter-pet-pet-1'));
     });
     await act(async () => {
-      fireEvent.press(getByTestId('today-filter-pet-pet-1'));
+      fireEvent.press(getByTestId('tasks-filter-pet-pet-1'));
     });
 
     // Both rows back
-    expect(getByTestId('today-row-chore-p1')).toBeTruthy();
-    expect(getByTestId('today-row-chore-p2')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-p1')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-p2')).toBeTruthy();
   });
 });
 
 // ── 10. Type filter ───────────────────────────────────────────────────────────
-describe('TodayScreen – type filter', () => {
+describe('TasksScreen – type filter', () => {
   test('opening type filter modal and applying a type narrows rows', async () => {
     const feedingOcc = makeOcc('chore-feed', DUE_TODAY, 'pending', 'daily_times', 'pet-1', 'feeding');
     const medsOcc = makeOcc('chore-meds', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-1', 'meds');
     mockWindowOccurrences = [feedingOcc, medsOcc];
 
-    const { getByTestId, queryByTestId } = await render(<TodayScreen />);
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
 
     // Both rows visible
-    expect(getByTestId('today-row-chore-feed')).toBeTruthy();
-    expect(getByTestId('today-row-chore-meds')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-feed')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-meds')).toBeTruthy();
 
     // Open modal
     await act(async () => {
-      fireEvent.press(getByTestId('today-type-filter'));
+      fireEvent.press(getByTestId('tasks-type-filter'));
     });
 
     // Toggle "feeding" chip
@@ -473,8 +473,8 @@ describe('TodayScreen – type filter', () => {
     });
 
     // Only feeding row visible
-    expect(getByTestId('today-row-chore-feed')).toBeTruthy();
-    expect(queryByTestId('today-row-chore-meds')).toBeNull();
+    expect(getByTestId('tasks-row-chore-feed')).toBeTruthy();
+    expect(queryByTestId('tasks-row-chore-meds')).toBeNull();
   });
 
   test('clear in modal empties the type filter draft', async () => {
@@ -482,11 +482,11 @@ describe('TodayScreen – type filter', () => {
     const medsOcc = makeOcc('chore-m2', DUE_TODAY_LATE, 'pending', 'daily_times', 'pet-1', 'meds');
     mockWindowOccurrences = [feedingOcc, medsOcc];
 
-    const { getByTestId } = await render(<TodayScreen />);
+    const { getByTestId } = await render(<TasksScreen />);
 
     // Open modal, toggle feeding, then clear, then apply
     await act(async () => {
-      fireEvent.press(getByTestId('today-type-filter'));
+      fireEvent.press(getByTestId('tasks-type-filter'));
     });
     await act(async () => {
       fireEvent.press(getByTestId('type-chip-feeding'));
@@ -499,13 +499,13 @@ describe('TodayScreen – type filter', () => {
     });
 
     // Both rows back (filter cleared)
-    expect(getByTestId('today-row-chore-f2')).toBeTruthy();
-    expect(getByTestId('today-row-chore-m2')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-f2')).toBeTruthy();
+    expect(getByTestId('tasks-row-chore-m2')).toBeTruthy();
   });
 });
 
 // ── 11. Combined AND filter ───────────────────────────────────────────────────
-describe('TodayScreen – combined pet + type filter', () => {
+describe('TasksScreen – combined pet + type filter', () => {
   test('pet AND type together narrow to intersection', async () => {
     mockPets = [
       { id: 'pet-1', name: 'رکسی' },
@@ -517,16 +517,16 @@ describe('TodayScreen – combined pet + type filter', () => {
     const occ_p2_feed = makeOcc('c-p2f', DUE_TODAY, 'pending', 'daily_times', 'pet-2', 'feeding');
     mockWindowOccurrences = [occ_p1_feed, occ_p1_meds, occ_p2_feed];
 
-    const { getByTestId, queryByTestId } = await render(<TodayScreen />);
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
 
     // Select pet-1
     await act(async () => {
-      fireEvent.press(getByTestId('today-filter-pet-pet-1'));
+      fireEvent.press(getByTestId('tasks-filter-pet-pet-1'));
     });
 
     // Apply type=feeding via modal
     await act(async () => {
-      fireEvent.press(getByTestId('today-type-filter'));
+      fireEvent.press(getByTestId('tasks-type-filter'));
     });
     await act(async () => {
       fireEvent.press(getByTestId('type-chip-feeding'));
@@ -536,31 +536,31 @@ describe('TodayScreen – combined pet + type filter', () => {
     });
 
     // Only pet-1 + feeding survives
-    expect(getByTestId('today-row-c-p1f')).toBeTruthy();
-    expect(queryByTestId('today-row-c-p1m')).toBeNull();
-    expect(queryByTestId('today-row-c-p2f')).toBeNull();
+    expect(getByTestId('tasks-row-c-p1f')).toBeTruthy();
+    expect(queryByTestId('tasks-row-c-p1m')).toBeNull();
+    expect(queryByTestId('tasks-row-c-p2f')).toBeNull();
   });
 });
 
 // ── 12. FAB ──────────────────────────────────────────────────────────────────
-describe('TodayScreen – FAB', () => {
+describe('TasksScreen – FAB', () => {
   test('pressing today-fab navigates to QuickAdd (with data)', async () => {
     mockWindowOccurrences = [OCC_TODAY];
-    const { getByTestId } = await render(<TodayScreen />);
-    fireEvent.press(getByTestId('today-fab'));
+    const { getByTestId } = await render(<TasksScreen />);
+    fireEvent.press(getByTestId('tasks-fab'));
     expect(mockNavigate).toHaveBeenCalledWith('QuickAdd');
   });
 
   test('pressing today-fab navigates to QuickAdd (empty state)', async () => {
     mockWindowOccurrences = [];
-    const { getByTestId } = await render(<TodayScreen />);
-    fireEvent.press(getByTestId('today-fab'));
+    const { getByTestId } = await render(<TasksScreen />);
+    fireEvent.press(getByTestId('tasks-fab'));
     expect(mockNavigate).toHaveBeenCalledWith('QuickAdd');
   });
 });
 
 // ── 13. Filter-empty state (no-match) ────────────────────────────────────────
-describe('TodayScreen – filter-empty (no-match)', () => {
+describe('TasksScreen – filter-empty (no-match)', () => {
   test('filters that match nothing show today-no-match (not today-empty)', async () => {
     mockPets = [
       { id: 'pet-1', name: 'رکسی' },
@@ -569,15 +569,15 @@ describe('TodayScreen – filter-empty (no-match)', () => {
     // Only pet-1 data in window
     mockWindowOccurrences = [makeOcc('c-only', DUE_TODAY, 'pending', 'daily_times', 'pet-1')];
 
-    const { getByTestId, queryByTestId } = await render(<TodayScreen />);
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
 
     // Select pet-2 (no data for this pet)
     await act(async () => {
-      fireEvent.press(getByTestId('today-filter-pet-pet-2'));
+      fireEvent.press(getByTestId('tasks-filter-pet-pet-2'));
     });
 
-    expect(getByTestId('today-no-match')).toBeTruthy();
-    expect(queryByTestId('today-empty')).toBeNull();
+    expect(getByTestId('tasks-no-match')).toBeTruthy();
+    expect(queryByTestId('tasks-empty')).toBeNull();
   });
 
   test('clearing filters from no-match state restores the list', async () => {
@@ -587,27 +587,27 @@ describe('TodayScreen – filter-empty (no-match)', () => {
     ];
     mockWindowOccurrences = [makeOcc('c-restore', DUE_TODAY, 'pending', 'daily_times', 'pet-1')];
 
-    const { getByTestId, queryByTestId } = await render(<TodayScreen />);
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
 
     // Trigger no-match
     await act(async () => {
-      fireEvent.press(getByTestId('today-filter-pet-pet-2'));
+      fireEvent.press(getByTestId('tasks-filter-pet-pet-2'));
     });
-    expect(getByTestId('today-no-match')).toBeTruthy();
+    expect(getByTestId('tasks-no-match')).toBeTruthy();
 
     // Clear via the "All" chip
     await act(async () => {
-      fireEvent.press(getByTestId('today-filter-pet-all'));
+      fireEvent.press(getByTestId('tasks-filter-pet-all'));
     });
 
-    expect(queryByTestId('today-no-match')).toBeNull();
-    expect(getByTestId('today-row-c-restore')).toBeTruthy();
+    expect(queryByTestId('tasks-no-match')).toBeNull();
+    expect(getByTestId('tasks-row-c-restore')).toBeTruthy();
   });
 
   test('genuine empty (no window data) still shows today-empty (not no-match)', async () => {
     mockWindowOccurrences = [];
-    const { getByTestId, queryByTestId } = await render(<TodayScreen />);
-    expect(getByTestId('today-empty')).toBeTruthy();
-    expect(queryByTestId('today-no-match')).toBeNull();
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+    expect(getByTestId('tasks-empty')).toBeTruthy();
+    expect(queryByTestId('tasks-no-match')).toBeNull();
   });
 });

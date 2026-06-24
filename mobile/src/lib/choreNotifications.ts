@@ -160,7 +160,7 @@ export async function initChoreNotifications(
   // Mutually exclusive — a body PRESS never falls through to the action handler.
   notifee.onForegroundEvent((event) => {
     if (event.type === EventType.PRESS && navRef.isReady()) {
-      navRef.navigate('Today');
+      navRef.navigate('Tasks');
     } else if (event.type === EventType.ACTION_PRESS) {
       // fire-and-forget; handler is self-contained (db write / reschedule)
       handleNotificationEvent(event);
@@ -170,7 +170,7 @@ export async function initChoreNotifications(
   // Handle tap from cold start
   const initial = await notifee.getInitialNotification();
   if (initial && navRef.isReady()) {
-    navRef.navigate('Today');
+    navRef.navigate('Tasks');
   }
 
   // Initial sync after db is ready
