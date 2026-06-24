@@ -276,7 +276,7 @@ describe('TodayScreen – action sheet', () => {
     expect(mockDeleteChore).toHaveBeenCalledWith('chore-today');
   });
 
-  test('delete label is "today.action.delete_recurring" for recurring chore', async () => {
+  test('delete label is the recurring-delete translation for recurring chore', async () => {
     mockWindowOccurrences = [OCC_TODAY]; // daily_times schedule
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TodayScreen />);
@@ -284,11 +284,10 @@ describe('TodayScreen – action sheet', () => {
     fireEvent.press(getByTestId('today-more-chore-today'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    // i18n key returned as-is in test env
-    expect(opts.options[2]).toBe('today.action.delete_recurring');
+    expect(opts.options[2]).toBe('حذف این کار و همه تکرارهای آن');
   });
 
-  test('delete label is "today.action.delete_one_off" for one-off chore', async () => {
+  test('delete label is the one-off-delete translation for one-off chore', async () => {
     mockWindowOccurrences = [OCC_ONE_OFF]; // one_off schedule
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TodayScreen />);
@@ -296,7 +295,7 @@ describe('TodayScreen – action sheet', () => {
     fireEvent.press(getByTestId('today-more-chore-oneoff'));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    expect(opts.options[2]).toBe('today.action.delete_one_off');
+    expect(opts.options[2]).toBe('حذف این کار');
   });
 
   test('destructiveButtonIndex is 2, cancelButtonIndex is 3', async () => {
