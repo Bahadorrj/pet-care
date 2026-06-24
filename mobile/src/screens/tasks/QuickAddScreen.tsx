@@ -62,6 +62,9 @@ export default function QuickAddScreen() {
     pets.length === 1 ? pets[0].id : null,
   );
   const [title, setTitle] = useState('');
+  // one_off = single dated task; daily_times = repeats every day at `time`.
+  // Weekly/interval stay in the full ChoreForm via "More options".
+  const [kind, setKind] = useState<'one_off' | 'daily_times'>('one_off');
   const [dateJalali, setDateJalali] = useState(tehranTodayJalali);
   const [time, setTime] = useState(nextRoundHourTehran);
 
@@ -84,7 +87,8 @@ export default function QuickAddScreen() {
       setPetError('');
     }
 
-    const greg = jalaliToGregorian(dateJalali);
+    // Date only matters for one_off; daily repeats forever from `time`.
+    const greg = kind === 'one_off' ? jalaliToGregorian(dateJalali) : 'n/a';
     if (!greg) {
       setDateError(t('chores.error.invalid_date'));
       valid = false;
@@ -103,12 +107,15 @@ export default function QuickAddScreen() {
 
     setIsSubmitting(true);
     try {
-      const at = toUtcIso(time, greg!);
+      const schedule =
+        kind === 'one_off'
+          ? { kind: 'one_off' as const, at: toUtcIso(time, greg!) }
+          : { kind: 'daily_times' as const, times: [time] };
       await addChore({
         petId,
         type: 'other',
         title: title.trim() || null,
-        schedule: { kind: 'one_off', at },
+        schedule,
         endKind: 'never',
         endUntil: null,
         endCount: null,
@@ -174,24 +181,49 @@ export default function QuickAddScreen() {
             {petError !== '' && <Text style={styles.errorText}>{petError}</Text>}
           </View>
 
+          {/* ── Repeat (one-off vs daily) ────────────────────────────────── */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>{t('chores.field.schedule')}</Text>
+            <View style={styles.chipRow}>
+              {(['one_off', 'daily_times'] as const).map((k) => (
+                <Pressable
+                  key={k}
+                  testID={`quickadd-kind-${k}`}
+                  style={[styles.chip, kind === k && styles.chipSelected]}
+                  onPress={() => setKind(k)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: kind === k }}
+                >
+                  <Text style={[styles.chipText, kind === k && styles.chipTextSelected]}>
+                    {t(`chores.schedule.${k}`)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
           {/* ── When (date + time) ───────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>{t('tasks.quick.when')}</Text>
 
-            <Text style={styles.subLabel}>{t('tasks.quick.date')}</Text>
-            <TextField
-              testID="quickadd-date"
-              placeholder="yyyy/MM/dd"
-              value={dateJalali}
-              onChangeText={(v) => {
-                setDateJalali(v);
-                if (dateError) setDateError('');
-              }}
-              keyboardType="numeric"
-            />
-            {dateError !== '' && <Text style={styles.errorText}>{dateError}</Text>}
+            {kind === 'one_off' && (
+              <>
+                <Text style={styles.subLabel}>{t('tasks.quick.date')}</Text>
+                <TextField
+                  testID="quickadd-date"
+                  placeholder="yyyy/MM/dd"
+                  value={dateJalali}
+                  onChangeText={(v) => {
+                    setDateJalali(v);
+                    if (dateError) setDateError('');
+                  }}
+                  keyboardType="numeric"
+                />
+                {dateError !== '' && <Text style={styles.errorText}>{dateError}</Text>}
+              </>
+            )}
 
-            <Text style={[styles.subLabel, { marginTop: spacing.sm }]}>{t('tasks.quick.time')}</Text>
+            <Text style={[styles.subLabel, kind === 'one_off' && { marginTop: spacing.sm }]}>{t('tasks.quick.time')}</Text>
             <TextField
               testID="quickadd-time"
               placeholder="HH:MM"
