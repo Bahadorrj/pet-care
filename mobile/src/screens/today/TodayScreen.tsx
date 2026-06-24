@@ -1,5 +1,12 @@
 import React from 'react';
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  SectionList,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +20,7 @@ import { usePetsStore } from '../../store/petsStore';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
 import { CHORE_TYPE_ICON } from '../../theme/icons';
 import { bucketOccurrences } from './todayBuckets';
-import type { Occurrence } from '../../db/types';
+import type { Occurrence, ChoreType } from '../../db/types';
 import type { TodayNavigationProp } from '../../navigation/TodayStack';
 
 // ── Tehran time helper ─────────────────────────────────────────────────────────
@@ -43,6 +50,8 @@ const STATUS_COLOR: Record<Occurrence['status'], string> = {
   done: colors.primary,
   skipped: colors.inkMuted,
 };
+
+const CHORE_TYPES: ChoreType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'other'];
 
 // ── Section list item types ────────────────────────────────────────────────────
 type SectionKind = 'overdue' | 'today' | 'upcoming';
@@ -134,6 +143,81 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
   );
 }
 
+// ── Type filter modal ──────────────────────────────────────────────────────────
+type TypeFilterModalProps = {
+  visible: boolean;
+  selected: Set<ChoreType>;
+  onApply: (next: Set<ChoreType>) => void;
+  onClose: () => void;
+};
+
+function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModalProps) {
+  const { t } = useTranslation();
+  // Local draft state — committed on Apply
+  const [draft, setDraft] = React.useState<Set<ChoreType>>(new Set(selected));
+
+  // Sync draft when modal opens with external selected
+  React.useEffect(() => {
+    if (visible) setDraft(new Set(selected));
+  }, [visible, selected]);
+
+  function toggle(ct: ChoreType) {
+    setDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(ct)) next.delete(ct);
+      else next.add(ct);
+      return next;
+    });
+  }
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <Pressable style={styles.modalOverlay} onPress={onClose}>
+        <Pressable style={styles.modalSheet} onPress={() => {/* swallow */}}>
+          <View style={styles.chipRow}>
+            {CHORE_TYPES.map((ct) => {
+              const isSelected = draft.has(ct);
+              return (
+                <Pressable
+                  key={ct}
+                  testID={`type-chip-${ct}`}
+                  style={[styles.chip, isSelected && styles.chipSelected]}
+                  onPress={() => toggle(ct)}
+                >
+                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                    {t(`chores.type.${ct}`)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={styles.modalFooter}>
+            <Pressable
+              testID="type-filter-clear"
+              style={styles.modalClearBtn}
+              onPress={() => setDraft(new Set())}
+            >
+              <Text style={styles.modalClearText}>{t('today.filter.clear')}</Text>
+            </Pressable>
+            <Pressable
+              testID="type-filter-apply"
+              style={styles.modalApplyBtn}
+              onPress={() => onApply(draft)}
+            >
+              <Text style={styles.modalApplyText}>{t('today.filter.apply')}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 // ── Screen ─────────────────────────────────────────────────────────────────────
 export default function TodayScreen() {
   const { t } = useTranslation();
@@ -149,6 +233,11 @@ export default function TodayScreen() {
 
   const pets = usePetsStore(useShallow((s) => s.pets));
 
+  // ── Filter state ─────────────────────────────────────────────────────────────
+  const [petFilter, setPetFilter] = React.useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = React.useState<Set<ChoreType>>(new Set());
+  const [typeModalVisible, setTypeModalVisible] = React.useState(false);
+
   React.useEffect(() => {
     if (isFocused) load();
   }, [isFocused, load]);
@@ -159,14 +248,29 @@ export default function TodayScreen() {
     return map;
   }, [pets]);
 
-  const { overdue, today, upcoming } = React.useMemo(
-    () => bucketOccurrences(windowOccurrences, new Date()),
-    [windowOccurrences],
+  // Apply filters before bucketing
+  const filtered = React.useMemo(
+    () =>
+      windowOccurrences.filter(
+        (o) =>
+          (petFilter === null || o.chore.petId === petFilter) &&
+          (typeFilter.size === 0 || typeFilter.has(o.chore.type)),
+      ),
+    [windowOccurrences, petFilter, typeFilter],
   );
 
-  const allEmpty = overdue.length === 0 && today.length === 0 && upcoming.length === 0;
+  const { overdue, today, upcoming } = React.useMemo(
+    () => bucketOccurrences(filtered, new Date()),
+    [filtered],
+  );
 
-  if (allEmpty) {
+  const allBucketsEmpty = overdue.length === 0 && today.length === 0 && upcoming.length === 0;
+  const hasFilters = petFilter !== null || typeFilter.size > 0;
+
+  // Whole-screen genuine empty (no data at all)
+  const windowIsEmpty = windowOccurrences.length === 0;
+
+  if (windowIsEmpty) {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.emptyContainer} testID="today-empty">
@@ -222,6 +326,11 @@ export default function TodayScreen() {
     upcoming: upcoming.length,
   };
 
+  // Progress: today-bucket items excluding skipped
+  const todayForProgress = today.filter((o) => o.status !== 'skipped');
+  const todayDone = todayForProgress.filter((o) => o.status === 'done').length;
+  const todayTotal = todayForProgress.length;
+
   function handleCheck(occ: Occurrence) {
     const { chore, dueAt, status } = occ;
     if (status === 'done' || status === 'skipped') return;
@@ -266,8 +375,105 @@ export default function TodayScreen() {
     );
   }
 
+  // ── List header: progress + filter bar ───────────────────────────────────────
+  const ListHeader = (
+    <View>
+      {/* Progress indicator (today only, hidden when denominator is 0) */}
+      {todayTotal > 0 && (
+        <View style={styles.progressContainer} testID="today-progress">
+          <View style={styles.progressDotsRow}>
+            {todayForProgress.map((o, i) => (
+              <View
+                key={`${o.chore.id}-${i}`}
+                style={[
+                  styles.progressDot,
+                  o.status === 'done' && styles.progressDotDone,
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={styles.progressText}>
+            {t('today.progress', { done: todayDone, total: todayTotal })}
+          </Text>
+        </View>
+      )}
+
+      {/* Filter bar */}
+      <View style={styles.filterBar}>
+        {/* Pet chips: All + one per pet */}
+        <Pressable
+          testID="today-filter-pet-all"
+          style={[styles.filterChip, petFilter === null && styles.filterChipSelected]}
+          onPress={() => setPetFilter(null)}
+        >
+          <Text style={[styles.filterChipText, petFilter === null && styles.filterChipTextSelected]}>
+            {t('today.filter.all')}
+          </Text>
+        </Pressable>
+        {pets.map((p) => (
+          <Pressable
+            key={p.id}
+            testID={`today-filter-pet-${p.id}`}
+            style={[styles.filterChip, petFilter === p.id && styles.filterChipSelected]}
+            onPress={() => setPetFilter(petFilter === p.id ? null : p.id)}
+          >
+            <Text
+              style={[
+                styles.filterChipText,
+                petFilter === p.id && styles.filterChipTextSelected,
+              ]}
+            >
+              {p.name}
+            </Text>
+          </Pressable>
+        ))}
+
+        {/* Type filter button */}
+        <Pressable
+          testID="today-type-filter"
+          style={[styles.filterChip, typeFilter.size > 0 && styles.filterChipSelected]}
+          onPress={() => setTypeModalVisible(true)}
+        >
+          <Text
+            style={[
+              styles.filterChipText,
+              typeFilter.size > 0 && styles.filterChipTextSelected,
+            ]}
+          >
+            {t('today.filter.type')}
+            {typeFilter.size > 0 ? ` (${typeFilter.size})` : ''}
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* No-match state when filters empty everything but window has data */}
+      {allBucketsEmpty && hasFilters && (
+        <View style={styles.noMatchContainer} testID="today-no-match">
+          <Text style={styles.noMatchText}>{t('today.no_match')}</Text>
+          <Pressable
+            onPress={() => {
+              setPetFilter(null);
+              setTypeFilter(new Set());
+            }}
+          >
+            <Text style={styles.clearFiltersText}>{t('today.filter.clear')}</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <TypeFilterModal
+        visible={typeModalVisible}
+        selected={typeFilter}
+        onApply={(next) => {
+          setTypeFilter(next);
+          setTypeModalVisible(false);
+        }}
+        onClose={() => setTypeModalVisible(false)}
+      />
       <SectionList
         sections={sections}
         keyExtractor={(item, index) => {
@@ -277,6 +483,7 @@ export default function TodayScreen() {
         }}
         contentContainerStyle={styles.list}
         stickySectionHeadersEnabled={false}
+        ListHeaderComponent={ListHeader}
         renderSectionHeader={({ section }) => {
           const sec = section as Section;
           const count = counts[sec.sectionKey];
@@ -454,5 +661,142 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.inkMuted,
     textAlign: 'center',
+  },
+  // Progress indicator
+  progressContainer: {
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  progressDotsRow: {
+    flexDirection: 'row',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  progressDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.border,
+  },
+  progressDotDone: {
+    backgroundColor: colors.primary,
+  },
+  progressText: {
+    fontSize: typography.caption.fontSize,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+  },
+  // Filter bar
+  filterBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+  },
+  filterChip: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  filterChipSelected: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  filterChipText: {
+    fontSize: typography.caption.fontSize,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+  },
+  filterChipTextSelected: {
+    fontFamily: fonts.medium,
+    color: colors.primary,
+  },
+  // No-match state
+  noMatchContainer: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    gap: spacing.sm,
+  },
+  noMatchText: {
+    fontSize: typography.body.fontSize,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+    textAlign: 'center',
+  },
+  clearFiltersText: {
+    fontSize: typography.body.fontSize,
+    fontFamily: fonts.medium,
+    color: colors.primary,
+  },
+  // Type filter modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.bg,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.lg,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  chip: {
+    minHeight: 44,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipSelected: {
+    backgroundColor: colors.primarySoft,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+  },
+  chipTextSelected: {
+    fontFamily: fonts.medium,
+    color: colors.primary,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.md,
+  },
+  modalClearBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  modalClearText: {
+    fontSize: typography.body.fontSize,
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
+  },
+  modalApplyBtn: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primary,
+    borderRadius: radius.md,
+  },
+  modalApplyText: {
+    fontSize: typography.body.fontSize,
+    fontFamily: fonts.medium,
+    color: colors.bg,
   },
 });
