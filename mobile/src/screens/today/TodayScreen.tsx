@@ -385,6 +385,7 @@ export default function TodayScreen() {
             {todayForProgress.map((o, i) => (
               <View
                 key={`${o.chore.id}-${i}`}
+                testID="progress-dot"
                 style={[
                   styles.progressDot,
                   o.status === 'done' && styles.progressDotDone,

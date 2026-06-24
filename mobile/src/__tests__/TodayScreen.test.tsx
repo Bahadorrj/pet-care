@@ -364,18 +364,18 @@ describe('TodayScreen – row body tap', () => {
 describe('TodayScreen – progress indicator', () => {
   test('shows today-progress with correct "N of M" (skipped excluded from denominator)', async () => {
     // 1 done + 2 pending + 1 skipped → denominator = 3 (skipped excluded), numerator = 1
+    // If skipped were wrongly included the count would be 4, not 3.
     mockWindowOccurrences = [
       makeOcc('t-done', DUE_TODAY, 'done'),
       makeOcc('t-pend1', DUE_TODAY, 'pending'),
       makeOcc('t-pend2', DUE_TODAY_LATE, 'pending'),
       makeOcc('t-skip', DUE_TODAY, 'skipped'),
     ];
-    const { getByTestId, getByText } = await render(<TodayScreen />);
+    const { getByTestId, getAllByTestId } = await render(<TodayScreen />);
     expect(getByTestId('today-progress')).toBeTruthy();
-    // i18n key is returned as-is in test env: "today.progress"
-    // The component passes { done: 1, total: 3 } — just verify the testID is present
-    // and that the progress element exists (i18n interpolation returns the key in tests)
-    expect(getByTestId('today-progress')).toBeTruthy();
+    // Each dot represents one item counted in the denominator (skipped excluded).
+    // Expected 3 dots (done + pend1 + pend2). Would be 4 if skipped were wrongly counted.
+    expect(getAllByTestId('progress-dot')).toHaveLength(3);
   });
 
   test('progress hidden when today denominator is 0 (no today items)', async () => {
