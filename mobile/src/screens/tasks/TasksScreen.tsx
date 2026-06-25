@@ -272,7 +272,7 @@ export default function TasksScreen() {
         </View>
         <Pressable
           testID="tasks-fab"
-          onPress={() => navigation.navigate('QuickAdd')}
+          onPress={() => navigation.navigate('TaskForm', {})}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
           accessibilityRole="button"
         >
@@ -477,7 +477,7 @@ export default function TasksScreen() {
       />
       <Pressable
         testID="tasks-fab"
-        onPress={() => navigation.navigate('QuickAdd')}
+        onPress={() => navigation.navigate('TaskForm', {})}
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         accessibilityRole="button"
       >

@@ -541,18 +541,18 @@ describe('TasksScreen – combined pet + type filter', () => {
 
 // ── 12. FAB ──────────────────────────────────────────────────────────────────
 describe('TasksScreen – FAB', () => {
-  test('pressing today-fab navigates to QuickAdd (with data)', async () => {
+  test('pressing today-fab navigates to TaskForm (with data)', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { getByTestId } = await render(<TasksScreen />);
     fireEvent.press(getByTestId('tasks-fab'));
-    expect(mockNavigate).toHaveBeenCalledWith('QuickAdd');
+    expect(mockNavigate).toHaveBeenCalledWith('TaskForm', {});
   });
 
-  test('pressing today-fab navigates to QuickAdd (empty state)', async () => {
+  test('pressing today-fab navigates to TaskForm (empty state)', async () => {
     mockWindowOccurrences = [];
     const { getByTestId } = await render(<TasksScreen />);
     fireEvent.press(getByTestId('tasks-fab'));
-    expect(mockNavigate).toHaveBeenCalledWith('QuickAdd');
+    expect(mockNavigate).toHaveBeenCalledWith('TaskForm', {});
   });
 });
 
