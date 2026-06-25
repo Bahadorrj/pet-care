@@ -33,6 +33,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
 import { jalaliToGregorian, tehranTodayJalali, utcIsoToTehranJalali } from '../../lib/jalali';
+import { useShallow } from 'zustand/react/shallow';
 import { useTasksStore } from '../../store/tasksStore';
 import { usePetsStore } from '../../store/petsStore';
 import { getTask } from '../../db/tasks';
@@ -96,7 +97,7 @@ export default function TaskFormScreen() {
   const existing = isEdit ? getTask(taskId) : null;
 
   // ── Pets store ───────────────────────────────────────────────────────────────
-  const pets = usePetsStore((s) => s.pets);
+  const pets = usePetsStore(useShallow((s) => s.pets));
 
   // ── Pet selection (add mode only) ─────────────────────────────────────────
   const [petIds, setPetIds] = useState<string[]>(

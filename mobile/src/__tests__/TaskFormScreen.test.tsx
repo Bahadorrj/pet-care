@@ -59,7 +59,7 @@ jest.mock('../db/tasks', () => ({
 
 // ── Navigation mock ───────────────────────────────────────────────────────────
 const mockGoBack = jest.fn();
-let mockRouteParams: { petId: string; taskId?: string } = { petId: 'pet-1' };
+let mockRouteParams: { petId?: string; taskId?: string; title?: string } = {};
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
@@ -108,7 +108,7 @@ beforeEach(() => {
   mockUpdateTask.mockReset();
   mockGetTask.mockReset();
   mockGoBack.mockClear();
-  mockRouteParams = { petId: 'pet-1' };
+  mockRouteParams = {};
   mockPets = [
     { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
   ];
@@ -149,6 +149,16 @@ describe('TaskFormScreen – Add – daily_times', () => {
     expect(call.schedule.kind).toBe('daily_times');
     expect(call.schedule.times).toHaveLength(2);
     expect(call.schedule.times).toContain('20:00');
+  });
+
+  test('sole pet is pre-selected → addTask called without pressing a pet chip', async () => {
+    mockAddTask.mockResolvedValue(undefined);
+    // mockPets default (beforeEach) is the single pet 'pet-1'
+    const { getByTestId } = await render(<TaskFormScreen />);
+    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId('taskform-submit'));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
+    expect(mockAddTask.mock.calls[0][0].petId).toBe('pet-1');
   });
 });
 
