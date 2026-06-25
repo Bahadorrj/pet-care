@@ -10,6 +10,7 @@ import { usePetsStore } from '../../store/petsStore';
 import { useTasksStore } from '../../store/tasksStore';
 import { getPet } from '../../db/pets';
 import { streak, adherence, nextOccurrence, toTehranTime } from '../../lib/taskSchedule';
+import { toPersianDigits } from '../../lib/jalali';
 import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
 import { SPECIES_ICON, TASK_TYPE_ICON } from '../../theme/icons';
 import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
@@ -101,7 +102,7 @@ export default function PetDetailScreen() {
     const now = new Date();
     const next = nextOccurrence(activeTasks, now, new Date(now.getTime() + NEXT_WINDOW_MS));
     tasksSummary = t('pets.active_tasks', { count: activeTasks.length });
-    if (next) tasksSummary += ` · ${t('pets.next_task', { time: toTehranTime(next) })}`;
+    if (next) tasksSummary += ` · ${t('pets.next_task', { time: toPersianDigits(toTehranTime(next)) })}`;
   }
 
   const handleDelete = () => {

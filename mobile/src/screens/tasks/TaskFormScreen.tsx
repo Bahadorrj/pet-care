@@ -13,8 +13,8 @@
  * - Error inline, immediately below the relevant control, Alert Brick on Alert Soft
  * - RTL: all directions use `Start`/`End`, chip rows use `flexWrap: 'wrap'` RTL-safe
  * - Empty end-condition (after_n count=0) blocked with translated error
- * - One_off date/time: plain text inputs (HH:MM + YYYY-MM-DD Jalali hint) converted
- *   via toUtcIso — no new date lib; guidance per ADR-0010
+ * - One_off date: Jalali text input; time: native clock picker (TimePickerField),
+ *   converted via toUtcIso — no new date lib; guidance per ADR-0010
  */
 
 import React, { useRef, useState } from 'react';
@@ -32,6 +32,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import { useTranslation } from 'react-i18next';
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
+import TimePickerField from '../../components/ui/TimePickerField';
 import { jalaliToGregorian, tehranTodayJalali, utcIsoToTehranJalali } from '../../lib/jalali';
 import { useShallow } from 'zustand/react/shallow';
 import { useTasksStore } from '../../store/tasksStore';
@@ -70,18 +71,6 @@ function utcIsoToTehranTime(isoUtc: string): string {
 /** True if `s` is a valid 24-hour HH:MM wall-clock string. */
 function isValidTime(s: string): boolean {
   return /^([01]?\d|2[0-3]):[0-5]\d$/.test(s.trim());
-}
-
-/**
- * Mask digits into HH:MM as the user types: insert ':' once the 2 hour digits
- * are in, so they never type it themselves. `prev` lets a backspace step back
- * past the auto-':' instead of it being re-added (the classic input-mask trap).
- */
-export function maskTime(prev: string, raw: string): string {
-  const d = raw.replace(/\D/g, '').slice(0, 4);
-  if (d.length < 2) return d;
-  if (d.length === 2) return raw.length < prev.length ? d : `${d}:`;
-  return `${d.slice(0, 2)}:${d.slice(2)}`;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -144,7 +133,7 @@ export default function TaskFormScreen() {
 
   // ── one_off — Jalali date yyyy/MM/dd (Tehran wall-clock) + time HH:MM ────────
   // User types Jalali; on submit jalaliToGregorian converts before toUtcIso.
-  // ponytail: text input, not a picker — no picker lib installed; future upgrade path
+  // ponytail: date stays a text input — no Jalali date picker; time uses the native picker
   const initOneOffDate =
     existing?.schedule.kind === 'one_off'
       ? utcIsoToTehranJalali(existing.schedule.at)
@@ -451,12 +440,10 @@ export default function TaskFormScreen() {
               {times.map((t_, idx) => (
                 <View key={idx} style={styles.timeRow}>
                   <View style={styles.timeInputWrap}>
-                    <TextField
+                    <TimePickerField
                       testID={`taskform-time-${idx}`}
-                      placeholder="08:00"
                       value={t_}
-                      onChangeText={(v) => updateTime(idx, maskTime(t_, v))}
-                      keyboardType="numeric"
+                      onChange={(v) => updateTime(idx, v)}
                       accessibilityLabel={t('tasks.schedule.times')}
                     />
                   </View>
@@ -524,12 +511,10 @@ export default function TaskFormScreen() {
               {times.map((t_, idx) => (
                 <View key={idx} style={styles.timeRow}>
                   <View style={styles.timeInputWrap}>
-                    <TextField
+                    <TimePickerField
                       testID={`taskform-wday-time-${idx}`}
-                      placeholder="08:00"
                       value={t_}
-                      onChangeText={(v) => updateTime(idx, maskTime(t_, v))}
-                      keyboardType="numeric"
+                      onChange={(v) => updateTime(idx, v)}
                       accessibilityLabel={t('tasks.schedule.times')}
                     />
                   </View>
@@ -627,15 +612,13 @@ export default function TaskFormScreen() {
               <Text style={[styles.label, { marginTop: spacing.md }]}>
                 {t('tasks.schedule.times')}
               </Text>
-              <TextField
+              <TimePickerField
                 testID="taskform-oneoff-time"
-                placeholder="09:00"
                 value={oneOffTime}
-                onChangeText={(v) => {
-                  setOneOffTime(maskTime(oneOffTime, v));
+                onChange={(v) => {
+                  setOneOffTime(v);
                   if (scheduleError) setScheduleError('');
                 }}
-                keyboardType="numeric"
                 accessibilityLabel={t('tasks.schedule.times')}
               />
               {scheduleError !== '' && (

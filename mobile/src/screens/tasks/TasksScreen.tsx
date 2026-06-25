@@ -112,7 +112,7 @@ function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
           {task.title ?? t(`tasks.type.${task.type}`)}
         </Text>
         <View style={styles.metaRow}>
-          <Text style={[styles.time, isFinal && styles.dimmedText]}>{toTehranTime(dueAt)}</Text>
+          <Text style={[styles.time, isFinal && styles.dimmedText]}>{toPersianDigits(toTehranTime(dueAt))}</Text>
           <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[status] + '22' }]}>
             <Text style={[styles.statusText, { color: STATUS_COLOR[status] }]}>
               {t(`tasks.status.${status}`)}

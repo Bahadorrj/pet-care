@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import { usePetsStore } from '../../store/petsStore';
 import { useTasksStore } from '../../store/tasksStore';
 import { nextOccurrence, toTehranTime } from '../../lib/taskSchedule';
+import { toPersianDigits } from '../../lib/jalali';
 import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
 import { SPECIES_ICON } from '../../theme/icons';
 import type { PetsNavigationProp } from '../../navigation/PetsStack';
@@ -42,7 +43,7 @@ export default function PetsListScreen() {
         const now = new Date();
         const next = nextOccurrence(petTasks, now, new Date(now.getTime() + NEXT_WINDOW_MS));
         hint = t('pets.list.tasks', { count: petTasks.length });
-        if (next) hint += ` · ${t('pets.next_task', { time: toTehranTime(next) })}`;
+        if (next) hint += ` · ${t('pets.next_task', { time: toPersianDigits(toTehranTime(next)) })}`;
       }
 
       return (

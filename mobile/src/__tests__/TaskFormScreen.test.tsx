@@ -51,6 +51,14 @@ jest.mock('../store/petsStore', () => ({
   usePetsStore: (selector: (s: { pets: Pet[] }) => unknown) => selector({ pets: mockPets }),
 }));
 
+// ── Time picker mock ──────────────────────────────────────────────────────────
+// Native module; render as a plain host element so fireEvent can fire `onChange`.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const ReactMock = require('react');
+  const { View } = require('react-native');
+  return (props: Record<string, unknown>) => ReactMock.createElement(View, props);
+});
+
 // ── DB mock ───────────────────────────────────────────────────────────────────
 const mockGetTask = jest.fn();
 jest.mock('../db/tasks', () => ({
@@ -85,6 +93,18 @@ const press = async (el: any) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const changeText = async (el: any, value: string) => {
   await act(async () => { fireEvent.changeText(el, value); });
+};
+
+/** Open a TimePickerField and pick `HH:MM`, flushing state updates. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pickTime = async (getByTestId: any, fieldTestId: string, hhmm: string) => {
+  await press(getByTestId(fieldTestId));
+  const [h, m] = hhmm.split(':').map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  await act(async () => {
+    fireEvent(getByTestId(`${fieldTestId}-picker`), 'valueChange', { type: 'set' }, d);
+  });
 };
 
 // ── Fixture ───────────────────────────────────────────────────────────────────
@@ -140,7 +160,7 @@ describe('TaskFormScreen – Add – daily_times', () => {
 
     await press(getByTestId('taskform-type-meds'));
     await press(getByTestId('taskform-time-add'));
-    await changeText(getByTestId('taskform-time-1'), '20:00');
+    await pickTime(getByTestId, 'taskform-time-1', '20:00');
     await press(getByTestId('taskform-submit'));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
@@ -220,7 +240,7 @@ describe('TaskFormScreen – Add – one_off', () => {
     await press(getByTestId('taskform-type-vet'));
     await press(getByTestId('taskform-schedule-one_off'));
     await changeText(getByTestId('taskform-oneoff-date'), '1405/04/10');
-    await changeText(getByTestId('taskform-oneoff-time'), '10:00');
+    await pickTime(getByTestId, 'taskform-oneoff-time', '10:00');
     await press(getByTestId('taskform-submit'));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
@@ -333,9 +353,9 @@ describe('TaskFormScreen – Edit mode Jalali prefill', () => {
     mockRouteParams = { petId: 'pet-1', taskId: TASK_ONE_OFF.id };
     mockGetTask.mockReturnValue(TASK_ONE_OFF);
 
-    const { getByTestId } = await render(<TaskFormScreen />);
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
     expect(getByTestId('taskform-oneoff-date').props.value).toBe('1405/04/10');
-    expect(getByTestId('taskform-oneoff-time').props.value).toBe('02:00');
+    expect(getByText('۰۲:۰۰')).toBeTruthy();
   });
 });
 
@@ -455,7 +475,7 @@ describe('TaskFormScreen – pet picker – empty selection error', () => {
     await press(getByTestId('taskform-submit'));
 
     await waitFor(() =>
-      expect(getByText('حداقل یک حیوان را انتخاب کنید')).toBeTruthy(),
+      expect(getByText('حداقل یک پت را انتخاب کنید')).toBeTruthy(),
     );
     expect(mockAddTask).not.toHaveBeenCalled();
   });

@@ -56,6 +56,7 @@ jest.mock('@react-navigation/native', () => ({
 // ── i18n ──────────────────────────────────────────────────────────────────────
 import '../i18n';
 import TasksScreen from '../screens/tasks/TasksScreen';
+import { toPersianDigits } from '../lib/jalali';
 import type { Occurrence } from '../db/types';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import Toast from 'react-native-toast-message';
@@ -317,7 +318,7 @@ describe('TasksScreen – Tehran time display', () => {
       const d = new Date(tehranMs);
       const h = String(d.getUTCHours()).padStart(2, '0');
       const m = String(d.getUTCMinutes()).padStart(2, '0');
-      return `${h}:${m}`;
+      return toPersianDigits(`${h}:${m}`);
     })();
 
     mockWindowOccurrences = [makeOcc('task-time', DUE_TODAY)];
