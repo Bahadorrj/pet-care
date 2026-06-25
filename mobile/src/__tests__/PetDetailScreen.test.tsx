@@ -125,6 +125,25 @@ const TASK_FIXTURE: Task = {
   updatedAt: '2024-01-01T00:00:00Z',
 };
 
+describe('PetDetailScreen – add-task button removed', () => {
+  test('petdetail-add-task button is not rendered', async () => {
+    const { queryByTestId } = await render(<PetDetailScreen />);
+    expect(queryByTestId('petdetail-add-task')).toBeNull();
+  });
+
+  test('task list still renders when pet has tasks', async () => {
+    mockTasks = [TASK_FIXTURE];
+    const { getByTestId } = await render(<PetDetailScreen />);
+    expect(getByTestId('petdetail-task-task-1')).toBeTruthy();
+  });
+
+  test('empty state renders when pet has no tasks', async () => {
+    mockTasks = [];
+    const { getByText } = await render(<PetDetailScreen />);
+    expect(getByText('امروز کاری برای انجام ندارید')).toBeTruthy();
+  });
+});
+
 describe('PetDetailScreen – tasks section (useShallow selector stability)', () => {
   test('renders task rows for this pet when store has matching tasks', async () => {
     // Inject tasks for this pet AND a decoy for another pet

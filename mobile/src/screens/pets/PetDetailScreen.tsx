@@ -196,16 +196,6 @@ export default function PetDetailScreen() {
             </View>
           )}
 
-          <Pressable
-            testID="petdetail-add-task"
-            onPress={() => navigation.navigate('TaskForm', { petId })}
-            style={({ pressed }) => [styles.addTaskButton, pressed && styles.addTaskButtonPressed]}
-            accessibilityRole="button"
-            accessibilityLabel={t('tasks.add')}
-          >
-            <Text style={styles.addTaskText}>{t('tasks.add')}</Text>
-          </Pressable>
-
           {petTasks.length === 0 ? (
             <Text style={styles.tasksEmpty}>{t('tasks.empty')}</Text>
           ) : (
@@ -384,23 +374,6 @@ const styles = StyleSheet.create({
     fontSize: typography.body.fontSize,
     lineHeight: typography.body.lineHeight,
     fontFamily: fonts.medium,
-    color: colors.primary,
-  },
-  addTaskButton: {
-    alignSelf: 'flex-start',
-    minHeight: 36,
-    borderRadius: radius.sm,
-    paddingHorizontal: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primarySoft,
-  },
-  addTaskButtonPressed: {
-    opacity: 0.7,
-  },
-  addTaskText: {
-    fontSize: typography.caption.fontSize,
-    fontFamily: fonts.semibold,
     color: colors.primary,
   },
   taskRow: {
