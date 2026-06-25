@@ -9,7 +9,7 @@ import { colors } from '../theme/theme';
 
 export type TasksStackParamList = {
   TasksHome: undefined;
-  TaskForm: { petId: string; taskId?: string; title?: string };
+  TaskForm: { petId?: string; taskId?: string; title?: string };
   QuickAdd: undefined;
 };
 
