@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Modal,
   Pressable,
@@ -6,19 +6,18 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useIsFocused, useNavigation } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import { useShallow } from 'zustand/react/shallow';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useActionSheet } from '@expo/react-native-action-sheet';
-import Toast from 'react-native-toast-message';
-import * as Haptics from 'expo-haptics';
+} from "react-native";
+import { Ionicons , MaterialCommunityIcons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
+import { useActionSheet } from "@expo/react-native-action-sheet";
+import Toast from "react-native-toast-message";
+import * as Haptics from "expo-haptics";
 import ReanimatedSwipeable, {
   type SwipeableMethods,
-} from 'react-native-gesture-handler/ReanimatedSwipeable';
+} from "react-native-gesture-handler/ReanimatedSwipeable";
 import Animated, {
   FadeOut,
   LinearTransition,
@@ -29,32 +28,50 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
-} from 'react-native-reanimated';
+} from "react-native-reanimated";
 
-import { useTasksStore } from '../../store/tasksStore';
-import { usePetsStore } from '../../store/petsStore';
-import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
-import { TASK_TYPE_ICON } from '../../theme/icons';
-import { utcIsoToTehranJalali, toPersianDigits } from '../../lib/jalali';
-import { bucketOccurrences } from './todayBuckets';
-import type { Occurrence, TaskType } from '../../db/types';
-import type { TasksNavigationProp } from '../../navigation/TasksStack';
+import { useTasksStore } from "../../store/tasksStore";
+import { usePetsStore } from "../../store/petsStore";
+import {
+  colors,
+  fonts,
+  radius,
+  shadow,
+  spacing,
+  typography,
+} from "../../theme/theme";
+import { TASK_TYPE_ICON } from "../../theme/icons";
+import { utcIsoToTehranJalali, toPersianDigits } from "../../lib/jalali";
+import { bucketOccurrences } from "./todayBuckets";
+import type { Occurrence, TaskType } from "../../db/types";
+import type { TasksNavigationProp } from "../../navigation/TasksStack";
 
 // ── Tehran time helper ─────────────────────────────────────────────────────────
 // ponytail: mirrors utcIsoToTehranTime in TaskFormScreen — shift +210 min, read UTC fields
 function toTehranTime(isoUtc: string): string {
   const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
   const d = new Date(tehranMs);
-  const h = String(d.getUTCHours()).padStart(2, '0');
-  const m = String(d.getUTCMinutes()).padStart(2, '0');
+  const h = String(d.getUTCHours()).padStart(2, "0");
+  const m = String(d.getUTCMinutes()).padStart(2, "0");
   return `${h}:${m}`;
 }
 
 // Haptics are a delight, never load-bearing — swallow failures (web / no actuator).
-const hapticSuccess = () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-const hapticLight = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+const hapticSuccess = () =>
+  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(
+    () => {},
+  );
+const hapticLight = () =>
+  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
-const TASK_TYPES: TaskType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'other'];
+const TASK_TYPES: TaskType[] = [
+  "feeding",
+  "meds",
+  "play",
+  "grooming",
+  "vet",
+  "other",
+];
 
 // ── Swipe action pane ────────────────────────────────────────────────────────
 // Width of a revealed swipe pane. The pane translates with the gesture's `drag`
@@ -62,9 +79,9 @@ const TASK_TYPES: TaskType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'o
 const SWIPE_WIDTH = 96;
 
 type SwipeActionProps = {
-  side: 'left' | 'right';
+  side: "left" | "right";
   drag: SharedValue<number>;
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
   iconColor: string;
   label: string;
   paneStyle: object;
@@ -74,12 +91,25 @@ type SwipeActionProps = {
 };
 
 function SwipeAction({
-  side, drag, icon, iconColor, label, paneStyle, textStyle, testID, onPress,
+  side,
+  drag,
+  icon,
+  iconColor,
+  label,
+  paneStyle,
+  textStyle,
+  testID,
+  onPress,
 }: SwipeActionProps) {
   // Left pane sits off-screen at -WIDTH and slides to 0 as you swipe right;
   // right pane sits at +WIDTH and slides to 0 as you swipe left.
   const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: side === 'left' ? drag.value - SWIPE_WIDTH : drag.value + SWIPE_WIDTH }],
+    transform: [
+      {
+        translateX:
+          side === "left" ? drag.value - SWIPE_WIDTH : drag.value + SWIPE_WIDTH,
+      },
+    ],
   }));
   return (
     <Animated.View style={[styles.swipePane, paneStyle, style]}>
@@ -98,13 +128,13 @@ function SwipeAction({
 }
 
 // ── Section list item types ────────────────────────────────────────────────────
-type SectionKind = 'overdue' | 'today' | 'upcoming';
+type SectionKind = "overdue" | "today" | "upcoming";
 
 // Items can be real occurrences, per-section empty placeholders, or day sub-headers
 type ListItem =
-  | { kind: 'occ'; occ: Occurrence }
-  | { kind: 'empty'; sectionKey: SectionKind }
-  | { kind: 'day'; label: string };
+  | { kind: "occ"; occ: Occurrence }
+  | { kind: "empty"; sectionKey: SectionKind }
+  | { kind: "day"; label: string };
 
 interface Section {
   sectionKey: SectionKind;
@@ -122,18 +152,28 @@ type RowProps = {
   onDelete: () => void;
 };
 
-function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelete }: RowProps) {
+function OccurrenceRow({
+  occ,
+  petName,
+  overdue,
+  onCheck,
+  onEdit,
+  onMore,
+  onDelete,
+}: RowProps) {
   const { t } = useTranslation();
   const { task, dueAt, status } = occ;
-  const isFinal = status === 'done' || status === 'skipped';
-  const isDone = status === 'done';
+  const isFinal = status === "done" || status === "skipped";
+  const isDone = status === "done";
   const reduced = useReducedMotion();
   const swipeRef = React.useRef<SwipeableMethods>(null);
 
   // Check-tick: a quick squash-and-settle when a task flips to done. Skip on the
   // first render (don't animate already-done rows on mount) and under reduced motion.
   const scale = useSharedValue(1);
-  const tickStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const tickStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
   const mounted = React.useRef(false);
   React.useEffect(() => {
     if (!mounted.current) {
@@ -141,7 +181,10 @@ function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelet
       return;
     }
     if (reduced || !isDone) return;
-    scale.value = withSequence(withTiming(0.8, { duration: 80 }), withSpring(1));
+    scale.value = withSequence(
+      withTiming(0.8, { duration: 80 }),
+      withSpring(1),
+    );
   }, [isDone, reduced, scale]);
 
   return (
@@ -164,7 +207,7 @@ function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelet
                   drag={drag}
                   icon="check"
                   iconColor={colors.onPrimary}
-                  label={t('tasks.action.done')}
+                  label={t("tasks.action.done")}
                   paneStyle={styles.swipeComplete}
                   textStyle={styles.swipeCompleteText}
                   testID={`tasks-swipe-complete-${task.id}`}
@@ -181,7 +224,7 @@ function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelet
             drag={drag}
             icon="trash-can-outline"
             iconColor={colors.danger}
-            label={t('tasks.action.delete')}
+            label={t("tasks.action.delete")}
             paneStyle={styles.swipeDelete}
             textStyle={styles.swipeDeleteText}
             testID={`tasks-swipe-delete-${task.id}`}
@@ -206,16 +249,18 @@ function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelet
             style={styles.checkbox}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isFinal }}
-            accessibilityLabel={isDone ? t('tasks.undo.done') : t('tasks.action.mark_done')}
+            accessibilityLabel={
+              isDone ? t("tasks.undo.done") : t("tasks.action.mark_done")
+            }
           >
             <Animated.View style={tickStyle}>
               <MaterialCommunityIcons
                 name={
                   isDone
-                    ? 'checkbox-marked-circle'
-                    : status === 'skipped'
-                      ? 'minus-circle-outline'
-                      : 'checkbox-blank-circle-outline'
+                    ? "checkbox-marked-circle"
+                    : status === "skipped"
+                      ? "minus-circle-outline"
+                      : "checkbox-blank-circle-outline"
                 }
                 size={24}
                 color={isDone ? colors.primary : colors.inkMuted}
@@ -237,15 +282,22 @@ function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelet
             <Text style={styles.petName} numberOfLines={1}>
               {petName}
             </Text>
-            <Text style={[styles.taskTitle, isFinal && styles.dimmedText]} numberOfLines={1}>
+            <Text
+              style={[styles.taskTitle, isFinal && styles.dimmedText]}
+              numberOfLines={1}
+            >
               {task.title ?? t(`tasks.type.${task.type}`)}
             </Text>
             <View style={styles.metaRow}>
-              <Text style={[styles.time, overdue && !isFinal && styles.timeOverdue]}>
+              <Text
+                style={[styles.time, overdue && !isFinal && styles.timeOverdue]}
+              >
                 {toPersianDigits(toTehranTime(dueAt))}
               </Text>
-              {status === 'skipped' && (
-                <Text style={styles.skippedTag}>{t('tasks.status.skipped')}</Text>
+              {status === "skipped" && (
+                <Text style={styles.skippedTag}>
+                  {t("tasks.status.skipped")}
+                </Text>
               )}
             </View>
           </View>
@@ -256,10 +308,14 @@ function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelet
             onPress={onMore}
             style={styles.moreBtn}
             accessibilityRole="button"
-            accessibilityLabel={t('tasks.action.more')}
+            accessibilityLabel={t("tasks.action.more")}
             hitSlop={8}
           >
-            <MaterialCommunityIcons name="dots-horizontal" size={20} color={colors.inkMuted} />
+            <MaterialCommunityIcons
+              name="dots-horizontal"
+              size={20}
+              color={colors.inkMuted}
+            />
           </Pressable>
         </Pressable>
       </ReanimatedSwipeable>
@@ -275,13 +331,19 @@ type TypeFilterModalProps = {
   onClose: () => void;
 };
 
-function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModalProps) {
+function TypeFilterModal({
+  visible,
+  selected,
+  onApply,
+  onClose,
+}: TypeFilterModalProps) {
   const { t } = useTranslation();
   // Local draft state — committed on Apply
   const [draft, setDraft] = React.useState<Set<TaskType>>(new Set(selected));
 
-  // Sync draft when modal opens with external selected
+  // Sync draft when modal opens with external selected — deliberate prop→state seed.
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (visible) setDraft(new Set(selected));
   }, [visible, selected]);
 
@@ -302,7 +364,12 @@ function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModa
       onRequestClose={onClose}
     >
       <Pressable style={styles.modalOverlay} onPress={onClose}>
-        <Pressable style={styles.modalSheet} onPress={() => {/* swallow */}}>
+        <Pressable
+          style={styles.modalSheet}
+          onPress={() => {
+            /* swallow */
+          }}
+        >
           <View style={styles.chipRow}>
             {TASK_TYPES.map((ct) => {
               const isSelected = draft.has(ct);
@@ -313,7 +380,12 @@ function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModa
                   style={[styles.chip, isSelected && styles.chipSelected]}
                   onPress={() => toggle(ct)}
                 >
-                  <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      isSelected && styles.chipTextSelected,
+                    ]}
+                  >
                     {t(`tasks.type.${ct}`)}
                   </Text>
                 </Pressable>
@@ -326,14 +398,18 @@ function TypeFilterModal({ visible, selected, onApply, onClose }: TypeFilterModa
               style={styles.modalClearBtn}
               onPress={() => setDraft(new Set())}
             >
-              <Text style={styles.modalClearText}>{t('tasks.filter.clear')}</Text>
+              <Text style={styles.modalClearText}>
+                {t("tasks.filter.clear")}
+              </Text>
             </Pressable>
             <Pressable
               testID="type-filter-apply"
               style={styles.modalApplyBtn}
               onPress={() => onApply(draft)}
             >
-              <Text style={styles.modalApplyText}>{t('tasks.filter.apply')}</Text>
+              <Text style={styles.modalApplyText}>
+                {t("tasks.filter.apply")}
+              </Text>
             </Pressable>
           </View>
         </Pressable>
@@ -388,7 +464,8 @@ export default function TasksScreen() {
     [filtered],
   );
 
-  const allBucketsEmpty = overdue.length === 0 && today.length === 0 && upcoming.length === 0;
+  const allBucketsEmpty =
+    overdue.length === 0 && today.length === 0 && upcoming.length === 0;
   const hasFilters = petFilter !== null || typeFilter.size > 0;
 
   // Whole-screen genuine empty (no data at all)
@@ -396,18 +473,22 @@ export default function TasksScreen() {
 
   if (windowIsEmpty) {
     return (
-      <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+      <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
         <View style={styles.emptyContainer} testID="tasks-empty">
-          <MaterialCommunityIcons name="leaf" size={48} color={colors.inkMuted} />
-          <Text style={styles.emptyTitle}>{t('tasks.empty_title')}</Text>
-          <Text style={styles.emptySubtitle}>{t('tasks.empty_subtitle')}</Text>
+          <MaterialCommunityIcons
+            name="leaf"
+            size={48}
+            color={colors.inkMuted}
+          />
+          <Text style={styles.emptyTitle}>{t("tasks.empty_title")}</Text>
+          <Text style={styles.emptySubtitle}>{t("tasks.empty_subtitle")}</Text>
         </View>
         <Pressable
           testID="tasks-fab"
-          onPress={() => navigation.navigate('TaskForm', {})}
+          onPress={() => navigation.navigate("TaskForm", {})}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
           accessibilityRole="button"
-          accessibilityLabel={t('tasks.add')}
+          accessibilityLabel={t("tasks.add")}
         >
           <Ionicons name="add" size={28} color="#FFFFFF" />
         </Pressable>
@@ -418,36 +499,36 @@ export default function TasksScreen() {
   // Build upcoming items with inline day sub-headers
   const upcomingItems: ListItem[] = [];
   if (upcoming.length === 0) {
-    upcomingItems.push({ kind: 'empty', sectionKey: 'upcoming' });
+    upcomingItems.push({ kind: "empty", sectionKey: "upcoming" });
   } else {
-    let lastDay = '';
+    let lastDay = "";
     for (const occ of upcoming) {
       const day = utcIsoToTehranJalali(occ.dueAt);
       if (day !== lastDay) {
-        upcomingItems.push({ kind: 'day', label: day });
+        upcomingItems.push({ kind: "day", label: day });
         lastDay = day;
       }
-      upcomingItems.push({ kind: 'occ', occ });
+      upcomingItems.push({ kind: "occ", occ });
     }
   }
 
   const sections: Section[] = [
     {
-      sectionKey: 'overdue',
+      sectionKey: "overdue",
       data:
         overdue.length === 0
-          ? [{ kind: 'empty', sectionKey: 'overdue' }]
-          : overdue.map((occ) => ({ kind: 'occ', occ })),
+          ? [{ kind: "empty", sectionKey: "overdue" }]
+          : overdue.map((occ) => ({ kind: "occ", occ })),
     },
     {
-      sectionKey: 'today',
+      sectionKey: "today",
       data:
         today.length === 0
-          ? [{ kind: 'empty', sectionKey: 'today' }]
-          : today.map((occ) => ({ kind: 'occ', occ })),
+          ? [{ kind: "empty", sectionKey: "today" }]
+          : today.map((occ) => ({ kind: "occ", occ })),
     },
     {
-      sectionKey: 'upcoming',
+      sectionKey: "upcoming",
       data: upcomingItems,
     },
   ];
@@ -460,19 +541,19 @@ export default function TasksScreen() {
   };
 
   // Progress: tasks-bucket items excluding skipped
-  const todayForProgress = today.filter((o) => o.status !== 'skipped');
-  const todayDone = todayForProgress.filter((o) => o.status === 'done').length;
+  const todayForProgress = today.filter((o) => o.status !== "skipped");
+  const todayDone = todayForProgress.filter((o) => o.status === "done").length;
   const todayTotal = todayForProgress.length;
 
   function handleCheck(occ: Occurrence) {
     const { task, dueAt, status } = occ;
-    if (status === 'done' || status === 'skipped') return;
+    if (status === "done" || status === "skipped") return;
     hapticSuccess();
-    markOccurrence(task.id, dueAt, 'done');
+    markOccurrence(task.id, dueAt, "done");
     Toast.show({
-      type: 'success',
-      text1: t('tasks.undo.done'),
-      text2: t('tasks.undo.action'),
+      type: "success",
+      text1: t("tasks.undo.done"),
+      text2: t("tasks.undo.action"),
       visibilityTime: 4000,
       onPress: () => {
         unmarkOccurrence(task.id, dueAt);
@@ -484,24 +565,27 @@ export default function TasksScreen() {
   function handleMore(occ: Occurrence) {
     const { task, dueAt } = occ;
     const deleteLabel =
-      task.schedule.kind === 'one_off'
-        ? t('tasks.action.delete_one_off')
-        : t('tasks.action.delete_recurring');
+      task.schedule.kind === "one_off"
+        ? t("tasks.action.delete_one_off")
+        : t("tasks.action.delete_recurring");
 
     const options = [
-      t('tasks.action.skip'),
-      t('tasks.action.edit'),
+      t("tasks.action.skip"),
+      t("tasks.action.edit"),
       deleteLabel,
-      t('tasks.action.cancel'),
+      t("tasks.action.cancel"),
     ];
 
     showActionSheetWithOptions(
       { options, destructiveButtonIndex: 2, cancelButtonIndex: 3 },
       (index?: number) => {
         if (index === 0) {
-          markOccurrence(task.id, dueAt, 'skipped');
+          markOccurrence(task.id, dueAt, "skipped");
         } else if (index === 1) {
-          navigation.navigate('TaskForm', { petId: task.petId, taskId: task.id });
+          navigation.navigate("TaskForm", {
+            petId: task.petId,
+            taskId: task.id,
+          });
         } else if (index === 2) {
           deleteTask(task.id);
         }
@@ -522,13 +606,13 @@ export default function TasksScreen() {
                 testID="progress-dot"
                 style={[
                   styles.progressDot,
-                  o.status === 'done' && styles.progressDotDone,
+                  o.status === "done" && styles.progressDotDone,
                 ]}
               />
             ))}
           </View>
           <Text style={styles.progressText}>
-            {t('tasks.progress', { done: todayDone, total: todayTotal })}
+            {t("tasks.progress", { done: todayDone, total: todayTotal })}
           </Text>
         </View>
       )}
@@ -538,20 +622,31 @@ export default function TasksScreen() {
         {/* Pet chips: All + one per pet */}
         <Pressable
           testID="tasks-filter-pet-all"
-          style={[styles.filterChip, petFilter === null && styles.filterChipSelected]}
+          style={[
+            styles.filterChip,
+            petFilter === null && styles.filterChipSelected,
+          ]}
           onPress={() => setPetFilter(null)}
           accessibilityRole="button"
           accessibilityState={{ selected: petFilter === null }}
         >
-          <Text style={[styles.filterChipText, petFilter === null && styles.filterChipTextSelected]}>
-            {t('tasks.filter.all')}
+          <Text
+            style={[
+              styles.filterChipText,
+              petFilter === null && styles.filterChipTextSelected,
+            ]}
+          >
+            {t("tasks.filter.all")}
           </Text>
         </Pressable>
         {pets.map((p) => (
           <Pressable
             key={p.id}
             testID={`tasks-filter-pet-${p.id}`}
-            style={[styles.filterChip, petFilter === p.id && styles.filterChipSelected]}
+            style={[
+              styles.filterChip,
+              petFilter === p.id && styles.filterChipSelected,
+            ]}
             onPress={() => setPetFilter(petFilter === p.id ? null : p.id)}
             accessibilityRole="button"
             accessibilityState={{ selected: petFilter === p.id }}
@@ -570,7 +665,10 @@ export default function TasksScreen() {
         {/* Type filter button */}
         <Pressable
           testID="tasks-type-filter"
-          style={[styles.filterChip, typeFilter.size > 0 && styles.filterChipSelected]}
+          style={[
+            styles.filterChip,
+            typeFilter.size > 0 && styles.filterChipSelected,
+          ]}
           onPress={() => setTypeModalVisible(true)}
           accessibilityRole="button"
           accessibilityState={{ selected: typeFilter.size > 0 }}
@@ -581,8 +679,8 @@ export default function TasksScreen() {
               typeFilter.size > 0 && styles.filterChipTextSelected,
             ]}
           >
-            {t('tasks.filter.type')}
-            {typeFilter.size > 0 ? ` (${typeFilter.size})` : ''}
+            {t("tasks.filter.type")}
+            {typeFilter.size > 0 ? ` (${typeFilter.size})` : ""}
           </Text>
         </Pressable>
       </View>
@@ -590,14 +688,16 @@ export default function TasksScreen() {
       {/* No-match state when filters empty everything but window has data */}
       {allBucketsEmpty && hasFilters && (
         <View style={styles.noMatchContainer} testID="tasks-no-match">
-          <Text style={styles.noMatchText}>{t('tasks.no_match')}</Text>
+          <Text style={styles.noMatchText}>{t("tasks.no_match")}</Text>
           <Pressable
             onPress={() => {
               setPetFilter(null);
               setTypeFilter(new Set());
             }}
           >
-            <Text style={styles.clearFiltersText}>{t('tasks.filter.clear')}</Text>
+            <Text style={styles.clearFiltersText}>
+              {t("tasks.filter.clear")}
+            </Text>
           </Pressable>
         </View>
       )}
@@ -605,7 +705,7 @@ export default function TasksScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
       <TypeFilterModal
         visible={typeModalVisible}
         selected={typeFilter}
@@ -617,18 +717,19 @@ export default function TasksScreen() {
       />
       <Pressable
         testID="tasks-fab"
-        onPress={() => navigation.navigate('TaskForm', {})}
+        onPress={() => navigation.navigate("TaskForm", {})}
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         accessibilityRole="button"
-        accessibilityLabel={t('tasks.add')}
+        accessibilityLabel={t("tasks.add")}
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </Pressable>
       <SectionList
         sections={sections}
         keyExtractor={(item, index) => {
-          if (item.kind === 'occ') return `${item.occ.task.id}-${item.occ.dueAt}`;
-          if (item.kind === 'day') return `day-${item.label}-${index}`;
+          if (item.kind === "occ")
+            return `${item.occ.task.id}-${item.occ.dueAt}`;
+          if (item.kind === "day") return `day-${item.label}-${index}`;
           return `empty-${item.sectionKey}`;
         }}
         contentContainerStyle={styles.list}
@@ -638,7 +739,10 @@ export default function TasksScreen() {
           const sec = section as Section;
           const count = counts[sec.sectionKey];
           return (
-            <View style={styles.sectionHeader} testID={`tasks-section-${sec.sectionKey}`}>
+            <View
+              style={styles.sectionHeader}
+              testID={`tasks-section-${sec.sectionKey}`}
+            >
               <Text style={styles.sectionTitle}>
                 {`${t(`tasks.section.${sec.sectionKey}`)} · ${toPersianDigits(count)}`}
               </Text>
@@ -647,17 +751,24 @@ export default function TasksScreen() {
         }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item, section }) => {
-          if (item.kind === 'empty') {
+          if (item.kind === "empty") {
             return (
-              <View style={styles.sectionEmptyRow} testID={`tasks-empty-${item.sectionKey}`}>
-                <Text style={styles.sectionEmptyText}>{t(`tasks.empty.${item.sectionKey}`)}</Text>
+              <View
+                style={styles.sectionEmptyRow}
+                testID={`tasks-empty-${item.sectionKey}`}
+              >
+                <Text style={styles.sectionEmptyText}>
+                  {t(`tasks.empty.${item.sectionKey}`)}
+                </Text>
               </View>
             );
           }
-          if (item.kind === 'day') {
+          if (item.kind === "day") {
             return (
               <View style={styles.dayHeader}>
-                <Text style={styles.dayHeaderText}>{toPersianDigits(item.label)}</Text>
+                <Text style={styles.dayHeaderText}>
+                  {toPersianDigits(item.label)}
+                </Text>
               </View>
             );
           }
@@ -666,10 +777,15 @@ export default function TasksScreen() {
           return (
             <OccurrenceRow
               occ={occ}
-              petName={petNameById[occ.task.petId] ?? ''}
-              overdue={(section as Section).sectionKey === 'overdue'}
+              petName={petNameById[occ.task.petId] ?? ""}
+              overdue={(section as Section).sectionKey === "overdue"}
               onCheck={() => handleCheck(occ)}
-              onEdit={() => navigation.navigate('TaskForm', { petId: occ.task.petId, taskId: occ.task.id })}
+              onEdit={() =>
+                navigation.navigate("TaskForm", {
+                  petId: occ.task.petId,
+                  taskId: occ.task.id,
+                })
+              }
               onMore={() => handleMore(occ)}
               onDelete={() => {
                 hapticLight();
@@ -731,8 +847,8 @@ const styles = StyleSheet.create({
   },
   // Row
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     paddingVertical: spacing.md,
     minHeight: 64,
@@ -745,12 +861,12 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 44,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   typeIcon: {
     width: 28,
-    textAlign: 'center',
+    textAlign: "center",
   },
   rowInfo: {
     flex: 1,
@@ -772,8 +888,8 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
   },
   metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   time: {
@@ -781,7 +897,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
-    fontVariant: ['tabular-nums'],
+    fontVariant: ["tabular-nums"],
   },
   timeOverdue: {
     color: colors.danger,
@@ -795,19 +911,19 @@ const styles = StyleSheet.create({
   moreBtn: {
     width: 44,
     height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   // Swipe-action panes
   swipePane: {
     width: SWIPE_WIDTH,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   swipePaneBtn: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.xs,
   },
   swipeComplete: {
@@ -829,8 +945,8 @@ const styles = StyleSheet.create({
   // Empty state (whole screen)
   emptyContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: spacing.md,
     paddingHorizontal: spacing.xxl,
   },
@@ -839,14 +955,14 @@ const styles = StyleSheet.create({
     lineHeight: typography.bodyLg.lineHeight,
     fontFamily: fonts.semibold,
     color: colors.ink,
-    textAlign: 'center',
+    textAlign: "center",
   },
   emptySubtitle: {
     fontSize: typography.body.fontSize,
     lineHeight: typography.body.lineHeight,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
-    textAlign: 'center',
+    textAlign: "center",
   },
   // Progress indicator
   progressContainer: {
@@ -854,9 +970,9 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   progressDotsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 4,
-    flexWrap: 'wrap',
+    flexWrap: "wrap",
   },
   progressDot: {
     width: 8,
@@ -874,14 +990,14 @@ const styles = StyleSheet.create({
   },
   // Filter bar
   filterBar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.xs,
     paddingVertical: spacing.sm,
   },
   filterChip: {
     minHeight: 44,
-    justifyContent: 'center',
+    justifyContent: "center",
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
@@ -904,7 +1020,7 @@ const styles = StyleSheet.create({
   },
   // No-match state
   noMatchContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: spacing.xl,
     gap: spacing.sm,
   },
@@ -912,7 +1028,7 @@ const styles = StyleSheet.create({
     fontSize: typography.body.fontSize,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
-    textAlign: 'center',
+    textAlign: "center",
   },
   clearFiltersText: {
     fontSize: typography.body.fontSize,
@@ -921,15 +1037,15 @@ const styles = StyleSheet.create({
   },
   // FAB
   fab: {
-    position: 'absolute',
+    position: "absolute",
     bottom: spacing.xl,
     end: spacing.xl,
     width: 56,
     height: 56,
     borderRadius: radius.pill,
     backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 10,
     ...shadow.card,
   },
@@ -939,8 +1055,8 @@ const styles = StyleSheet.create({
   // Type filter modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
   },
   modalSheet: {
     backgroundColor: colors.bg,
@@ -950,8 +1066,8 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   chip: {
@@ -962,8 +1078,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   chipSelected: {
     backgroundColor: colors.primarySoft,
@@ -980,8 +1096,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   modalFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: "row",
+    justifyContent: "flex-end",
     gap: spacing.md,
   },
   modalClearBtn: {

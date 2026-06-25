@@ -5,4 +5,19 @@ const expoConfig = require("eslint-config-expo/flat");
 module.exports = defineConfig([
   expoConfig,
   { ignores: ["node_modules", ".expo", "dist"] },
+  {
+    // Tests/mocks run under Jest; expo's flat config registers describe/it/expect
+    // but not the `jest` object itself.
+    files: ["src/__tests__/**", "__mocks__/**", "jest-setup.js"],
+    languageOptions: { globals: { jest: "readonly" } },
+  },
+  {
+    // react-hooks v6's compiler-aware rules misfire on RN's animation APIs:
+    // Animated.Value is read during render to build interpolations, and Reanimated
+    // shared values are mutated by design. Both are correct, idiomatic usage here.
+    rules: {
+      "react-hooks/refs": "off",
+      "react-hooks/immutability": "off",
+    },
+  },
 ]);
