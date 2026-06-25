@@ -1,6 +1,6 @@
 /**
- * Jalali date helpers — extracted from TaskFormScreen so QuickAddScreen can
- * share them without duplication. Logic is unchanged; only the location moved.
+ * Jalali date helpers — extracted from TaskFormScreen so it can be shared
+ * without duplication. Logic is unchanged; only the location moved.
  *
  * Tehran offset is a fixed +03:30 (no DST in Iran).
  */

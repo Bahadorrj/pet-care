@@ -4,13 +4,11 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import TasksScreen from '../screens/tasks/TasksScreen';
 import TaskFormScreen from '../screens/tasks/TaskFormScreen';
-import QuickAddScreen from '../screens/tasks/QuickAddScreen';
 import { colors } from '../theme/theme';
 
 export type TasksStackParamList = {
   TasksHome: undefined;
   TaskForm: { petId?: string; taskId?: string; title?: string };
-  QuickAdd: undefined;
 };
 
 export type TasksNavigationProp = NativeStackNavigationProp<TasksStackParamList>;
@@ -31,7 +29,6 @@ export default function TasksStack() {
     >
       <Stack.Screen name="TasksHome" component={TasksScreen} options={{ headerShown: false }} />
       <Stack.Screen name="TaskForm" component={TaskFormScreen} />
-      <Stack.Screen name="QuickAdd" component={QuickAddScreen} options={{ presentation: 'formSheet' }} />
     </Stack.Navigator>
   );
 }
