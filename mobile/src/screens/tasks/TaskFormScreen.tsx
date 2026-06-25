@@ -34,6 +34,7 @@ import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
 import { jalaliToGregorian, tehranTodayJalali, utcIsoToTehranJalali } from '../../lib/jalali';
 import { useTasksStore } from '../../store/tasksStore';
+import { usePetsStore } from '../../store/petsStore';
 import { getTask } from '../../db/tasks';
 import { toUtcIso } from '../../lib/taskSchedule';
 import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
@@ -88,11 +89,26 @@ export default function TaskFormScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
   const route = useRoute<TaskFormRouteProp>();
-  const { petId, taskId } = route.params;
+  const { taskId } = route.params;
   const isEdit = taskId != null;
 
   // Prefill in edit mode
   const existing = isEdit ? getTask(taskId) : null;
+
+  // ── Pets store ───────────────────────────────────────────────────────────────
+  const pets = usePetsStore((s) => s.pets);
+
+  // ── Pet selection (add mode only) ─────────────────────────────────────────
+  const [petIds, setPetIds] = useState<string[]>(
+    !isEdit && pets.length === 1 ? [pets[0].id] : [],
+  );
+  const [petError, setPetError] = useState('');
+  const togglePet = (id: string) => {
+    setPetIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+    if (petError) setPetError('');
+  };
 
   // ── Type ────────────────────────────────────────────────────────────────────
   const [taskType, setTaskType] = useState<TaskType | null>(existing?.type ?? null);
@@ -205,6 +221,12 @@ export default function TaskFormScreen() {
 
   // ── Submit ───────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
+    // Pet selection validation (add mode only) — checked BEFORE in-flight guard
+    if (!isEdit && petIds.length === 0) {
+      setPetError(t('tasks.error.pet_required'));
+      return;
+    }
+
     if (inFlightRef.current) return;
 
     // Client-side type check
@@ -263,8 +285,7 @@ export default function TaskFormScreen() {
     try {
       // buildSchedule may throw (e.g. invalid Jalali date) — inside try so error surfaces
       const schedule = buildSchedule();
-      const input = {
-        petId,
+      const baseInput = {
         type: taskType,
         title: title.trim() || null,
         schedule,
@@ -275,17 +296,11 @@ export default function TaskFormScreen() {
       };
 
       if (isEdit && taskId) {
-        await updateTask(taskId, {
-          type: input.type,
-          title: input.title,
-          schedule: input.schedule,
-          endKind: input.endKind,
-          endUntil: input.endUntil,
-          endCount: input.endCount,
-          active: true,
-        });
+        await updateTask(taskId, baseInput);
       } else {
-        await addTask(input);
+        for (const pid of petIds) {
+          await addTask({ ...baseInput, petId: pid });
+        }
       }
       navigation.goBack();
     } catch (err) {
@@ -313,6 +328,43 @@ export default function TaskFormScreen() {
           contentContainerStyle={styles.form}
           keyboardShouldPersistTaps="handled"
         >
+          {/* ── Pet picker (add) / pet name read-only (edit) ──────────────── */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>{t('tasks.field.pet')}</Text>
+            {isEdit ? (
+              <Text testID="taskform-pet-name" style={styles.label}>
+                {pets.find((p) => p.id === existing?.petId)?.name ?? ''}
+              </Text>
+            ) : (
+              <>
+                <View style={styles.chipRow}>
+                  {pets.map((pet) => (
+                    <Pressable
+                      key={pet.id}
+                      testID={`taskform-pet-${pet.id}`}
+                      onPress={() => togglePet(pet.id)}
+                      style={[styles.chip, petIds.includes(pet.id) && styles.chipSelected]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: petIds.includes(pet.id) }}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          petIds.includes(pet.id) && styles.chipTextSelected,
+                        ]}
+                      >
+                        {pet.name}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {petError !== '' && (
+                  <Text style={styles.errorText}>{petError}</Text>
+                )}
+              </>
+            )}
+          </View>
+
           {/* ── Type chips ─────────────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>{t('tasks.field.type')}</Text>

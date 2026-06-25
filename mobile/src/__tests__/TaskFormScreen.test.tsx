@@ -40,6 +40,17 @@ jest.mock('../store/tasksStore', () => ({
   ) => selector({ addTask: mockAddTask, updateTask: mockUpdateTask }),
 }));
 
+// ── Pets store mock ───────────────────────────────────────────────────────────
+import type { Pet } from '../db/types';
+
+let mockPets: Pet[] = [
+  { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+];
+
+jest.mock('../store/petsStore', () => ({
+  usePetsStore: (selector: (s: { pets: Pet[] }) => unknown) => selector({ pets: mockPets }),
+}));
+
 // ── DB mock ───────────────────────────────────────────────────────────────────
 const mockGetTask = jest.fn();
 jest.mock('../db/tasks', () => ({
@@ -60,6 +71,7 @@ jest.mock('@react-navigation/native', () => ({
 import '../i18n';
 import TaskFormScreen from '../screens/tasks/TaskFormScreen';
 import type { Task } from '../db/types';
+// Note: Pet type imported above (before jest.mock) — no second import needed
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -97,6 +109,9 @@ beforeEach(() => {
   mockGetTask.mockReset();
   mockGoBack.mockClear();
   mockRouteParams = { petId: 'pet-1' };
+  mockPets = [
+    { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+  ];
 });
 
 // ── 1. Add – daily_times happy path ──────────────────────────────────────────
@@ -381,6 +396,77 @@ describe('TaskFormScreen – in-flight guard', () => {
       expect(mockAddTask).toHaveBeenCalledTimes(1);
       resolveAdd();
     });
+  });
+});
+
+// ── 9. Pet picker – multi-pet submit ─────────────────────────────────────────
+
+describe('TaskFormScreen – pet picker – multi-pet submit', () => {
+  test('selecting two pets calls addTask twice with distinct petIds and same payload', async () => {
+    mockAddTask.mockResolvedValue(undefined);
+    mockPets = [
+      { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+      { id: 'pet-2', name: 'پیشی', species: 'cat', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+    ];
+
+    const { getByTestId } = await render(<TaskFormScreen />);
+
+    await press(getByTestId('taskform-pet-pet-1'));
+    await press(getByTestId('taskform-pet-pet-2'));
+    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId('taskform-submit'));
+
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(2));
+
+    const calls = mockAddTask.mock.calls.map((c) => c[0]);
+    const petIds = calls.map((c) => c.petId);
+    expect(petIds).toContain('pet-1');
+    expect(petIds).toContain('pet-2');
+    // Same payload otherwise
+    expect(calls[0].type).toBe('feeding');
+    expect(calls[1].type).toBe('feeding');
+    expect(calls[0].schedule.kind).toBe(calls[1].schedule.kind);
+  });
+});
+
+// ── 10. Pet picker – empty selection ─────────────────────────────────────────
+
+describe('TaskFormScreen – pet picker – empty selection error', () => {
+  test('no pet selected → shows pet_required error, addTask not called', async () => {
+    mockPets = [
+      { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+      { id: 'pet-2', name: 'پیشی', species: 'cat', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+    ];
+
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
+
+    // Neither pet pre-selected (two pets → no auto-select)
+    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId('taskform-submit'));
+
+    await waitFor(() =>
+      expect(getByText('حداقل یک حیوان را انتخاب کنید')).toBeTruthy(),
+    );
+    expect(mockAddTask).not.toHaveBeenCalled();
+  });
+});
+
+// ── 11. Edit mode pet name display ────────────────────────────────────────────
+
+describe('TaskFormScreen – Edit mode – pet name read-only', () => {
+  beforeEach(() => {
+    mockRouteParams = { petId: 'pet-1', taskId: EXISTING_TASK.id };
+    mockGetTask.mockReturnValue(EXISTING_TASK);
+  });
+
+  test('edit mode shows pet name text, no picker chips', async () => {
+    const { getByTestId, queryByTestId } = await render(<TaskFormScreen />);
+
+    // Pet name displayed
+    expect(getByTestId('taskform-pet-name').props.children).toBe('رکس');
+
+    // No picker chip rendered
+    expect(queryByTestId('taskform-pet-pet-1')).toBeNull();
   });
 });
 
