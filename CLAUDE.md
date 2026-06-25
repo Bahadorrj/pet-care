@@ -27,5 +27,5 @@ Quick setup: `docs/running-the-app.md` covers the full local stack (all dependen
 
 ## Sub-Guides
 
-- **`backend/CLAUDE.md`** — Backend commands (uv, pytest, alembic), auth layer, services, tests
-- **`mobile/CLAUDE.md`** — Mobile commands (expo, jest), navigator, auth store, i18n, theme
+- @backend/CLAUDE.md — Backend commands (uv, pytest, alembic), auth layer, services, tests
+- @mobile/CLAUDE.md — Mobile commands (expo, jest), navigator, auth store, i18n, theme
