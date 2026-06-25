@@ -15,6 +15,21 @@ import { useShallow } from 'zustand/react/shallow';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import Toast from 'react-native-toast-message';
+import * as Haptics from 'expo-haptics';
+import ReanimatedSwipeable, {
+  type SwipeableMethods,
+} from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, {
+  FadeOut,
+  LinearTransition,
+  type SharedValue,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 import { useTasksStore } from '../../store/tasksStore';
 import { usePetsStore } from '../../store/petsStore';
@@ -35,15 +50,52 @@ function toTehranTime(isoUtc: string): string {
   return `${h}:${m}`;
 }
 
-// Status badge colors
-const STATUS_COLOR: Record<Occurrence['status'], string> = {
-  pending: colors.inkMuted,
-  missed: colors.danger,
-  done: colors.primary,
-  skipped: colors.inkMuted,
-};
+// Haptics are a delight, never load-bearing — swallow failures (web / no actuator).
+const hapticSuccess = () => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+const hapticLight = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
 const TASK_TYPES: TaskType[] = ['feeding', 'meds', 'play', 'grooming', 'vet', 'other'];
+
+// ── Swipe action pane ────────────────────────────────────────────────────────
+// Width of a revealed swipe pane. The pane translates with the gesture's `drag`
+// value so it tracks the finger instead of popping in/out.
+const SWIPE_WIDTH = 96;
+
+type SwipeActionProps = {
+  side: 'left' | 'right';
+  drag: SharedValue<number>;
+  icon: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  iconColor: string;
+  label: string;
+  paneStyle: object;
+  textStyle: object;
+  testID: string;
+  onPress: () => void;
+};
+
+function SwipeAction({
+  side, drag, icon, iconColor, label, paneStyle, textStyle, testID, onPress,
+}: SwipeActionProps) {
+  // Left pane sits off-screen at -WIDTH and slides to 0 as you swipe right;
+  // right pane sits at +WIDTH and slides to 0 as you swipe left.
+  const style = useAnimatedStyle(() => ({
+    transform: [{ translateX: side === 'left' ? drag.value - SWIPE_WIDTH : drag.value + SWIPE_WIDTH }],
+  }));
+  return (
+    <Animated.View style={[styles.swipePane, paneStyle, style]}>
+      <Pressable
+        testID={testID}
+        onPress={onPress}
+        style={styles.swipePaneBtn}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+      >
+        <MaterialCommunityIcons name={icon} size={22} color={iconColor} />
+        <Text style={textStyle}>{label}</Text>
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 // ── Section list item types ────────────────────────────────────────────────────
 type SectionKind = 'overdue' | 'today' | 'upcoming';
@@ -63,75 +115,155 @@ interface Section {
 type RowProps = {
   occ: Occurrence;
   petName: string;
+  overdue: boolean;
   onCheck: () => void;
+  onEdit: () => void;
   onMore: () => void;
+  onDelete: () => void;
 };
 
-function OccurrenceRow({ occ, petName, onCheck, onMore }: RowProps) {
+function OccurrenceRow({ occ, petName, overdue, onCheck, onEdit, onMore, onDelete }: RowProps) {
   const { t } = useTranslation();
   const { task, dueAt, status } = occ;
   const isFinal = status === 'done' || status === 'skipped';
+  const isDone = status === 'done';
+  const reduced = useReducedMotion();
+  const swipeRef = React.useRef<SwipeableMethods>(null);
+
+  // Check-tick: a quick squash-and-settle when a task flips to done. Skip on the
+  // first render (don't animate already-done rows on mount) and under reduced motion.
+  const scale = useSharedValue(1);
+  const tickStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const mounted = React.useRef(false);
+  React.useEffect(() => {
+    if (!mounted.current) {
+      mounted.current = true;
+      return;
+    }
+    if (reduced || !isDone) return;
+    scale.value = withSequence(withTiming(0.8, { duration: 80 }), withSpring(1));
+  }, [isDone, reduced, scale]);
 
   return (
-    <Pressable
-      testID={`tasks-row-${task.id}`}
-      style={[styles.row, isFinal && styles.rowDimmed]}
-      onPress={onMore}
-      accessibilityRole="none"
+    <Animated.View
+      layout={reduced ? undefined : LinearTransition}
+      exiting={reduced ? undefined : FadeOut.duration(180)}
     >
-      {/* Leading checkbox */}
-      <Pressable
-        testID={`tasks-check-${task.id}`}
-        onPress={onCheck}
-        style={styles.checkbox}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: isFinal }}
+      <ReanimatedSwipeable
+        ref={swipeRef}
+        friction={2}
+        leftThreshold={SWIPE_WIDTH * 0.5}
+        rightThreshold={SWIPE_WIDTH * 0.5}
+        // Panes track the gesture via `drag`; tap to confirm (no accidental fire).
+        renderLeftActions={
+          isFinal
+            ? undefined
+            : (_prog, drag) => (
+                <SwipeAction
+                  side="left"
+                  drag={drag}
+                  icon="check"
+                  iconColor={colors.onPrimary}
+                  label={t('tasks.action.done')}
+                  paneStyle={styles.swipeComplete}
+                  textStyle={styles.swipeCompleteText}
+                  testID={`tasks-swipe-complete-${task.id}`}
+                  onPress={() => {
+                    swipeRef.current?.close();
+                    onCheck();
+                  }}
+                />
+              )
+        }
+        renderRightActions={(_prog, drag) => (
+          <SwipeAction
+            side="right"
+            drag={drag}
+            icon="trash-can-outline"
+            iconColor={colors.danger}
+            label={t('tasks.action.delete')}
+            paneStyle={styles.swipeDelete}
+            textStyle={styles.swipeDeleteText}
+            testID={`tasks-swipe-delete-${task.id}`}
+            onPress={() => {
+              swipeRef.current?.close();
+              onDelete();
+            }}
+          />
+        )}
       >
-        <MaterialCommunityIcons
-          name={isFinal ? 'checkbox-marked-circle' : 'checkbox-blank-circle-outline'}
-          size={24}
-          color={isFinal ? colors.primary : colors.inkFaint}
-        />
-      </Pressable>
+        <Pressable
+          testID={`tasks-row-${task.id}`}
+          style={[styles.row, isFinal && styles.rowDimmed]}
+          onPress={onEdit}
+          accessibilityRole="button"
+          accessibilityLabel={`${petName} — ${task.title ?? t(`tasks.type.${task.type}`)}`}
+        >
+          {/* Leading checkbox — the single completion affordance */}
+          <Pressable
+            testID={`tasks-check-${task.id}`}
+            onPress={onCheck}
+            style={styles.checkbox}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: isFinal }}
+            accessibilityLabel={isDone ? t('tasks.undo.done') : t('tasks.action.mark_done')}
+          >
+            <Animated.View style={tickStyle}>
+              <MaterialCommunityIcons
+                name={
+                  isDone
+                    ? 'checkbox-marked-circle'
+                    : status === 'skipped'
+                      ? 'minus-circle-outline'
+                      : 'checkbox-blank-circle-outline'
+                }
+                size={24}
+                color={isDone ? colors.primary : colors.inkMuted}
+              />
+            </Animated.View>
+          </Pressable>
 
-      {/* Type icon */}
-      <MaterialCommunityIcons
-        name={TASK_TYPE_ICON[task.type]}
-        size={22}
-        color={isFinal ? colors.inkFaint : colors.primary}
-        style={styles.typeIcon}
-        accessibilityLabel={t(`tasks.type.${task.type}`)}
-      />
+          {/* Type icon — a category signifier, not an action: stays neutral */}
+          <MaterialCommunityIcons
+            name={TASK_TYPE_ICON[task.type]}
+            size={22}
+            color={colors.inkMuted}
+            style={styles.typeIcon}
+            accessibilityLabel={t(`tasks.type.${task.type}`)}
+          />
 
-      {/* Middle: info */}
-      <View style={styles.rowInfo}>
-        <Text style={[styles.petName, isFinal && styles.dimmedText]} numberOfLines={1}>
-          {petName}
-        </Text>
-        <Text style={[styles.taskTitle, isFinal && styles.dimmedText]} numberOfLines={1}>
-          {task.title ?? t(`tasks.type.${task.type}`)}
-        </Text>
-        <View style={styles.metaRow}>
-          <Text style={[styles.time, isFinal && styles.dimmedText]}>{toPersianDigits(toTehranTime(dueAt))}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: STATUS_COLOR[status] + '22' }]}>
-            <Text style={[styles.statusText, { color: STATUS_COLOR[status] }]}>
-              {t(`tasks.status.${status}`)}
+          {/* Middle: info */}
+          <View style={styles.rowInfo}>
+            <Text style={styles.petName} numberOfLines={1}>
+              {petName}
             </Text>
+            <Text style={[styles.taskTitle, isFinal && styles.dimmedText]} numberOfLines={1}>
+              {task.title ?? t(`tasks.type.${task.type}`)}
+            </Text>
+            <View style={styles.metaRow}>
+              <Text style={[styles.time, overdue && !isFinal && styles.timeOverdue]}>
+                {toPersianDigits(toTehranTime(dueAt))}
+              </Text>
+              {status === 'skipped' && (
+                <Text style={styles.skippedTag}>{t('tasks.status.skipped')}</Text>
+              )}
+            </View>
           </View>
-        </View>
-      </View>
 
-      {/* Trailing ⋯ button */}
-      <Pressable
-        testID={`tasks-more-${task.id}`}
-        onPress={onMore}
-        style={styles.moreBtn}
-        accessibilityRole="button"
-        hitSlop={8}
-      >
-        <MaterialCommunityIcons name="dots-horizontal" size={20} color={colors.inkMuted} />
-      </Pressable>
-    </Pressable>
+          {/* Trailing ⋯ button — opens the full action menu */}
+          <Pressable
+            testID={`tasks-more-${task.id}`}
+            onPress={onMore}
+            style={styles.moreBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t('tasks.action.more')}
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons name="dots-horizontal" size={20} color={colors.inkMuted} />
+          </Pressable>
+        </Pressable>
+      </ReanimatedSwipeable>
+    </Animated.View>
   );
 }
 
@@ -266,7 +398,7 @@ export default function TasksScreen() {
     return (
       <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
         <View style={styles.emptyContainer} testID="tasks-empty">
-          <MaterialCommunityIcons name="leaf" size={48} color={colors.inkFaint} />
+          <MaterialCommunityIcons name="leaf" size={48} color={colors.inkMuted} />
           <Text style={styles.emptyTitle}>{t('tasks.empty_title')}</Text>
           <Text style={styles.emptySubtitle}>{t('tasks.empty_subtitle')}</Text>
         </View>
@@ -275,6 +407,7 @@ export default function TasksScreen() {
           onPress={() => navigation.navigate('TaskForm', {})}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
           accessibilityRole="button"
+          accessibilityLabel={t('tasks.add')}
         >
           <Ionicons name="add" size={28} color="#FFFFFF" />
         </Pressable>
@@ -334,6 +467,7 @@ export default function TasksScreen() {
   function handleCheck(occ: Occurrence) {
     const { task, dueAt, status } = occ;
     if (status === 'done' || status === 'skipped') return;
+    hapticSuccess();
     markOccurrence(task.id, dueAt, 'done');
     Toast.show({
       type: 'success',
@@ -406,6 +540,8 @@ export default function TasksScreen() {
           testID="tasks-filter-pet-all"
           style={[styles.filterChip, petFilter === null && styles.filterChipSelected]}
           onPress={() => setPetFilter(null)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: petFilter === null }}
         >
           <Text style={[styles.filterChipText, petFilter === null && styles.filterChipTextSelected]}>
             {t('tasks.filter.all')}
@@ -417,6 +553,8 @@ export default function TasksScreen() {
             testID={`tasks-filter-pet-${p.id}`}
             style={[styles.filterChip, petFilter === p.id && styles.filterChipSelected]}
             onPress={() => setPetFilter(petFilter === p.id ? null : p.id)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: petFilter === p.id }}
           >
             <Text
               style={[
@@ -434,6 +572,8 @@ export default function TasksScreen() {
           testID="tasks-type-filter"
           style={[styles.filterChip, typeFilter.size > 0 && styles.filterChipSelected]}
           onPress={() => setTypeModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityState={{ selected: typeFilter.size > 0 }}
         >
           <Text
             style={[
@@ -480,6 +620,7 @@ export default function TasksScreen() {
         onPress={() => navigation.navigate('TaskForm', {})}
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         accessibilityRole="button"
+        accessibilityLabel={t('tasks.add')}
       >
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </Pressable>
@@ -505,7 +646,7 @@ export default function TasksScreen() {
           );
         }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
-        renderItem={({ item }) => {
+        renderItem={({ item, section }) => {
           if (item.kind === 'empty') {
             return (
               <View style={styles.sectionEmptyRow} testID={`tasks-empty-${item.sectionKey}`}>
@@ -526,8 +667,14 @@ export default function TasksScreen() {
             <OccurrenceRow
               occ={occ}
               petName={petNameById[occ.task.petId] ?? ''}
+              overdue={(section as Section).sectionKey === 'overdue'}
               onCheck={() => handleCheck(occ)}
+              onEdit={() => navigation.navigate('TaskForm', { petId: occ.task.petId, taskId: occ.task.id })}
               onMore={() => handleMore(occ)}
+              onDelete={() => {
+                hapticLight();
+                deleteTask(occ.task.id);
+              }}
             />
           );
         }}
@@ -553,12 +700,10 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xs,
   },
   sectionTitle: {
-    fontSize: typography.caption.fontSize,
-    lineHeight: typography.caption.lineHeight,
+    fontSize: typography.label.fontSize,
+    lineHeight: typography.label.lineHeight,
     fontFamily: fonts.semibold,
     color: colors.inkMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   separator: {
     height: 1,
@@ -572,7 +717,7 @@ const styles = StyleSheet.create({
   sectionEmptyText: {
     fontSize: typography.body.fontSize,
     fontFamily: fonts.regular,
-    color: colors.inkFaint,
+    color: colors.inkMuted,
   },
   // Day sub-header (upcoming)
   dayHeader: {
@@ -591,12 +736,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.md,
     minHeight: 64,
+    // Opaque so a revealed swipe pane never bleeds through the sliding row.
+    backgroundColor: colors.bg,
   },
   rowDimmed: {
     opacity: 0.5,
   },
   checkbox: {
-    width: 32,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -621,7 +769,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   dimmedText: {
-    color: colors.inkFaint,
+    color: colors.inkMuted,
   },
   metaRow: {
     flexDirection: 'row',
@@ -633,21 +781,50 @@ const styles = StyleSheet.create({
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
+    fontVariant: ['tabular-nums'],
   },
-  statusBadge: {
-    borderRadius: radius.pill,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
+  timeOverdue: {
+    color: colors.danger,
   },
-  statusText: {
-    fontSize: 11,
-    fontFamily: fonts.semibold,
-    lineHeight: 16,
+  skippedTag: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
   },
   moreBtn: {
-    width: 32,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Swipe-action panes
+  swipePane: {
+    width: SWIPE_WIDTH,
+    justifyContent: 'center',
+  },
+  swipePaneBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  swipeComplete: {
+    backgroundColor: colors.primary,
+  },
+  swipeCompleteText: {
+    fontSize: typography.caption.fontSize,
+    fontFamily: fonts.medium,
+    color: colors.onPrimary,
+  },
+  swipeDelete: {
+    backgroundColor: colors.dangerSoft,
+  },
+  swipeDeleteText: {
+    fontSize: typography.caption.fontSize,
+    fontFamily: fonts.medium,
+    color: colors.danger,
   },
   // Empty state (whole screen)
   emptyContainer: {
@@ -703,7 +880,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   filterChip: {
-    paddingVertical: spacing.xs,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.pill,
     borderWidth: 1,

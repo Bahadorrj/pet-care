@@ -9,6 +9,7 @@ import { useFonts } from 'expo-font';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 import Toast from 'react-native-toast-message';
 
@@ -53,6 +54,7 @@ export default function App() {
   }
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <SafeAreaProvider>
       <ActionSheetProvider>
         <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
@@ -65,5 +67,6 @@ export default function App() {
       {/* Toast renders above all screens; must be last child so it overlays navigation. */}
       <Toast />
     </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

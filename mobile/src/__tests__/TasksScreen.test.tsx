@@ -344,16 +344,20 @@ describe('TasksScreen – skipped row', () => {
   });
 });
 
-// ── 7. Row body tap → action sheet ───────────────────────────────────────────
+// ── 7. Row body tap → edit ───────────────────────────────────────────────────
 describe('TasksScreen – row body tap', () => {
-  test('tapping row body also opens action sheet', async () => {
+  test('tapping row body navigates to edit (not the action sheet)', async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
 
     fireEvent.press(getByTestId('tasks-row-task-today'));
 
-    expect(showActionSheetWithOptions).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith('TaskForm', {
+      petId: OCC_TODAY.task.petId,
+      taskId: OCC_TODAY.task.id,
+    });
+    expect(showActionSheetWithOptions).not.toHaveBeenCalled();
   });
 });
 
