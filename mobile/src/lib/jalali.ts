@@ -5,7 +5,7 @@
  * Tehran offset is a fixed +03:30 (no DST in Iran).
  */
 
-import { format, parse as parseJalali } from 'date-fns-jalali';
+import { format, getDaysInMonth, parse as parseJalali } from 'date-fns-jalali';
 
 /**
  * Current Tehran calendar day as a Jalali string yyyy/MM/dd.
@@ -51,6 +51,23 @@ export function jalaliToGregorian(jalaliStr: string): string | null {
   } catch {
     return null;
   }
+}
+
+/** Split a Jalali yyyy/MM/dd string into numeric parts, or null if malformed. */
+export function jalaliParts(jalaliStr: string): { y: number; m: number; d: number } | null {
+  const m = jalaliStr.match(/^(\d{1,4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (!m) return null;
+  return { y: +m[1], m: +m[2], d: +m[3] };
+}
+
+/** Days in a given Jalali month (handles 29/30-day Esfand leap years). */
+export function daysInJalaliMonth(y: number, month: number): number {
+  return getDaysInMonth(parseJalali(`${y}/${String(month).padStart(2, '0')}/01`, 'yyyy/MM/dd', new Date()));
+}
+
+/** Build a zero-padded Jalali yyyy/MM/dd string from numeric parts. */
+export function formatJalaliParts(y: number, m: number, d: number): string {
+  return `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
 }
 
 /** Latin digits → Persian digits, for display only (never feed back into parsers). */

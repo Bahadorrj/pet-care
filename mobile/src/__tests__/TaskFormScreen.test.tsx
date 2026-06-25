@@ -59,6 +59,17 @@ jest.mock('@react-native-community/datetimepicker', () => {
   return (props: Record<string, unknown>) => ReactMock.createElement(View, props);
 });
 
+// DatePickerField → plain TextInput in tests, so date specs drive it via
+// changeText / read .props.value. The real component is a wheel picker that
+// only ever emits valid Jalali strings; the invalid-date specs exercise the
+// form's defensive validation guard, which the mock still lets through.
+jest.mock('../components/ui/DatePickerField', () => {
+  const ReactMock = require('react');
+  const { TextInput } = require('react-native');
+  return ({ value, onChange, ...rest }: Record<string, any>) =>
+    ReactMock.createElement(TextInput, { value, onChangeText: onChange, ...rest });
+});
+
 // ── DB mock ───────────────────────────────────────────────────────────────────
 const mockGetTask = jest.fn();
 jest.mock('../db/tasks', () => ({
@@ -261,7 +272,7 @@ describe('TaskFormScreen – Add – one_off', () => {
     await changeText(getByTestId('taskform-oneoff-date'), 'not-a-date');
     await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(getByText('تاریخ باید به شکل yyyy/MM/dd باشد')).toBeTruthy());
+    await waitFor(() => expect(getByText('تاریخ انتخاب نشده است')).toBeTruthy());
     expect(mockAddTask).not.toHaveBeenCalled();
   });
 });
@@ -297,7 +308,7 @@ describe('TaskFormScreen – end-until Jalali input', () => {
     await changeText(getByTestId('taskform-end-until-date'), 'garbage');
     await press(getByTestId('taskform-submit'));
 
-    await waitFor(() => expect(getByText('تاریخ باید به شکل yyyy/MM/dd باشد')).toBeTruthy());
+    await waitFor(() => expect(getByText('تاریخ انتخاب نشده است')).toBeTruthy());
     expect(mockAddTask).not.toHaveBeenCalled();
   });
 });

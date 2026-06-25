@@ -13,8 +13,8 @@
  * - Error inline, immediately below the relevant control, Alert Brick on Alert Soft
  * - RTL: all directions use `Start`/`End`, chip rows use `flexWrap: 'wrap'` RTL-safe
  * - Empty end-condition (after_n count=0) blocked with translated error
- * - One_off date: Jalali text input; time: native clock picker (TimePickerField),
- *   converted via toUtcIso — no new date lib; guidance per ADR-0010
+ * - One_off date: Jalali wheel picker (DatePickerField); time: native clock picker
+ *   (TimePickerField), converted via toUtcIso — no new date lib; guidance per ADR-0010
  */
 
 import React, { useRef, useState } from 'react';
@@ -33,6 +33,7 @@ import { useTranslation } from 'react-i18next';
 import Button from '../../components/ui/Button';
 import TextField from '../../components/ui/TextField';
 import TimePickerField from '../../components/ui/TimePickerField';
+import DatePickerField from '../../components/ui/DatePickerField';
 import { jalaliToGregorian, tehranTodayJalali, utcIsoToTehranJalali } from '../../lib/jalali';
 import { useShallow } from 'zustand/react/shallow';
 import { useTasksStore } from '../../store/tasksStore';
@@ -132,8 +133,7 @@ export default function TaskFormScreen() {
   const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>(initIntervalUnit);
 
   // ── one_off — Jalali date yyyy/MM/dd (Tehran wall-clock) + time HH:MM ────────
-  // User types Jalali; on submit jalaliToGregorian converts before toUtcIso.
-  // ponytail: date stays a text input — no Jalali date picker; time uses the native picker
+  // DatePickerField emits Jalali; on submit jalaliToGregorian converts before toUtcIso.
   const initOneOffDate =
     existing?.schedule.kind === 'one_off'
       ? utcIsoToTehranJalali(existing.schedule.at)
@@ -598,15 +598,13 @@ export default function TaskFormScreen() {
           {scheduleKind === 'one_off' && (
             <View style={styles.fieldGroup}>
               <Text style={styles.label}>{t('tasks.field.date')}</Text>
-              <TextField
+              <DatePickerField
                 testID="taskform-oneoff-date"
-                placeholder={t('tasks.field.date_hint')}
                 value={oneOffDate}
-                onChangeText={(v) => {
+                onChange={(v) => {
                   setOneOffDate(v);
                   if (scheduleError) setScheduleError('');
                 }}
-                keyboardType="numeric"
                 accessibilityLabel={t('tasks.field.date')}
               />
               <Text style={[styles.label, { marginTop: spacing.md }]}>
@@ -660,15 +658,13 @@ export default function TaskFormScreen() {
 
             {endKind === 'until' && (
               <View style={{ marginTop: spacing.sm }}>
-                <TextField
+                <DatePickerField
                   testID="taskform-end-until-date"
-                  placeholder={t('tasks.field.date_hint')}
                   value={endUntilDate}
-                  onChangeText={(v) => {
+                  onChange={(v) => {
                     setEndUntilDate(v);
                     if (endError) setEndError('');
                   }}
-                  keyboardType="numeric"
                   accessibilityLabel={t('tasks.end.until')}
                 />
               </View>
