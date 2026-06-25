@@ -4,15 +4,24 @@ A pet-care app with a **mobile client** (Expo / React Native) and **backend API*
 
 Quick setup: `docs/running-the-app.md` covers the full local stack (all dependencies, environment, running both tiers).
 
+## Product
+
+@PRODUCT.md
+
+## Design
+
+@DESIGN.md
+
 ## Stack
 
 - **Backend** (`backend/`): FastAPI, SQLAlchemy 2.0, Alembic, uv, Python 3.12+
 - **Mobile** (`mobile/`): Expo SDK 56, React Native, TypeScript, Zustand, axios
-- **Persistence** (for now): SQLite + SecureStore; DB migrations deferred, write DB-agnostic models
 
 ## Documentation & Decisions
 
-- Architecture decisions live in `docs/adr/` (ADRs); reconcile the spec when changing a decision
+- Specs live in `docs/specs`; Used for creating a plan
+- Plans live in `docs/plans`; Used for implementing a plan
+- Architecture decisions live in `docs/adr/` (ADRs); reconcile the spec when changing a decision; When changing a decision, add a new ADR and reconcile the spec — don't silently diverge.
 - Codebase questions: use `graphify query "<question>"` (scoped subgraph) or `graphify path "A" "B"` for relationships instead of grep/raw browsing
 - For large codebase review: `graphify update .` after code changes (AST-only, no API cost)
 

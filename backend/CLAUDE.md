@@ -37,7 +37,3 @@ Auth specifics worth preserving: login does a constant-time bcrypt verify agains
 
 `tests/conftest.py` provides a `client` fixture backed by an in-memory SQLite DB (StaticPool) with
 `get_db` overridden per test — no real DB or migrations involved. Tables are created/dropped per test.
-
-## Conventions
-
-- Architectural decisions live in `docs/adr/` (ADRs) and act as guardrails. When changing a decision, add a new ADR and reconcile the spec — don't silently diverge.

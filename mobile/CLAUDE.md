@@ -48,4 +48,3 @@ first realisation). Tehran time = fixed **+03:30** offset.
 
 - Tests live in `src/__tests__/` (jest-expo + @testing-library/react-native). I18nManager RTL is asserted via spies, since the jest mock doesn't flip synchronously.
 - Async submit handlers use a `useRef` in-flight guard to block duplicate requests before state re-renders.
-- `@notifee/react-native` is a native module — mock it in tests; a real `expo run:android` build is required for notification verification.
