@@ -84,7 +84,7 @@ describe('PetFormScreen – Add mode – validation', () => {
     await fireEvent.press(getByTestId('petform-submit'));
 
     await waitFor(() => {
-      expect(getByText('نام حیوان خانگی الزامی است')).toBeTruthy();
+      expect(getByText('نام پت الزامی است')).toBeTruthy();
     });
     expect(mockAdd).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
@@ -99,7 +99,7 @@ describe('PetFormScreen – Add mode – validation', () => {
     await fireEvent.press(getByTestId('petform-submit'));
 
     await waitFor(() => {
-      expect(getByText('نام حیوان خانگی الزامی است')).toBeTruthy();
+      expect(getByText('نام پت الزامی است')).toBeTruthy();
     });
     expect(mockAdd).not.toHaveBeenCalled();
   });

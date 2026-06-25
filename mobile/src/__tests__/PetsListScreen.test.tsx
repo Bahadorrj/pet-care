@@ -70,7 +70,7 @@ describe('PetsListScreen – empty store', () => {
 
   test('renders the empty state message', async () => {
     await render(<PetsListScreen />);
-    expect(screen.getByText('هنوز حیوان خانگی‌ای اضافه نشده است')).toBeTruthy();
+    expect(screen.getByText('هنوز پت ای اضافه نشده است')).toBeTruthy();
   });
 
   test('does not render any pet names', async () => {

@@ -63,7 +63,7 @@ describe('RootNavigator', () => {
 
   test('renders the Pets tab label in Farsi', async () => {
     renderNavigator();
-    await waitFor(() => expect(screen.getByText('حیوانات من')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('پت های من')).toBeTruthy());
   });
 
   test('renders the Profile tab label in Farsi', async () => {
@@ -75,7 +75,7 @@ describe('RootNavigator', () => {
     renderNavigator();
     await waitFor(() => {
       expect(screen.getByText('وظایف')).toBeTruthy();
-      expect(screen.getByText('حیوانات من')).toBeTruthy();
+      expect(screen.getByText('پت های من')).toBeTruthy();
       expect(screen.getByText('پروفایل')).toBeTruthy();
     });
   });

@@ -26,6 +26,6 @@ import App from '../../App';
 
 test('renders the app and shows the Pets tab after hydration', async () => {
   await render(<App />);
-  expect(await screen.findByText('حیوانات من')).toBeTruthy();
+  expect(await screen.findByText('پت های من')).toBeTruthy();
   expect(screen.queryByText(/Open up App\.tsx/)).toBeNull();
 });
