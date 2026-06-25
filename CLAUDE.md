@@ -6,11 +6,11 @@ Quick setup: `docs/running-the-app.md` covers the full local stack (all dependen
 
 ## Product
 
-@PRODUCT.md
+@docs/PRODUCT.md
 
 ## Design
 
-@DESIGN.md
+@docs/DESIGN.md
 
 ## Stack
 
