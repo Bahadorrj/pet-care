@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Ionicons , MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -250,7 +250,7 @@ function OccurrenceRow({
             accessibilityRole="checkbox"
             accessibilityState={{ checked: isFinal }}
             accessibilityLabel={
-              isDone ? t("tasks.undo.done") : t("tasks.action.mark_done")
+              isFinal ? t("tasks.undo.action") : t("tasks.action.mark_done")
             }
           >
             <Animated.View style={tickStyle}>
@@ -547,7 +547,11 @@ export default function TasksScreen() {
 
   function handleCheck(occ: Occurrence) {
     const { task, dueAt, status } = occ;
-    if (status === "done" || status === "skipped") return;
+    if (status === "done" || status === "skipped") {
+      hapticLight();
+      unmarkOccurrence(task.id, dueAt);
+      return;
+    }
     hapticSuccess();
     markOccurrence(task.id, dueAt, "done");
     Toast.show({
