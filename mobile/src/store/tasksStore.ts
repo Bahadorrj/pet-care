@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 import {
   insertTask,
   listTasks,
@@ -9,9 +9,9 @@ import {
   getLogsInRange,
   removeLog,
   getLogsForTask as dbGetLogsForTask,
-} from '../db/tasks';
-import { occurrencesForDay, toUtcIso } from '../lib/taskSchedule';
-import type { Task, TaskLog, Occurrence, Schedule } from '../db/types';
+} from "../db/tasks";
+import { occurrencesForDay, toUtcIso } from "../lib/taskSchedule";
+import type { Task, TaskLog, Occurrence, Schedule } from "../db/types";
 
 // ---------------------------------------------------------------------------
 // Notification hook seam
@@ -33,12 +33,12 @@ function todayUtcRange(): { start: Date; end: Date; tehranDateStr: string } {
   const tehranMs = nowMs + TEHRAN_OFFSET_MINUTES * 60 * 1000;
   const tehranDate = new Date(tehranMs);
   const yr = tehranDate.getUTCFullYear();
-  const mo = String(tehranDate.getUTCMonth() + 1).padStart(2, '0');
-  const dy = String(tehranDate.getUTCDate()).padStart(2, '0');
+  const mo = String(tehranDate.getUTCMonth() + 1).padStart(2, "0");
+  const dy = String(tehranDate.getUTCDate()).padStart(2, "0");
   const tehranDateStr = `${yr}-${mo}-${dy}`;
 
   // Tehran midnight = start of today in UTC
-  const start = new Date(toUtcIso('00:00', tehranDateStr));
+  const start = new Date(toUtcIso("00:00", tehranDateStr));
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start, end, tehranDateStr };
 }
@@ -48,12 +48,12 @@ function todayUtcRange(): { start: Date; end: Date; tehranDateStr: string } {
 // ---------------------------------------------------------------------------
 
 function validateSchedule(schedule: Schedule): void {
-  if (schedule.kind === 'daily_times' && schedule.times.length === 0) {
-    throw new Error('tasks.error.schedule_empty');
+  if (schedule.kind === "daily_times" && schedule.times.length === 0) {
+    throw new Error("tasks.error.schedule_empty");
   }
-  if (schedule.kind === 'weekdays') {
+  if (schedule.kind === "weekdays") {
     if (schedule.days.length === 0 || schedule.times.length === 0) {
-      throw new Error('tasks.error.schedule_empty');
+      throw new Error("tasks.error.schedule_empty");
     }
   }
 }
@@ -63,7 +63,7 @@ function validateSchedule(schedule: Schedule): void {
 // ---------------------------------------------------------------------------
 
 function computeTodayOccurrences(tasks: Task[]): Occurrence[] {
-  const { start, end, tehranDateStr } = todayUtcRange();
+  const { start, end } = todayUtcRange();
   // dueAt values are UTC ISOs whose date component is NOT the Tehran date.
   // We must fetch all logs within the UTC window [start, end) by querying
   // both the UTC-date prefixes that can occur in a Tehran day.
@@ -95,8 +95,8 @@ function computeRangeOccurrences(tasks: Task[]): Occurrence[] {
 // Store
 // ---------------------------------------------------------------------------
 
-type TaskInput = Omit<Task, 'id' | 'createdAt' | 'updatedAt'>;
-type TaskUpdate = Omit<Task, 'id' | 'petId' | 'createdAt' | 'updatedAt'>;
+type TaskInput = Omit<Task, "id" | "createdAt" | "updatedAt">;
+type TaskUpdate = Omit<Task, "id" | "petId" | "createdAt" | "updatedAt">;
 
 interface TasksState {
   tasks: Task[];
@@ -113,7 +113,11 @@ interface TasksState {
   updateTask: (id: string, data: TaskUpdate) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   toggleActive: (taskId: string) => Promise<void>;
-  markOccurrence: (taskId: string, dueAt: string, status: TaskLog['status']) => Promise<void>;
+  markOccurrence: (
+    taskId: string,
+    dueAt: string,
+    status: TaskLog["status"],
+  ) => Promise<void>;
   unmarkOccurrence: (taskId: string, dueAt: string) => Promise<void>;
 }
 
@@ -177,13 +181,15 @@ export const useTasksStore = create<TasksState>((set, get) => {
       _syncNotifications();
     },
 
+    // Logging done/skipped never changes which future occurrences are
+    // scheduled, so it must not trigger a notification re-sync (cancel +
+    // reschedule of up to 200 triggers) — this is the highest-frequency action.
     markOccurrence: async (taskId, dueAt, status) => {
       logOccurrence(taskId, dueAt, status);
       const tasks = get().tasks;
       const occurrences = computeTodayOccurrences(tasks);
       const windowOccurrences = computeRangeOccurrences(tasks);
       set({ occurrences, windowOccurrences });
-      _syncNotifications();
     },
 
     unmarkOccurrence: async (taskId, dueAt) => {
@@ -192,7 +198,6 @@ export const useTasksStore = create<TasksState>((set, get) => {
       const occurrences = computeTodayOccurrences(tasks);
       const windowOccurrences = computeRangeOccurrences(tasks);
       set({ occurrences, windowOccurrences });
-      _syncNotifications();
     },
   };
 });
