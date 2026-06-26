@@ -10,6 +10,12 @@ module.exports = defineConfig([
     // but not the `jest` object itself.
     files: ["src/__tests__/**", "__mocks__/**", "jest-setup.js"],
     languageOptions: { globals: { jest: "readonly" } },
+    // Jest's mock hoisting requires `require()` and imports placed after the
+    // jest.mock() calls — both are necessary in test files, not style slips.
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "import/first": "off",
+    },
   },
   {
     // react-hooks v6's compiler-aware rules misfire on RN's animation APIs:
