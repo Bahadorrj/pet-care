@@ -9,6 +9,7 @@
  */
 
 import React from "react";
+import { InteractionManager } from "react-native";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
@@ -56,11 +57,18 @@ jest.mock("../store/petsStore", () => ({
 
 // ── Navigation mock ───────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
-jest.mock("@react-navigation/native", () => ({
-  ...jest.requireActual("@react-navigation/native"),
-  useIsFocused: () => true,
-  useNavigation: () => ({ navigate: mockNavigate }),
-}));
+jest.mock("@react-navigation/native", () => {
+  const ReactLocal = require("react");
+  return {
+    ...jest.requireActual("@react-navigation/native"),
+    useIsFocused: () => true,
+    // Run the focus callback on mount (and its cleanup on unmount), mimicking a
+    // single focus event without a real NavigationContainer.
+    useFocusEffect: (cb: () => undefined | (() => void)) =>
+      ReactLocal.useEffect(cb, [cb]),
+    useNavigation: () => ({ navigate: mockNavigate }),
+  };
+});
 
 // ── Fixtures — dueAt RELATIVE to now ─────────────────────────────────────────
 //
@@ -127,6 +135,38 @@ beforeEach(() => {
   (useActionSheet().showActionSheetWithOptions as jest.Mock).mockClear();
   mockWindowOccurrences = [];
   mockPets = [{ id: "pet-1", name: "رکسی" }];
+});
+
+// ── 0. Deferred focus reload ──────────────────────────────────────────────────
+describe("TasksScreen – deferred focus reload", () => {
+  test("defers load() past interactions instead of running it on the focus tick", async () => {
+    // Capture the deferred callback instead of letting it run, so the assertion
+    // is deterministic.
+    let deferred: (() => void) | null = null;
+    const spy = jest
+      .spyOn(InteractionManager, "runAfterInteractions")
+      .mockImplementation(((cb: () => void) => {
+        deferred = cb;
+        return { cancel: jest.fn(), then: jest.fn(), done: jest.fn() };
+      }) as never);
+
+    try {
+      mockWindowOccurrences = [OCC_TODAY];
+      await render(<TasksScreen />);
+
+      // The recompute must NOT run synchronously on focus — that's what stutters
+      // the tab transition. It is scheduled for after the animation instead.
+      expect(mockLoad).not.toHaveBeenCalled();
+      expect(spy).toHaveBeenCalledTimes(1);
+
+      // Once interactions settle, the reload runs.
+      expect(deferred).not.toBeNull();
+      deferred!();
+      expect(mockLoad).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });
 
 // ── 1. Whole-screen empty state ───────────────────────────────────────────────

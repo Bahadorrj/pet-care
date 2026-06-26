@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  InteractionManager,
   Modal,
   Pressable,
   SectionList,
@@ -9,27 +10,12 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import Toast from "react-native-toast-message";
 import * as Haptics from "expo-haptics";
-import ReanimatedSwipeable, {
-  type SwipeableMethods,
-} from "react-native-gesture-handler/ReanimatedSwipeable";
-import Animated, {
-  FadeOut,
-  LinearTransition,
-  type SharedValue,
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
-} from "react-native-reanimated";
-
 import { useTasksStore } from "../../store/tasksStore";
 import { usePetsStore } from "../../store/petsStore";
 import {
@@ -73,60 +59,6 @@ const TASK_TYPES: TaskType[] = [
   "other",
 ];
 
-// ── Swipe action pane ────────────────────────────────────────────────────────
-// Width of a revealed swipe pane. The pane translates with the gesture's `drag`
-// value so it tracks the finger instead of popping in/out.
-const SWIPE_WIDTH = 96;
-
-type SwipeActionProps = {
-  side: "left" | "right";
-  drag: SharedValue<number>;
-  icon: React.ComponentProps<typeof MaterialCommunityIcons>["name"];
-  iconColor: string;
-  label: string;
-  paneStyle: object;
-  textStyle: object;
-  testID: string;
-  onPress: () => void;
-};
-
-function SwipeAction({
-  side,
-  drag,
-  icon,
-  iconColor,
-  label,
-  paneStyle,
-  textStyle,
-  testID,
-  onPress,
-}: SwipeActionProps) {
-  // Left pane sits off-screen at -WIDTH and slides to 0 as you swipe right;
-  // right pane sits at +WIDTH and slides to 0 as you swipe left.
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateX:
-          side === "left" ? drag.value - SWIPE_WIDTH : drag.value + SWIPE_WIDTH,
-      },
-    ],
-  }));
-  return (
-    <Animated.View style={[styles.swipePane, paneStyle, style]}>
-      <Pressable
-        testID={testID}
-        onPress={onPress}
-        style={styles.swipePaneBtn}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-      >
-        <MaterialCommunityIcons name={icon} size={22} color={iconColor} />
-        <Text style={textStyle}>{label}</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 // ── Section list item types ────────────────────────────────────────────────────
 type SectionKind = "overdue" | "today" | "upcoming";
 
@@ -146,182 +78,106 @@ type RowProps = {
   occ: Occurrence;
   petName: string;
   overdue: boolean;
-  onCheck: () => void;
-  onEdit: () => void;
-  onMore: () => void;
-  onDelete: () => void;
+  onCheck: (occ: Occurrence) => void;
+  onEdit: (occ: Occurrence) => void;
+  onMore: (occ: Occurrence) => void;
 };
 
-function OccurrenceRow({
+const OccurrenceRow = React.memo(function OccurrenceRow({
   occ,
   petName,
   overdue,
   onCheck,
   onEdit,
   onMore,
-  onDelete,
 }: RowProps) {
   const { t } = useTranslation();
   const { task, dueAt, status } = occ;
   const isFinal = status === "done" || status === "skipped";
   const isDone = status === "done";
-  const reduced = useReducedMotion();
-  const swipeRef = React.useRef<SwipeableMethods>(null);
-
-  // Check-tick: a quick squash-and-settle when a task flips to done. Skip on the
-  // first render (don't animate already-done rows on mount) and under reduced motion.
-  const scale = useSharedValue(1);
-  const tickStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-  const mounted = React.useRef(false);
-  React.useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      return;
-    }
-    if (reduced || !isDone) return;
-    scale.value = withSequence(
-      withTiming(0.8, { duration: 80 }),
-      withSpring(1),
-    );
-  }, [isDone, reduced, scale]);
 
   return (
-    <Animated.View
-      layout={reduced ? undefined : LinearTransition}
-      exiting={reduced ? undefined : FadeOut.duration(180)}
+    <Pressable
+      testID={`tasks-row-${task.id}`}
+      style={[styles.row, isFinal && styles.rowDimmed]}
+      onPress={() => onEdit(occ)}
+      accessibilityRole="button"
+      accessibilityLabel={`${petName} — ${task.title ?? t(`tasks.type.${task.type}`)}`}
     >
-      <ReanimatedSwipeable
-        ref={swipeRef}
-        friction={2}
-        leftThreshold={SWIPE_WIDTH * 0.5}
-        rightThreshold={SWIPE_WIDTH * 0.5}
-        // Panes track the gesture via `drag`; tap to confirm (no accidental fire).
-        renderLeftActions={
-          isFinal
-            ? undefined
-            : (_prog, drag) => (
-                <SwipeAction
-                  side="left"
-                  drag={drag}
-                  icon="check"
-                  iconColor={colors.onPrimary}
-                  label={t("tasks.action.done")}
-                  paneStyle={styles.swipeComplete}
-                  textStyle={styles.swipeCompleteText}
-                  testID={`tasks-swipe-complete-${task.id}`}
-                  onPress={() => {
-                    swipeRef.current?.close();
-                    onCheck();
-                  }}
-                />
-              )
+      {/* Leading checkbox — the single completion affordance */}
+      <Pressable
+        testID={`tasks-check-${task.id}`}
+        onPress={() => onCheck(occ)}
+        style={styles.checkbox}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: isFinal }}
+        accessibilityLabel={
+          isFinal ? t("tasks.undo.action") : t("tasks.action.mark_done")
         }
-        renderRightActions={(_prog, drag) => (
-          <SwipeAction
-            side="right"
-            drag={drag}
-            icon="trash-can-outline"
-            iconColor={colors.danger}
-            label={t("tasks.action.delete")}
-            paneStyle={styles.swipeDelete}
-            textStyle={styles.swipeDeleteText}
-            testID={`tasks-swipe-delete-${task.id}`}
-            onPress={() => {
-              swipeRef.current?.close();
-              onDelete();
-            }}
-          />
-        )}
       >
-        <Pressable
-          testID={`tasks-row-${task.id}`}
-          style={[styles.row, isFinal && styles.rowDimmed]}
-          onPress={onEdit}
-          accessibilityRole="button"
-          accessibilityLabel={`${petName} — ${task.title ?? t(`tasks.type.${task.type}`)}`}
+        <MaterialCommunityIcons
+          name={
+            isDone
+              ? "checkbox-marked-circle"
+              : status === "skipped"
+                ? "minus-circle-outline"
+                : "checkbox-blank-circle-outline"
+          }
+          size={24}
+          color={isDone ? colors.primary : colors.inkMuted}
+        />
+      </Pressable>
+
+      {/* Type icon — a category signifier, not an action: stays neutral */}
+      <MaterialCommunityIcons
+        name={TASK_TYPE_ICON[task.type]}
+        size={22}
+        color={colors.inkMuted}
+        style={styles.typeIcon}
+        accessibilityLabel={t(`tasks.type.${task.type}`)}
+      />
+
+      {/* Middle: info */}
+      <View style={styles.rowInfo}>
+        <Text style={styles.petName} numberOfLines={1}>
+          {petName}
+        </Text>
+        <Text
+          style={[styles.taskTitle, isFinal && styles.dimmedText]}
+          numberOfLines={1}
         >
-          {/* Leading checkbox — the single completion affordance */}
-          <Pressable
-            testID={`tasks-check-${task.id}`}
-            onPress={onCheck}
-            style={styles.checkbox}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: isFinal }}
-            accessibilityLabel={
-              isFinal ? t("tasks.undo.action") : t("tasks.action.mark_done")
-            }
+          {task.title ?? t(`tasks.type.${task.type}`)}
+        </Text>
+        <View style={styles.metaRow}>
+          <Text
+            style={[styles.time, overdue && !isFinal && styles.timeOverdue]}
           >
-            <Animated.View style={tickStyle}>
-              <MaterialCommunityIcons
-                name={
-                  isDone
-                    ? "checkbox-marked-circle"
-                    : status === "skipped"
-                      ? "minus-circle-outline"
-                      : "checkbox-blank-circle-outline"
-                }
-                size={24}
-                color={isDone ? colors.primary : colors.inkMuted}
-              />
-            </Animated.View>
-          </Pressable>
+            {toPersianDigits(toTehranTime(dueAt))}
+          </Text>
+          {status === "skipped" && (
+            <Text style={styles.skippedTag}>{t("tasks.status.skipped")}</Text>
+          )}
+        </View>
+      </View>
 
-          {/* Type icon — a category signifier, not an action: stays neutral */}
-          <MaterialCommunityIcons
-            name={TASK_TYPE_ICON[task.type]}
-            size={22}
-            color={colors.inkMuted}
-            style={styles.typeIcon}
-            accessibilityLabel={t(`tasks.type.${task.type}`)}
-          />
-
-          {/* Middle: info */}
-          <View style={styles.rowInfo}>
-            <Text style={styles.petName} numberOfLines={1}>
-              {petName}
-            </Text>
-            <Text
-              style={[styles.taskTitle, isFinal && styles.dimmedText]}
-              numberOfLines={1}
-            >
-              {task.title ?? t(`tasks.type.${task.type}`)}
-            </Text>
-            <View style={styles.metaRow}>
-              <Text
-                style={[styles.time, overdue && !isFinal && styles.timeOverdue]}
-              >
-                {toPersianDigits(toTehranTime(dueAt))}
-              </Text>
-              {status === "skipped" && (
-                <Text style={styles.skippedTag}>
-                  {t("tasks.status.skipped")}
-                </Text>
-              )}
-            </View>
-          </View>
-
-          {/* Trailing ⋯ button — opens the full action menu */}
-          <Pressable
-            testID={`tasks-more-${task.id}`}
-            onPress={onMore}
-            style={styles.moreBtn}
-            accessibilityRole="button"
-            accessibilityLabel={t("tasks.action.more")}
-            hitSlop={8}
-          >
-            <MaterialCommunityIcons
-              name="dots-horizontal"
-              size={20}
-              color={colors.inkMuted}
-            />
-          </Pressable>
-        </Pressable>
-      </ReanimatedSwipeable>
-    </Animated.View>
+      {/* Trailing ⋯ button — opens the full action menu */}
+      <Pressable
+        testID={`tasks-more-${task.id}`}
+        onPress={() => onMore(occ)}
+        style={styles.moreBtn}
+        accessibilityRole="button"
+        accessibilityLabel={t("tasks.action.more")}
+        hitSlop={8}
+      >
+        <MaterialCommunityIcons
+          name="dots-horizontal"
+          size={20}
+          color={colors.inkMuted}
+        />
+      </Pressable>
+    </Pressable>
   );
-}
+});
 
 // ── Type filter modal ──────────────────────────────────────────────────────────
 type TypeFilterModalProps = {
@@ -421,7 +277,6 @@ function TypeFilterModal({
 // ── Screen ─────────────────────────────────────────────────────────────────────
 export default function TasksScreen() {
   const { t } = useTranslation();
-  const isFocused = useIsFocused();
   const navigation = useNavigation<TasksNavigationProp>();
   const { showActionSheetWithOptions } = useActionSheet();
 
@@ -438,9 +293,14 @@ export default function TasksScreen() {
   const [typeFilter, setTypeFilter] = React.useState<Set<TaskType>>(new Set());
   const [typeModalVisible, setTypeModalVisible] = React.useState(false);
 
-  React.useEffect(() => {
-    if (isFocused) load();
-  }, [isFocused, load]);
+  // Reload on focus, but defer the recompute + list re-render past the
+  // tab-transition animation so entering the Tasks tab doesn't stutter.
+  useFocusEffect(
+    React.useCallback(() => {
+      const task = InteractionManager.runAfterInteractions(load);
+      return () => task.cancel();
+    }, [load]),
+  );
 
   const petNameById = React.useMemo(() => {
     const map: Record<string, string> = {};
@@ -463,6 +323,118 @@ export default function TasksScreen() {
     () => bucketOccurrences(filtered, new Date()),
     [filtered],
   );
+
+  // Stable row handlers — keep memoized rows from re-rendering on unrelated
+  // parent updates (filter chips, modal open/close).
+  const handleCheck = React.useCallback(
+    (occ: Occurrence) => {
+      const { task, dueAt, status } = occ;
+      if (status === "done" || status === "skipped") {
+        hapticLight();
+        unmarkOccurrence(task.id, dueAt);
+        return;
+      }
+      hapticSuccess();
+      markOccurrence(task.id, dueAt, "done");
+      Toast.show({
+        type: "success",
+        text1: t("tasks.undo.done"),
+        text2: t("tasks.undo.action"),
+        visibilityTime: 4000,
+        onPress: () => {
+          unmarkOccurrence(task.id, dueAt);
+          Toast.hide();
+        },
+      });
+    },
+    [markOccurrence, unmarkOccurrence, t],
+  );
+
+  const handleEdit = React.useCallback(
+    (occ: Occurrence) => {
+      navigation.navigate("TaskForm", {
+        petId: occ.task.petId,
+        taskId: occ.task.id,
+      });
+    },
+    [navigation],
+  );
+
+  const handleMore = React.useCallback(
+    (occ: Occurrence) => {
+      const { task, dueAt } = occ;
+      const deleteLabel =
+        task.schedule.kind === "one_off"
+          ? t("tasks.action.delete_one_off")
+          : t("tasks.action.delete_recurring");
+
+      const options = [
+        t("tasks.action.skip"),
+        t("tasks.action.edit"),
+        deleteLabel,
+        t("tasks.action.cancel"),
+      ];
+
+      showActionSheetWithOptions(
+        { options, destructiveButtonIndex: 2, cancelButtonIndex: 3 },
+        (index?: number) => {
+          if (index === 0) {
+            markOccurrence(task.id, dueAt, "skipped");
+          } else if (index === 1) {
+            handleEdit(occ);
+          } else if (index === 2) {
+            deleteTask(task.id);
+          }
+        },
+      );
+    },
+    [showActionSheetWithOptions, deleteTask, markOccurrence, t, handleEdit],
+  );
+
+  // Section list data — rebuilt only when the buckets change, not on every
+  // render (filter chips / modal). Includes the upcoming day sub-headers.
+  const { sections, counts } = React.useMemo(() => {
+    const upcomingItems: ListItem[] = [];
+    if (upcoming.length === 0) {
+      upcomingItems.push({ kind: "empty", sectionKey: "upcoming" });
+    } else {
+      let lastDay = "";
+      for (const occ of upcoming) {
+        const day = utcIsoToTehranJalali(occ.dueAt);
+        if (day !== lastDay) {
+          upcomingItems.push({ kind: "day", label: day });
+          lastDay = day;
+        }
+        upcomingItems.push({ kind: "occ", occ });
+      }
+    }
+
+    const sections: Section[] = [
+      {
+        sectionKey: "overdue",
+        data:
+          overdue.length === 0
+            ? [{ kind: "empty", sectionKey: "overdue" }]
+            : overdue.map((occ) => ({ kind: "occ", occ })),
+      },
+      {
+        sectionKey: "today",
+        data:
+          today.length === 0
+            ? [{ kind: "empty", sectionKey: "today" }]
+            : today.map((occ) => ({ kind: "occ", occ })),
+      },
+      { sectionKey: "upcoming", data: upcomingItems },
+    ];
+
+    const counts: Record<SectionKind, number> = {
+      overdue: overdue.length,
+      today: today.length,
+      upcoming: upcoming.length,
+    };
+
+    return { sections, counts };
+  }, [overdue, today, upcoming]);
 
   const allBucketsEmpty =
     overdue.length === 0 && today.length === 0 && upcoming.length === 0;
@@ -496,106 +468,10 @@ export default function TasksScreen() {
     );
   }
 
-  // Build upcoming items with inline day sub-headers
-  const upcomingItems: ListItem[] = [];
-  if (upcoming.length === 0) {
-    upcomingItems.push({ kind: "empty", sectionKey: "upcoming" });
-  } else {
-    let lastDay = "";
-    for (const occ of upcoming) {
-      const day = utcIsoToTehranJalali(occ.dueAt);
-      if (day !== lastDay) {
-        upcomingItems.push({ kind: "day", label: day });
-        lastDay = day;
-      }
-      upcomingItems.push({ kind: "occ", occ });
-    }
-  }
-
-  const sections: Section[] = [
-    {
-      sectionKey: "overdue",
-      data:
-        overdue.length === 0
-          ? [{ kind: "empty", sectionKey: "overdue" }]
-          : overdue.map((occ) => ({ kind: "occ", occ })),
-    },
-    {
-      sectionKey: "today",
-      data:
-        today.length === 0
-          ? [{ kind: "empty", sectionKey: "today" }]
-          : today.map((occ) => ({ kind: "occ", occ })),
-    },
-    {
-      sectionKey: "upcoming",
-      data: upcomingItems,
-    },
-  ];
-
-  // Count of real occurrences per section
-  const counts: Record<SectionKind, number> = {
-    overdue: overdue.length,
-    today: today.length,
-    upcoming: upcoming.length,
-  };
-
   // Progress: tasks-bucket items excluding skipped
   const todayForProgress = today.filter((o) => o.status !== "skipped");
   const todayDone = todayForProgress.filter((o) => o.status === "done").length;
   const todayTotal = todayForProgress.length;
-
-  function handleCheck(occ: Occurrence) {
-    const { task, dueAt, status } = occ;
-    if (status === "done" || status === "skipped") {
-      hapticLight();
-      unmarkOccurrence(task.id, dueAt);
-      return;
-    }
-    hapticSuccess();
-    markOccurrence(task.id, dueAt, "done");
-    Toast.show({
-      type: "success",
-      text1: t("tasks.undo.done"),
-      text2: t("tasks.undo.action"),
-      visibilityTime: 4000,
-      onPress: () => {
-        unmarkOccurrence(task.id, dueAt);
-        Toast.hide();
-      },
-    });
-  }
-
-  function handleMore(occ: Occurrence) {
-    const { task, dueAt } = occ;
-    const deleteLabel =
-      task.schedule.kind === "one_off"
-        ? t("tasks.action.delete_one_off")
-        : t("tasks.action.delete_recurring");
-
-    const options = [
-      t("tasks.action.skip"),
-      t("tasks.action.edit"),
-      deleteLabel,
-      t("tasks.action.cancel"),
-    ];
-
-    showActionSheetWithOptions(
-      { options, destructiveButtonIndex: 2, cancelButtonIndex: 3 },
-      (index?: number) => {
-        if (index === 0) {
-          markOccurrence(task.id, dueAt, "skipped");
-        } else if (index === 1) {
-          navigation.navigate("TaskForm", {
-            petId: task.petId,
-            taskId: task.id,
-          });
-        } else if (index === 2) {
-          deleteTask(task.id);
-        }
-      },
-    );
-  }
 
   // ── List header: progress + filter bar ───────────────────────────────────────
   const ListHeader = (
@@ -783,18 +659,9 @@ export default function TasksScreen() {
               occ={occ}
               petName={petNameById[occ.task.petId] ?? ""}
               overdue={(section as Section).sectionKey === "overdue"}
-              onCheck={() => handleCheck(occ)}
-              onEdit={() =>
-                navigation.navigate("TaskForm", {
-                  petId: occ.task.petId,
-                  taskId: occ.task.id,
-                })
-              }
-              onMore={() => handleMore(occ)}
-              onDelete={() => {
-                hapticLight();
-                deleteTask(occ.task.id);
-              }}
+              onCheck={handleCheck}
+              onEdit={handleEdit}
+              onMore={handleMore}
             />
           );
         }}
@@ -917,34 +784,6 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: "center",
     justifyContent: "center",
-  },
-  // Swipe-action panes
-  swipePane: {
-    width: SWIPE_WIDTH,
-    justifyContent: "center",
-  },
-  swipePaneBtn: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.xs,
-  },
-  swipeComplete: {
-    backgroundColor: colors.primary,
-  },
-  swipeCompleteText: {
-    fontSize: typography.caption.fontSize,
-    fontFamily: fonts.medium,
-    color: colors.onPrimary,
-  },
-  swipeDelete: {
-    backgroundColor: colors.dangerSoft,
-  },
-  swipeDeleteText: {
-    fontSize: typography.caption.fontSize,
-    fontFamily: fonts.medium,
-    color: colors.danger,
   },
   // Empty state (whole screen)
   emptyContainer: {
