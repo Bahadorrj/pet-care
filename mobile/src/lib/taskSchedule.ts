@@ -3,7 +3,7 @@
  * All date math for task occurrence expansion and status resolution.
  */
 
-import type { Task, TaskLog, Occurrence } from '../db/types';
+import type { Task, TaskLog, Occurrence } from "../db/types";
 
 // ponytail: fixed +03:30, revisit only if Iran reinstates DST
 const TEHRAN_OFFSET_MINUTES = 3 * 60 + 30; // 210 minutes
@@ -17,8 +17,8 @@ const TEHRAN_OFFSET_MINUTES = 3 * 60 + 30; // 210 minutes
  * to a UTC ISO string.
  */
 export function toUtcIso(wallClock: string, tehranDate: string): string {
-  const [h, m] = wallClock.split(':').map(Number);
-  const [yr, mo, dy] = tehranDate.split('-').map(Number);
+  const [h, m] = wallClock.split(":").map(Number);
+  const [yr, mo, dy] = tehranDate.split("-").map(Number);
 
   // Build the UTC timestamp: Tehran local = UTC + 210 min → UTC = Tehran local - 210 min
   const localMinutes = h * 60 + m;
@@ -38,8 +38,8 @@ function tehranDateStr(utc: Date): string {
   const tehranMs = utc.getTime() + TEHRAN_OFFSET_MINUTES * 60 * 1000;
   const d = new Date(tehranMs);
   const yr = d.getUTCFullYear();
-  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
-  const dy = String(d.getUTCDate()).padStart(2, '0');
+  const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dy = String(d.getUTCDate()).padStart(2, "0");
   return `${yr}-${mo}-${dy}`;
 }
 
@@ -59,7 +59,9 @@ function addMonths(utc: Date, n: number): Date {
   const d = new Date(utc);
   const day = d.getUTCDate();
   d.setUTCMonth(d.getUTCMonth() + n, 1); // set to 1st to avoid skipping months
-  const maxDay = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  const maxDay = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0),
+  ).getUTCDate();
   d.setUTCDate(Math.min(day, maxDay));
   return d;
 }
@@ -68,7 +70,11 @@ function addMonths(utc: Date, n: number): Date {
  * Iterate over Tehran calendar days overlapping the UTC range [fromUtc, toUtc).
  * Calls callback(tehranDateStr) for each day that might have occurrences.
  */
-function eachTehranDay(fromUtc: Date, toUtc: Date, cb: (dateStr: string) => void): void {
+function eachTehranDay(
+  fromUtc: Date,
+  toUtc: Date,
+  cb: (dateStr: string) => void,
+): void {
   // Tehran day D runs from UTC (D T00:00 - 210min) to UTC (D+1 T00:00 - 210min).
   // To ensure we don't miss any day whose UTC range overlaps [fromUtc, toUtc),
   // we extend the scan window by ±1 day and deduplicate.
@@ -109,10 +115,15 @@ function originTehranDate(task: Task): string {
  * Returns all UTC ISO strings of due occurrences for `task` in [fromUtc, toUtc).
  * Honors end conditions (until / after_n).
  */
-export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): string[] {
+export function expandOccurrences(
+  task: Task,
+  fromUtc: Date,
+  toUtc: Date,
+): string[] {
   const { schedule, endKind, endUntil, endCount } = task;
 
-  const endUntilMs = endKind === 'until' && endUntil ? new Date(endUntil).getTime() : Infinity;
+  const endUntilMs =
+    endKind === "until" && endUntil ? new Date(endUntil).getTime() : Infinity;
 
   // Helper: apply end conditions to a candidate UTC ISO string
   // Returns true if we should include it, false if we should stop/skip.
@@ -121,7 +132,7 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
 
   function shouldInclude(isoUtc: string): boolean {
     const ms = new Date(isoUtc).getTime();
-    if (endKind === 'until' && ms > endUntilMs) return false;
+    if (endKind === "until" && ms > endUntilMs) return false;
     return true;
   }
 
@@ -135,10 +146,10 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
   // -------------------------------------------------------------------------
   // one_off
   // -------------------------------------------------------------------------
-  if (schedule.kind === 'one_off') {
+  if (schedule.kind === "one_off") {
     const at = schedule.at;
     afterNTotal = 1;
-    if (endKind === 'after_n' && endCount !== null && afterNTotal > endCount) {
+    if (endKind === "after_n" && endCount !== null && afterNTotal > endCount) {
       return [];
     }
     if (shouldInclude(at) && inRange(at)) {
@@ -150,7 +161,7 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
   // -------------------------------------------------------------------------
   // interval
   // -------------------------------------------------------------------------
-  if (schedule.kind === 'interval') {
+  if (schedule.kind === "interval") {
     const { n, unit, anchor } = schedule;
     const anchorDate = new Date(anchor);
 
@@ -167,8 +178,8 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
     // ponytail: months stays on the additive-from-anchor path below because day-clamping
     // (e.g. Jan 31 → Feb 28) makes the step size non-uniform; arithmetic skip would
     // require replicating the clamping logic and is not worth the complexity.
-    if (unit === 'hours' || unit === 'days') {
-      const stepMs = unit === 'hours' ? n * 3600000 : n * 86400000;
+    if (unit === "hours" || unit === "days") {
+      const stepMs = unit === "hours" ? n * 3600000 : n * 86400000;
       const anchorMs = anchorDate.getTime();
       const fromMs = fromUtc.getTime();
       if (fromMs > anchorMs) {
@@ -182,7 +193,7 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
       const isoUtc = current.toISOString();
       count++;
 
-      if (endKind === 'after_n' && endCount !== null && count > endCount) break;
+      if (endKind === "after_n" && endCount !== null && count > endCount) break;
       if (!shouldInclude(isoUtc)) break;
 
       if (inRange(isoUtc)) {
@@ -190,9 +201,9 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
       }
 
       // Advance
-      if (unit === 'hours') {
+      if (unit === "hours") {
         current = new Date(current.getTime() + n * 60 * 60 * 1000);
-      } else if (unit === 'days') {
+      } else if (unit === "days") {
         current = new Date(current.getTime() + n * 24 * 60 * 60 * 1000);
       } else {
         // months: always add from anchor to prevent drift after day clamping
@@ -208,7 +219,8 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
   // daily_times and weekdays (treated the same; daily_times = all 7 days)
   // -------------------------------------------------------------------------
   const times: string[] = schedule.times;
-  const days: number[] = schedule.kind === 'weekdays' ? schedule.days : [0, 1, 2, 3, 4, 5, 6];
+  const days: number[] =
+    schedule.kind === "weekdays" ? schedule.days : [0, 1, 2, 3, 4, 5, 6];
 
   // For after_n, we need to count from origin. Origin = createdAt Tehran calendar day.
   // We need to enumerate ALL occurrences from origin up through our range window,
@@ -220,37 +232,48 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
   // counting all occurrences, and stop at endCount or endUntil.
 
   const originStr = originTehranDate(task);
-  const originUtcMs = new Date(toUtcIso('00:00', originStr)).getTime();
-  // Scan from origin or fromUtc (whichever is earlier) to build count
-  const scanFrom = Math.min(originUtcMs, fromUtc.getTime());
+  // Only after_n needs the running count from the task origin; every other end
+  // kind can start scanning at the window, keeping work O(window) not O(age).
+  // ponytail: after_n keeps the origin walk — an arithmetic skip would have to
+  // replicate weekday/day-clamp logic and isn't worth the complexity.
+  const needsOriginCount = endKind === "after_n" && endCount !== null;
+  const scanFrom = needsOriginCount
+    ? Math.min(
+        new Date(toUtcIso("00:00", originStr)).getTime(),
+        fromUtc.getTime(),
+      )
+    : fromUtc.getTime();
 
   // Collect all Tehran days from scanFrom to toUtc
   const scanFromDate = new Date(scanFrom);
   const allTehranDays: string[] = [];
-  eachTehranDay(scanFromDate, toUtc, ds => allTehranDays.push(ds));
+  eachTehranDay(scanFromDate, toUtc, (ds) => allTehranDays.push(ds));
 
   // Sort days ascending
   allTehranDays.sort();
 
   // Filter out days before origin
-  const filteredDays = allTehranDays.filter(ds => ds >= originStr);
+  const filteredDays = allTehranDays.filter((ds) => ds >= originStr);
+
+  // Times are the same every day — sort once, not per-iteration (loop-invariant).
+  const sortedTimes = [...times].sort();
 
   // Build occurrences in order
   let count = 0;
   outer: for (const ds of filteredDays) {
     // Compute weekday in Tehran local time using Tehran noon (avoids UTC date ambiguity)
-    const tehranNoon = new Date(toUtcIso('12:00', ds));
+    const tehranNoon = new Date(toUtcIso("12:00", ds));
     const weekday = tehranDayOfWeek(tehranNoon);
 
     if (!days.includes(weekday)) continue;
 
     // For each time on this day
-    const sortedTimes = [...times].sort();
     for (const t of sortedTimes) {
       const isoUtc = toUtcIso(t, ds);
       count++;
 
-      if (endKind === 'after_n' && endCount !== null && count > endCount) break outer;
+      if (endKind === "after_n" && endCount !== null && count > endCount)
+        break outer;
       if (!shouldInclude(isoUtc)) break outer;
 
       if (inRange(isoUtc)) {
@@ -264,10 +287,11 @@ export function expandOccurrences(task: Task, fromUtc: Date, toUtc: Date): strin
 
 /** Format a UTC ISO string as Tehran wall-clock "HH:MM". */
 export function toTehranTime(isoUtc: string): string {
-  const tehranMs = new Date(isoUtc).getTime() + TEHRAN_OFFSET_MINUTES * 60 * 1000;
+  const tehranMs =
+    new Date(isoUtc).getTime() + TEHRAN_OFFSET_MINUTES * 60 * 1000;
   const d = new Date(tehranMs);
-  const h = String(d.getUTCHours()).padStart(2, '0');
-  const m = String(d.getUTCMinutes()).padStart(2, '0');
+  const h = String(d.getUTCHours()).padStart(2, "0");
+  const m = String(d.getUTCMinutes()).padStart(2, "0");
   return `${h}:${m}`;
 }
 
@@ -275,7 +299,11 @@ export function toTehranTime(isoUtc: string): string {
  * Earliest active-task occurrence (UTC ISO) in [from, to), or null when none.
  * ISO UTC strings sort lexicographically === chronologically.
  */
-export function nextOccurrence(tasks: Task[], from: Date, to: Date): string | null {
+export function nextOccurrence(
+  tasks: Task[],
+  from: Date,
+  to: Date,
+): string | null {
   let earliest: string | null = null;
   for (const c of tasks) {
     if (!c.active) continue;
@@ -298,7 +326,11 @@ export function nextOccurrence(tasks: Task[], from: Date, to: Date): string | nu
  * // ponytail: occurrence-level, not day-level — multi-time tasks count each
  * time slot as its own streak unit.
  */
-export function streak(task: Task, logs: TaskLog[], now: Date = new Date()): number {
+export function streak(
+  task: Task,
+  logs: TaskLog[],
+  now: Date = new Date(),
+): number {
   // ponytail: 365-day lookback cap; streaks longer than a year are under-counted
   const windowStart = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
   const all = expandOccurrences(task, windowStart, now); // dueAt < now (half-open)
@@ -309,7 +341,7 @@ export function streak(task: Task, logs: TaskLog[], now: Date = new Date()): num
   // missing) breaks the streak, so only 'done' needs tracking.
   const doneSet = new Set<string>();
   for (const log of logs) {
-    if (log.taskId === task.id && log.status === 'done') doneSet.add(log.dueAt);
+    if (log.taskId === task.id && log.status === "done") doneSet.add(log.dueAt);
   }
 
   // `all` is already past-due (expandOccurrences is half-open [from, now), so
@@ -360,7 +392,7 @@ export function adherence(
 
   const doneSet = new Set<string>();
   for (const log of logs) {
-    if (log.taskId === task.id && log.status === 'done') {
+    if (log.taskId === task.id && log.status === "done") {
       doneSet.add(log.dueAt);
     }
   }
@@ -375,7 +407,7 @@ export function adherence(
 
 export interface DayRange {
   start: Date; // inclusive
-  end: Date;   // exclusive
+  end: Date; // exclusive
 }
 
 /**
@@ -391,7 +423,7 @@ export function occurrencesForDay(
   now: Date = new Date(),
 ): Occurrence[] {
   // Build a lookup: `${taskId}|${dueAt}` → log status
-  const logMap = new Map<string, 'done' | 'skipped'>();
+  const logMap = new Map<string, "done" | "skipped">();
   for (const log of logs) {
     logMap.set(`${log.taskId}|${log.dueAt}`, log.status);
   }
@@ -400,18 +432,22 @@ export function occurrencesForDay(
   const nowMs = now.getTime();
 
   for (const task of tasks) {
-    const dueTimes = expandOccurrences(task, dayUtcRange.start, dayUtcRange.end);
+    const dueTimes = expandOccurrences(
+      task,
+      dayUtcRange.start,
+      dayUtcRange.end,
+    );
     for (const dueAt of dueTimes) {
       const key = `${task.id}|${dueAt}`;
       const logStatus = logMap.get(key);
 
-      let status: Occurrence['status'];
+      let status: Occurrence["status"];
       if (logStatus !== undefined) {
         status = logStatus;
       } else if (new Date(dueAt).getTime() < nowMs) {
-        status = 'missed';
+        status = "missed";
       } else {
-        status = 'pending';
+        status = "pending";
       }
 
       result.push({ task, dueAt, status });
