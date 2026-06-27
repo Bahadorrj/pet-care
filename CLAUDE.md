@@ -19,8 +19,8 @@ Quick setup: `docs/running-the-app.md` covers the full local stack (all dependen
 
 ## Documentation & Decisions
 
-- Specs live in `docs/specs`; Used for creating a plan
-- Plans live in `docs/plans`; Used for implementing a plan
+- Specs live in `docs/specs`
+- Plans live in `docs/plans`
 - Architecture decisions live in `docs/adr/` (ADRs); reconcile the spec when changing a decision; When changing a decision, add a new ADR and reconcile the spec — don't silently diverge.
 - Codebase questions: use `graphify query "<question>"` (scoped subgraph) or `graphify path "A" "B"` for relationships instead of grep/raw browsing
 - For large codebase review: `graphify update .` after code changes (AST-only, no API cost)

@@ -35,14 +35,14 @@ Bottom-tab navigator (`src/navigation/RootNavigator.tsx`) with three tabs: `Pets
 
 **UI primitives** — `src/components/ui/` (`Button`, `TextField`). Reuse these rather than raw RN components.
 
-**Tasks** — offline-first task reminders (ADR-0016). Storage: `tasks` table
-(rule as `schedule_json` TEXT discriminated union) + `task_logs` table (done/skipped
-actions). Occurrences, today's agenda, missed status, streak, and adherence are
-**always derived** from the rule + logs at query time — never materialised to
-storage (approach B). Local notifications via `@notifee/react-native` (ADR-0008,
-first realisation). Tehran time = fixed **+03:30** offset.
+**Pets** — `src/store/petsStore.ts` is a Zustand store backed by SQLite (`src/db/pets.ts`). `listPets()` is synchronous (expo-sqlite sync API), so `pets` is populated at module load with no async hydration step. Photo files are copied into app storage by `src/lib/petPhoto.ts`; the stored path is what goes in `photoUri`.
+
+**Tasks** — offline-first task reminders (ADR-0016). Storage: `tasks` table (rule as `schedule_json` TEXT discriminated union) + `task_logs` table (done/skipped actions). Types live in `src/db/types.ts`. Occurrences, today's agenda, missed status, streak, and adherence are **always derived** from rule + logs at query time — never materialised to storage (approach B). `src/lib/taskSchedule.ts` is the pure schedule engine (no I/O). `src/screens/tasks/todayBuckets.ts` groups occurrences into `overdue / morning / afternoon / evening / night` buckets for the Tasks tab. Local notifications via `@notifee/react-native` (ADR-0008); `src/lib/taskNotifications.ts` owns the channel, 60-day trigger window (cap 200), snooze (15 min), and tap-to-navigate. The notification sync function is injected into the tasks store via `setTasksSyncNotifications` seam so the store stays I/O-free. Tehran time = fixed **+03:30** offset throughout.
+
+**Haptics & Toast** — `expo-haptics` is used in `TasksScreen` for mark-done/skip feedback (failures swallowed — never load-bearing). `react-native-toast-message` surfaces undo prompts after log actions.
 
 ## Conventions
 
 - Tests live in `src/__tests__/` (jest-expo + @testing-library/react-native). I18nManager RTL is asserted via spies, since the jest mock doesn't flip synchronously.
 - Async submit handlers use a `useRef` in-flight guard to block duplicate requests before state re-renders.
+- Errors thrown in stores and services use i18n translation keys (e.g. `"pets.error.name_required"`) — screens surface them via `t(err.message)`.
