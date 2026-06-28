@@ -39,8 +39,19 @@ function TaskDoneToast({ props }: ToastConfigParams<TaskDoneProps>) {
   );
 }
 
+function HintToast({ text1 }: ToastConfigParams<unknown>) {
+  return (
+    <View style={hintStyles.container}>
+      <Text style={hintStyles.text} numberOfLines={2}>
+        {text1}
+      </Text>
+    </View>
+  );
+}
+
 export const toastConfig: ToastConfig = {
   taskDone: (params) => <TaskDoneToast {...params} />,
+  hint: (params) => <HintToast {...params} />,
 };
 
 const styles = StyleSheet.create({
@@ -61,6 +72,24 @@ const styles = StyleSheet.create({
   text: {
     flex: 1,
     ...typography.bodyLg,
+    color: colors.ink,
+  },
+});
+
+const hintStyles = StyleSheet.create({
+  container: {
+    width: "92%",
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    // Neutral, not emerald: White Surface + Border Gentle (One Voice Rule).
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.card,
+  },
+  text: {
+    ...typography.body,
     color: colors.ink,
   },
 });

@@ -54,6 +54,7 @@
   "tab.tasks": "وظایف",
   "tasks.empty": "امروز کاری برای انجام ندارید",
   "tasks.add": "افزودن کار",
+  "tasks.no_pets_hint": "ابتدا یک حیوان اضافه کنید",
   "tasks.edit": "ویرایش کار",
   "tasks.delete": "حذف کار",
   "tasks.delete_confirm": "آیا مطمئن هستید که می‌خواهید این کار را حذف کنید؟",
