@@ -386,6 +386,23 @@ export default function TasksScreen() {
     [showActionSheetWithOptions, deleteTask, markOccurrence, t, handleEdit],
   );
 
+  // Adding a task needs a pet. With none, hint instead of dead-ending in an
+  // empty TaskForm picker; tapping the toast jumps to the Pets tab.
+  const handleAdd = React.useCallback(() => {
+    if (pets.length === 0) {
+      Toast.show({
+        type: "hint",
+        text1: t("tasks.no_pets_hint"),
+        onPress: () => {
+          Toast.hide();
+          navigation.getParent()?.navigate("Pets");
+        },
+      });
+      return;
+    }
+    navigation.navigate("TaskForm", {});
+  }, [pets.length, navigation, t]);
+
   // Section list data — rebuilt only when the buckets change, not on every
   // render (filter chips / modal). Includes the upcoming day sub-headers.
   const { sections, counts } = React.useMemo(() => {
@@ -452,7 +469,7 @@ export default function TasksScreen() {
         </View>
         <Pressable
           testID="tasks-fab"
-          onPress={() => navigation.navigate("TaskForm", {})}
+          onPress={handleAdd}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
           accessibilityRole="button"
           accessibilityLabel={t("tasks.add")}
@@ -592,7 +609,7 @@ export default function TasksScreen() {
       />
       <Pressable
         testID="tasks-fab"
-        onPress={() => navigation.navigate("TaskForm", {})}
+        onPress={handleAdd}
         style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
         accessibilityRole="button"
         accessibilityLabel={t("tasks.add")}

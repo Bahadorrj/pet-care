@@ -57,6 +57,7 @@ jest.mock("../store/petsStore", () => ({
 
 // ── Navigation mock ───────────────────────────────────────────────────────────
 const mockNavigate = jest.fn();
+const mockParentNavigate = jest.fn();
 jest.mock("@react-navigation/native", () => {
   const ReactLocal = require("react");
   return {
@@ -66,7 +67,10 @@ jest.mock("@react-navigation/native", () => {
     // single focus event without a real NavigationContainer.
     useFocusEffect: (cb: () => undefined | (() => void)) =>
       ReactLocal.useEffect(cb, [cb]),
-    useNavigation: () => ({ navigate: mockNavigate }),
+    useNavigation: () => ({
+      navigate: mockNavigate,
+      getParent: () => ({ navigate: mockParentNavigate }),
+    }),
   };
 });
 
@@ -129,6 +133,7 @@ beforeEach(() => {
   mockUnmarkOccurrence.mockClear();
   mockDeleteTask.mockClear();
   mockNavigate.mockClear();
+  mockParentNavigate.mockClear();
   (Toast.show as jest.Mock).mockClear();
   (Toast.hide as jest.Mock).mockClear();
   // Reset the hoisted showActionSheetWithOptions
@@ -688,6 +693,31 @@ describe("TasksScreen – FAB", () => {
     const { getByTestId } = await render(<TasksScreen />);
     fireEvent.press(getByTestId("tasks-fab"));
     expect(mockNavigate).toHaveBeenCalledWith("TaskForm", {});
+  });
+
+  test("pressing fab with no pets shows the hint toast and does NOT open TaskForm", async () => {
+    mockPets = [];
+    mockWindowOccurrences = [];
+    const { getByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-fab"));
+
+    expect(Toast.show).toHaveBeenCalledTimes(1);
+    const args = (Toast.show as jest.Mock).mock.calls[0][0];
+    expect(args.type).toBe("hint");
+    expect(mockNavigate).not.toHaveBeenCalledWith("TaskForm", {});
+  });
+
+  test("tapping the no-pets hint toast navigates to the Pets tab", async () => {
+    mockPets = [];
+    mockWindowOccurrences = [];
+    const { getByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-fab"));
+    const args = (Toast.show as jest.Mock).mock.calls[0][0];
+    args.onPress();
+
+    expect(mockParentNavigate).toHaveBeenCalledWith("Pets");
   });
 });
 
