@@ -1,7 +1,9 @@
 # ADR-0014: Bottom Tab navigator as the root navigation shell
 
 ## Status
-Accepted
+Superseded by ADR-0018 (swipeable bottom tabs via material-top-tabs). The
+two-tab, RTL-aware, auth-optional shell decided here still stands; only the
+underlying navigator changed.
 
 ## Date
 2026-06-18

@@ -210,7 +210,7 @@ Components in this system are warm and approachable: generously sized touch targ
 
 ### Navigation
 
-- **Style:** Bottom tab bar, three tabs (خانه / حیوانات من / پروفایل). React Navigation BottomTabNavigator, platform-native rendering.
+- **Style:** Bottom tab bar, three tabs (خانه / حیوانات من / پروفایل). React Navigation material top-tab navigator pinned to the bottom (`tabBarPosition="bottom"`) with a custom flat tab bar, so tabs are **swipeable** — a horizontal swipe switches tabs and the page tracks the finger (ADR-0018).
 - **Background:** Warm Paper (`#F6F5F1`) — the tab bar reads as an extension of the screen, not a separate layer.
 - **Active:** Garden Confident tint on both icon and label text.
 - **Inactive:** Ink Muted tint on both icon and label text.
@@ -257,4 +257,4 @@ Used in PetDetailScreen for each data pair (species, gender, notes, dates).
 - **Don't** use uppercase tracked eyebrow labels above sections. Labels in this system are field identifiers (Label style, Ink Muted), not section headers. Section eyebrows with all-caps tracking are not part of this vocabulary.
 - **Don't** show Gregorian calendar dates anywhere in the UI. Jalali only, formatted as `yyyy/MM/dd` via `date-fns-jalali`.
 - **Don't** use Ink Faint (`#A8A79E`) for real content text. Its contrast (~2.5:1 on Warm Paper) passes only for non-text elements. Placeholder text is the one permitted use.
-- **Don't** add motion to list row entrances, tab transitions, or background section reveals. Motion in this system signals state (a press, a loading condition), not choreography.
+- **Don't** add motion to list row entrances, tab transitions, or background section reveals. Motion in this system signals state (a press, a loading condition), not choreography. (One scoped exception: the bottom tabs are swipeable and the page tracks the finger during the swipe — direct manipulation that signals the gesture, not decorative choreography. See ADR-0018.)
