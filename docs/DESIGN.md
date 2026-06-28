@@ -253,7 +253,7 @@ Used in PetDetailScreen for each data pair (species, gender, notes, dates).
 - **Don't** use bright cartoon colors, bouncy or elastic motion, or gamification elements (badges, streaks, confetti). The users are adults managing daily care. This is the second anti-reference in PRODUCT.md.
 - **Don't** add heavy navigation patterns: side nav, breadcrumbs, flyout menus, toolbar rows, or dense information panels. The interface should feel light and personal. This is the third anti-reference in PRODUCT.md.
 - **Don't** introduce a second accent color. The system is Restrained by design. A second accent breaks the One Voice Rule and signals the wrong register.
-- **Don't** use gradient text, side-stripe borders (>1px left/right accent), or glassmorphism. These are decorative flourishes from a different aesthetic register.
+- **Don't** use gradient text, side-stripe borders (>1px left/right accent), or glassmorphism. These are decorative flourishes from a different aesthetic register. (One scoped exception: the task-done toast's emerald start-side success stripe — see ADR-0017.)
 - **Don't** use uppercase tracked eyebrow labels above sections. Labels in this system are field identifiers (Label style, Ink Muted), not section headers. Section eyebrows with all-caps tracking are not part of this vocabulary.
 - **Don't** show Gregorian calendar dates anywhere in the UI. Jalali only, formatted as `yyyy/MM/dd` via `date-fns-jalali`.
 - **Don't** use Ink Faint (`#A8A79E`) for real content text. Its contrast (~2.5:1 on Warm Paper) passes only for non-text elements. Placeholder text is the one permitted use.

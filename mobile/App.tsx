@@ -1,24 +1,27 @@
 // Import for side effects: initialises i18next and forces RTL layout before render.
-import './src/i18n';
+import "./src/i18n";
 // Import for side effects: opens the SQLite db and creates the pets table.
-import './src/db';
+import "./src/db";
 
-import { useEffect, useRef, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { useFonts } from 'expo-font';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNavigationContainerRef } from '@react-navigation/native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ActionSheetProvider } from '@expo/react-native-action-sheet';
-import Toast from 'react-native-toast-message';
+import { useEffect, useRef, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useFonts } from "expo-font";
+import { NavigationContainer , createNavigationContainerRef } from "@react-navigation/native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
+import Toast from "react-native-toast-message";
 
-import notifee from '@notifee/react-native';
+import notifee from "@notifee/react-native";
 
-import RootNavigator from './src/navigation/RootNavigator';
-import type { RootTabParamList } from './src/navigation/RootNavigator';
-import { useAuthStore } from './src/store/authStore';
-import { initTaskNotifications, handleNotificationEvent } from './src/lib/taskNotifications';
+import { toastConfig } from "./src/components/toastConfig";
+import RootNavigator from "./src/navigation/RootNavigator";
+import type { RootTabParamList } from "./src/navigation/RootNavigator";
+import { useAuthStore } from "./src/store/authStore";
+import {
+  initTaskNotifications,
+  handleNotificationEvent,
+} from "./src/lib/taskNotifications";
 
 // Register background handler at module top-level (before render), per Notifee requirement.
 // Background JS context: handleNotificationEvent only touches db/tasks — safe for headless.
@@ -31,10 +34,10 @@ export default function App() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   // Vazirmatn — the app's typeface. Keys must match the family names in theme.ts.
   const [fontsLoaded] = useFonts({
-    'Vazirmatn-Regular': require('./assets/fonts/Vazirmatn-Regular.ttf'),
-    'Vazirmatn-Medium': require('./assets/fonts/Vazirmatn-Medium.ttf'),
-    'Vazirmatn-SemiBold': require('./assets/fonts/Vazirmatn-SemiBold.ttf'),
-    'Vazirmatn-Bold': require('./assets/fonts/Vazirmatn-Bold.ttf'),
+    "Vazirmatn-Regular": require("./assets/fonts/Vazirmatn-Regular.ttf"),
+    "Vazirmatn-Medium": require("./assets/fonts/Vazirmatn-Medium.ttf"),
+    "Vazirmatn-SemiBold": require("./assets/fonts/Vazirmatn-SemiBold.ttf"),
+    "Vazirmatn-Bold": require("./assets/fonts/Vazirmatn-Bold.ttf"),
   });
 
   // ponytail: init once; errors are fire-and-forget (permission denied is non-fatal).
@@ -42,7 +45,8 @@ export default function App() {
   const [navReady, setNavReady] = useState(false);
   const notifInitDone = useRef(false);
   useEffect(() => {
-    if (!hasHydrated || !fontsLoaded || !navReady || notifInitDone.current) return;
+    if (!hasHydrated || !fontsLoaded || !navReady || notifInitDone.current)
+      return;
     notifInitDone.current = true;
     initTaskNotifications(navRef).catch(() => {});
   }, [hasHydrated, fontsLoaded, navReady]);
@@ -55,18 +59,18 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-    <SafeAreaProvider>
-      <ActionSheetProvider>
-        <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
-          <RootNavigator />
-          {/* App is light-only (userInterfaceStyle: light); "auto" follows the OS
+      <SafeAreaProvider>
+        <ActionSheetProvider>
+          <NavigationContainer ref={navRef} onReady={() => setNavReady(true)}>
+            <RootNavigator />
+            {/* App is light-only (userInterfaceStyle: light); "auto" follows the OS
               scheme and renders white text on the light canvas in device dark mode. */}
-          <StatusBar style="dark" />
-        </NavigationContainer>
-      </ActionSheetProvider>
-      {/* Toast renders above all screens; must be last child so it overlays navigation. */}
-      <Toast />
-    </SafeAreaProvider>
+            <StatusBar style="dark" />
+          </NavigationContainer>
+        </ActionSheetProvider>
+        {/* Toast renders above all screens; must be last child so it overlays navigation. */}
+        <Toast config={toastConfig} />
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

@@ -235,18 +235,11 @@ describe("TasksScreen – checkbox", () => {
       expect(Toast.show).toHaveBeenCalledTimes(1);
     });
 
-    // Verify Toast.show was called with an onPress that triggers unmark
+    // The done toast is informational only — it names the pet; undo is via the
+    // row checkbox, not a toast button.
     const toastArgs = (Toast.show as jest.Mock).mock.calls[0][0];
-    expect(toastArgs.type).toBe("success");
-    expect(typeof toastArgs.onPress).toBe("function");
-
-    // Invoke the undo handler
-    toastArgs.onPress();
-    expect(mockUnmarkOccurrence).toHaveBeenCalledWith(
-      "task-today",
-      OCC_TODAY.dueAt,
-    );
-    expect(Toast.hide).toHaveBeenCalled();
+    expect(toastArgs.type).toBe("taskDone");
+    expect(toastArgs.props.petName).toBe("رکسی");
   });
 
   test("pressing checkbox on done row reverts it (unmarkOccurrence, no mark)", async () => {

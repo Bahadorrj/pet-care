@@ -1,6 +1,11 @@
 # 10 — Lively task-done toast
 
-**Status:** Draft · **Date:** 2026-06-28
+**Status:** Accepted · **Date:** 2026-06-28
+
+> Reconciled after build: the paw icon, paw spring motion, and the in-toast undo
+> button were dropped during review. The toast is now a passive, on-brand success
+> cue — pet-aware copy on a Garden Soft surface with an emerald start-side accent
+> stripe. Undo is the row checkbox, not a toast button.
 
 ## Problem
 
@@ -16,19 +21,19 @@ feel like it belongs and carry a little warmth and character.
 Restyle the done toast as a custom toast type rendered through the library's
 `config` seam (approach A — reuse the installed `react-native-toast-message`,
 no new dependency, no re-implementing queue/timing/dismissal). The toast gets
-four "lively" ingredients, deliberately pushing past DESIGN.md's
-"no bouncy motion / no gamification" stance for this one success moment:
+its warmth from two on-brand ingredients plus an emerald success accent:
 
-1. **Motion** — a small Reanimated spring on the paw icon at mount.
-2. **Playful icon** — a 🐾 paw instead of the generic green check.
-3. **Warmer copy** — rotating, friendly Persian phrases.
-4. **Pet-aware** — the phrase names the pet.
+1. **Warmer copy** — rotating, friendly Persian phrases.
+2. **Pet-aware** — the phrase names the pet.
+3. **Success accent** — an emerald start-side border stripe signals completion.
 
-This divergence from DESIGN.md is recorded in a new ADR (see "Docs" below).
+The toast is a passive cue: no icon, no motion, no in-toast action. The single
+divergence from DESIGN.md is the side-stripe accent border (DESIGN.md's
+"no side-stripe borders >1px" Don't), recorded in a new ADR (see "Docs").
 
 ## Scope
 
-In scope: the **done** toast only (the undo prompt shown after marking an
+In scope: the **done** toast only (the confirmation shown after marking an
 occurrence done). Out of scope: the skip flow (action sheet, unchanged), error
 toasts, and any other toast usage.
 
@@ -48,95 +53,83 @@ toasts, and any other toast usage.
 ### Visual (RTL)
 
 ```
-┌──────────────────────────────────────────────┐
-│ 🐾  آفرین! به میلو رسیدی          لغو   │   ← Garden Soft (#E7F1EB) fill
-└──────────────────────────────────────────────┘     emerald paw + text, undo at end
+┃──────────────────────────────────────────────┐
+┃ آفرین! به میلو رسیدی                          │   ← Garden Soft (#E7F1EB) fill
+┃──────────────────────────────────────────────┘     emerald accent stripe at start (right)
 ```
 
 - **Surface:** `colors.primarySoft` (#E7F1EB) fill, `radius.md` (14),
   `shadow.card` (Card Lift) so it genuinely floats. Garden Soft is an
   already-sanctioned success/selected tint, so the warm-but-on-brand look adds
   no new color and keeps emerald as the one voice.
-- **Paw:** 🐾 emoji, ~22px, at the reading start (right in RTL).
+- **Success accent:** a 4px `colors.primary` border on the reading start
+  (`borderStartWidth` → right in RTL) — the completion signal.
 - **Text:** `typography.bodyLg`, `colors.ink`.
-- **Undo:** ghost-style `Pressable`, `colors.primary` label
-  (`typography.label`), at the end (left in RTL), tap target ≥ 44×44.
 - Horizontal layout follows RTL automatically; no hard-coded left/right.
 
 ### Motion
 
-- Container: keep the library's default fade/translateY entrance — do not fight
-  it.
-- **Paw pop:** Reanimated spring on mount — `scale 0.6 → 1` with a small
-  overshoot plus a few degrees of rotation. This is the character beat.
-- **Reduced motion:** `useReducedMotion()` (Reanimated) → render the paw static
-  when enabled, honoring PRODUCT.md's `prefers-reduced-motion` requirement.
+None. The toast keeps the library's default fade/translateY entrance and adds no
+animation of its own — consistent with DESIGN.md's "motion signals state, not
+choreography".
 
 ### Copy — warm + pet-aware
 
-3–4 rotating phrases in `fa.json`, interpolating `{{name}}`, one picked at
-random per show. i18next interpolation works with the flat-key config. Example
-keys/values:
+3 rotating phrases in `fa.json`, interpolating `{{name}}`, one picked at random
+per show. i18next interpolation works with the flat-key config. Keys:
 
 - `tasks.done.cheer.0` → «آفرین! به ‌{{name}} رسیدی»
-- `tasks.done.cheer.1` → «ایول! کارِ {{name}} انجام شد»
-- `tasks.done.cheer.2` → «{{name}} مراقبت شد»
+- `tasks.done.cheer.1` → «حواست به {{name}} هستا!»
+- `tasks.done.cheer.2` → «خیلی خوب از {{name}} مراقبت می کنی»
 
 Fallback to the existing `tasks.undo.done` («انجام شد») when `petName` is
-absent. Undo label stays `tasks.undo.action` («لغو»). The component owns phrase
-selection.
+absent. The component owns phrase selection. Because the library reuses one
+mounted toast instance across shows, the phrase is memoized on `petName` (not
+`[]`) so it doesn't freeze to the first pet shown.
 
 ### Data flow
 
-`handleCheck` already resolves the pet via `petNameById[task.petId]`. It passes
-`petName` and an `onUndo` closure through `props`; the closure is the existing
-undo behavior:
+`handleCheck` resolves the pet via `petNameById[task.petId]` and passes only
+`petName` through `props`. There is no undo closure — undo is the row checkbox.
 
 ```ts
 Toast.show({
   type: "taskDone",
-  props: {
-    petName: petNameById[task.petId],
-    onUndo: () => {
-      unmarkOccurrence(task.id, dueAt);
-      Toast.hide();
-    },
-  },
+  props: { petName: petNameById[task.petId] },
   visibilityTime: 4000,
 });
 ```
 
-`visibilityTime` stays 4000ms. Undo moves from a full-toast `onPress` to the
-explicit undo button inside the component. `petNameById` must be added to
-`handleCheck`'s dependency array.
+`visibilityTime` stays 4000ms. `petNameById` must be in `handleCheck`'s
+dependency array.
+
+### Undo
+
+Marking done is reverted by tapping the row's checkbox again (the existing
+`unmarkOccurrence` path) — no in-toast button. The toast is informational only.
 
 ### Accessibility
 
-- Undo button: `accessibilityRole="button"`, `accessibilityLabel` =
-  `tasks.undo.action`.
-- The toast text is the live announcement; no extra live region needed beyond
-  the library default.
+- The toast text is the live announcement; the library default live region
+  handles it. No interactive elements in the toast.
 
 ## Testing
 
-- **Update** `TasksScreen.test.tsx` (§3 checkbox): it currently asserts
-  `toastArgs.type === "success"` and calls `toastArgs.onPress()`. After the
-  change: assert `type === "taskDone"` and invoke `toastArgs.props.onUndo()`,
-  still expecting `unmarkOccurrence` + `Toast.hide`.
+- **Update** `TasksScreen.test.tsx` (§3 checkbox): assert `type === "taskDone"`
+  and `props.petName` is the pet's name. (No undo button to exercise.)
 - **New** small unit test for the phrase picker: random index stays in range,
   and missing `petName` falls back to «انجام شد».
 
 ## Docs
 
 - **New ADR `docs/adr/0017-*.md`** recording the deliberate divergence from
-  DESIGN.md's "no bouncy motion / no gamification" rule for the task-done
-  success moment, with rationale (a single, brief, state-signaling beat — not
-  pervasive choreography).
+  DESIGN.md's "no side-stripe borders (>1px left/right accent)" rule for the
+  task-done success cue, with rationale.
 - One-line note in `docs/DESIGN.md` pointing to ADR-0017 so the spec and code
   don't silently diverge.
 
 ## Non-goals / YAGNI
 
-- No animation library beyond the already-installed Reanimated.
+- No animation, no paw/icon, no in-toast undo button.
 - No new toast types, no theming of error/skip toasts.
 - No persisted "last phrase" state — random per show is enough.

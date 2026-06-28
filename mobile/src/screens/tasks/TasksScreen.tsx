@@ -337,17 +337,12 @@ export default function TasksScreen() {
       hapticSuccess();
       markOccurrence(task.id, dueAt, "done");
       Toast.show({
-        type: "success",
-        text1: t("tasks.undo.done"),
-        text2: t("tasks.undo.action"),
+        type: "taskDone",
+        props: { petName: petNameById[task.petId] },
         visibilityTime: 4000,
-        onPress: () => {
-          unmarkOccurrence(task.id, dueAt);
-          Toast.hide();
-        },
       });
     },
-    [markOccurrence, unmarkOccurrence, t],
+    [markOccurrence, unmarkOccurrence, petNameById],
   );
 
   const handleEdit = React.useCallback(
