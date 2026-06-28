@@ -10,51 +10,52 @@
  * i18n is imported to initialise the i18n instance before rendering.
  */
 
-import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import React from "react";
+import { render, screen } from "@testing-library/react-native";
 
 // petsStore calls listPets() (SQLite) at module load — mock the whole module.
 // usePetsStore is called with a selector: usePetsStore((s) => s.pets).
 // We intercept the selector call and return the controlled pets array.
 let mockPets: Pet[] = [];
 
-jest.mock('../store/petsStore', () => ({
-  usePetsStore: (selector: (s: { pets: Pet[] }) => Pet[]) => selector({ pets: mockPets }),
+jest.mock("../store/petsStore", () => ({
+  usePetsStore: (selector: (s: { pets: Pet[] }) => Pet[]) =>
+    selector({ pets: mockPets }),
 }));
 
 const mockNavigate = jest.fn();
 const mockSetOptions = jest.fn();
 
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
+jest.mock("@react-navigation/native", () => ({
+  ...jest.requireActual("@react-navigation/native"),
   useNavigation: () => ({ navigate: mockNavigate, setOptions: mockSetOptions }),
 }));
 
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
-import '../i18n';
-import PetsListScreen from '../screens/pets/PetsListScreen';
-import type { Pet } from '../db/types';
+import "../i18n";
+import PetsListScreen from "../screens/pets/PetsListScreen";
+import type { Pet } from "../db/types";
 
 const PET_DOG: Pet = {
-  id: 'pet-1',
-  name: 'رکسی',
-  species: 'dog',
-  gender: 'male',
+  id: "pet-1",
+  name: "رکسی",
+  species: "dog",
+  gender: "male",
   photoUri: null,
   notes: null,
-  createdAt: '2024-01-01T00:00:00Z',
-  updatedAt: '2024-01-01T00:00:00Z',
+  createdAt: "2024-01-01T00:00:00Z",
+  updatedAt: "2024-01-01T00:00:00Z",
 };
 
 const PET_CAT: Pet = {
-  id: 'pet-2',
-  name: 'ملوس',
-  species: 'cat',
-  gender: 'female',
+  id: "pet-2",
+  name: "ملوس",
+  species: "cat",
+  gender: "female",
   photoUri: null,
   notes: null,
-  createdAt: '2024-01-02T00:00:00Z',
-  updatedAt: '2024-01-02T00:00:00Z',
+  createdAt: "2024-01-02T00:00:00Z",
+  updatedAt: "2024-01-02T00:00:00Z",
 };
 
 beforeEach(() => {
@@ -63,41 +64,41 @@ beforeEach(() => {
   mockPets = [];
 });
 
-describe('PetsListScreen – empty store', () => {
+describe("PetsListScreen – empty store", () => {
   beforeEach(() => {
     mockPets = [];
   });
 
-  test('renders the empty state message', async () => {
+  test("renders the empty state message", async () => {
     await render(<PetsListScreen />);
-    expect(screen.getByText('هنوز پت ای اضافه نشده است')).toBeTruthy();
+    expect(screen.getByText("هنوز پتی اینجا نیست")).toBeTruthy();
   });
 
-  test('does not render any pet names', async () => {
+  test("does not render any pet names", async () => {
     await render(<PetsListScreen />);
-    expect(screen.queryByText('رکسی')).toBeNull();
+    expect(screen.queryByText("رکسی")).toBeNull();
   });
 });
 
-describe('PetsListScreen – populated store', () => {
+describe("PetsListScreen – populated store", () => {
   beforeEach(() => {
     mockPets = [PET_DOG, PET_CAT];
   });
 
-  test('renders pet names', async () => {
+  test("renders pet names", async () => {
     await render(<PetsListScreen />);
-    expect(screen.getByText('رکسی')).toBeTruthy();
-    expect(screen.getByText('ملوس')).toBeTruthy();
+    expect(screen.getByText("رکسی")).toBeTruthy();
+    expect(screen.getByText("ملوس")).toBeTruthy();
   });
 
-  test('renders translated species for each pet', async () => {
+  test("renders translated species for each pet", async () => {
     await render(<PetsListScreen />);
-    expect(screen.getByText('سگ')).toBeTruthy();   // pets.species.dog
-    expect(screen.getByText('گربه')).toBeTruthy(); // pets.species.cat
+    expect(screen.getByText("سگ")).toBeTruthy(); // pets.species.dog
+    expect(screen.getByText("گربه")).toBeTruthy(); // pets.species.cat
   });
 
-  test('does not render the empty state message', async () => {
+  test("does not render the empty state message", async () => {
     await render(<PetsListScreen />);
-    expect(screen.queryByText('هنوز حیوان خانگی‌ای اضافه نشده است')).toBeNull();
+    expect(screen.queryByText("هنوز پتی اینجا نیست")).toBeNull();
   });
 });
