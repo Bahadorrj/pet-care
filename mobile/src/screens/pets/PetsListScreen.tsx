@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import {
   FlatList,
   Image,
@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 
 import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
@@ -42,6 +43,18 @@ export default function PetsListScreen() {
   const pets = usePetsStore((s) => s.pets);
   const tasks = useTasksStore((s) => s.tasks);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectionMode = selectedIds.size > 0;
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
   // Group active tasks by pet once per render rather than filtering per card.
   const tasksByPet = React.useMemo(() => {
     const map = new Map<string, Task[]>();
@@ -70,12 +83,26 @@ export default function PetsListScreen() {
           hint += ` · ${t("pets.next_task", { time: toPersianDigits(toTehranTime(next)) })}`;
       }
 
+      const selected = selectedIds.has(item.id);
+
       return (
         <Pressable
+          testID={`pet-card-${item.id}`}
           style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-          onPress={() => navigation.navigate("PetDetail", { petId: item.id })}
+          onPress={() => {
+            if (selectionMode) toggleSelected(item.id);
+            else navigation.navigate("PetDetail", { petId: item.id });
+          }}
+          onLongPress={() => {
+            if (selectionMode) return;
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
+              () => {},
+            );
+            toggleSelected(item.id);
+          }}
           accessibilityRole="button"
           accessibilityLabel={item.name}
+          accessibilityState={{ selected }}
         >
           <View style={styles.photoZone}>
             {item.photoUri ? (
@@ -101,6 +128,15 @@ export default function PetsListScreen() {
                 </Text>
               </View>
             </View>
+            {selectionMode && (
+              <View style={styles.checkOverlay}>
+                <Ionicons
+                  name={selected ? "checkmark-circle" : "ellipse-outline"}
+                  size={24}
+                  color={selected ? colors.primary : "#FFFFFF"}
+                />
+              </View>
+            )}
           </View>
 
           {hint && (
@@ -113,7 +149,7 @@ export default function PetsListScreen() {
         </Pressable>
       );
     },
-    [navigation, t, tasksByPet],
+    [navigation, t, tasksByPet, selectionMode, selectedIds, toggleSelected],
   );
 
   const isEmpty = pets.length === 0;
@@ -124,6 +160,7 @@ export default function PetsListScreen() {
         data={pets}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
+        extraData={selectedIds}
         numColumns={2}
         columnWrapperStyle={isEmpty ? undefined : styles.column}
         contentContainerStyle={[styles.list, isEmpty && styles.listEmpty]}
@@ -177,6 +214,11 @@ const styles = StyleSheet.create({
   },
   cardPressed: {
     opacity: 0.85,
+  },
+  checkOverlay: {
+    position: "absolute",
+    top: spacing.sm,
+    end: spacing.sm,
   },
   photoZone: {
     height: 160,

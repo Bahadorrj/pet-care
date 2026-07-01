@@ -11,7 +11,12 @@
  */
 
 import React from "react";
-import { render, screen } from "@testing-library/react-native";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 
 // petsStore calls listPets() (SQLite) at module load — mock the whole module.
 // usePetsStore is called with a selector: usePetsStore((s) => s.pets).
@@ -108,5 +113,79 @@ describe("PetsListScreen – populated store", () => {
   test("does not render the empty state message", async () => {
     await render(<PetsListScreen />);
     expect(screen.queryByText(i18n.t("pets.empty_title"))).toBeNull();
+  });
+});
+
+describe("PetsListScreen – selection mode", () => {
+  beforeEach(() => {
+    mockPets = [PET_DOG, PET_CAT];
+  });
+
+  test("tapping a card while not in selection mode navigates to PetDetail", async () => {
+    await render(<PetsListScreen />);
+
+    fireEvent.press(screen.getByTestId(`pet-card-${PET_DOG.id}`));
+
+    expect(mockNavigate).toHaveBeenCalledWith("PetDetail", {
+      petId: PET_DOG.id,
+    });
+  });
+
+  test("long-pressing an unselected card enters selection mode and selects it", async () => {
+    await render(<PetsListScreen />);
+
+    fireEvent(screen.getByTestId(`pet-card-${PET_DOG.id}`), "longPress");
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_DOG.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(true),
+    );
+  });
+
+  test("tapping another card while in selection mode toggles it instead of navigating", async () => {
+    await render(<PetsListScreen />);
+    fireEvent(screen.getByTestId(`pet-card-${PET_DOG.id}`), "longPress");
+    // VirtualizedList defers cell re-render to a timer (_updateCellsToRender);
+    // wait for it so the CAT cell's onPress closure picks up the new
+    // selection mode before we tap it.
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_DOG.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(true),
+    );
+    mockNavigate.mockClear();
+
+    fireEvent.press(screen.getByTestId(`pet-card-${PET_CAT.id}`));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_CAT.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(true),
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  test("tapping an already-selected card while in selection mode deselects it", async () => {
+    await render(<PetsListScreen />);
+    fireEvent(screen.getByTestId(`pet-card-${PET_DOG.id}`), "longPress");
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_DOG.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(true),
+    );
+
+    fireEvent.press(screen.getByTestId(`pet-card-${PET_DOG.id}`));
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_DOG.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(false),
+    );
   });
 });
