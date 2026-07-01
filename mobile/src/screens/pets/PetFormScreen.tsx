@@ -48,6 +48,9 @@ export default function PetFormScreen() {
   const [species, setSpecies] = useState<Species | null>(
     existing?.species ?? null,
   );
+  const [speciesOther, setSpeciesOther] = useState(
+    existing?.speciesOther ?? "",
+  );
   const [gender, setGender] = useState<Gender | null>(existing?.gender ?? null);
   const [photoUri, setPhotoUri] = useState<string | null>(
     existing?.photoUri ?? null,
@@ -56,6 +59,7 @@ export default function PetFormScreen() {
 
   const [nameError, setNameError] = useState("");
   const [speciesError, setSpeciesError] = useState("");
+  const [speciesOtherError, setSpeciesOtherError] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inFlightRef = useRef(false);
@@ -85,6 +89,12 @@ export default function PetFormScreen() {
     } else {
       setSpeciesError("");
     }
+    if (species === "other" && !speciesOther.trim()) {
+      setSpeciesOtherError(t("pets.error.species_other_required"));
+      hasError = true;
+    } else {
+      setSpeciesOtherError("");
+    }
     if (hasError) return;
 
     inFlightRef.current = true;
@@ -93,6 +103,7 @@ export default function PetFormScreen() {
     const input = {
       name,
       species: species!,
+      speciesOther: species === "other" ? speciesOther.trim() : null,
       gender,
       photoUri,
       notes: notes.trim() || null,
@@ -111,6 +122,8 @@ export default function PetFormScreen() {
         setNameError(t(key));
       } else if (key === "pets.error.species_required") {
         setSpeciesError(t(key));
+      } else if (key === "pets.error.species_other_required") {
+        setSpeciesOtherError(t(key));
       }
     } finally {
       inFlightRef.current = false;
@@ -176,6 +189,22 @@ export default function PetFormScreen() {
             </View>
             {speciesError !== "" && (
               <Text style={styles.errorText}>{speciesError}</Text>
+            )}
+            {species === "other" && (
+              <TextField
+                testID="petform-species-other-input"
+                placeholder={t("pets.field.species_other_placeholder")}
+                value={speciesOther}
+                onChangeText={(v) => {
+                  setSpeciesOther(v);
+                  if (speciesOtherError) setSpeciesOtherError("");
+                }}
+                invalid={speciesOtherError !== ""}
+                accessibilityLabel={t("pets.field.species_other")}
+              />
+            )}
+            {speciesOtherError !== "" && (
+              <Text style={styles.errorText}>{speciesOtherError}</Text>
             )}
           </View>
 

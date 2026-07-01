@@ -30,6 +30,12 @@ import type { Task, Pet } from "../../db/types";
 
 const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+function speciesLabel(pet: Pet, t: (key: string) => string): string {
+  return pet.species === "other" && pet.speciesOther
+    ? pet.speciesOther
+    : t(`pets.species.${pet.species}`);
+}
+
 export default function PetsListScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
@@ -91,7 +97,7 @@ export default function PetsListScreen() {
               </Text>
               <View style={styles.speciesChip}>
                 <Text style={styles.speciesChipText}>
-                  {t(`pets.species.${item.species}`)}
+                  {speciesLabel(item, t)}
                 </Text>
               </View>
             </View>

@@ -5,6 +5,7 @@ export interface Pet {
   id: string; // uuid
   name: string;
   species: Species;
+  speciesOther: string | null;
   gender: Gender | null;
   photoUri: string | null;
   notes: string | null;
