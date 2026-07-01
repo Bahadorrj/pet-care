@@ -28,6 +28,9 @@ interface FakeRow {
   gender: string | null;
   photo_uri: string | null;
   notes: string | null;
+  breed: string | null;
+  weight_value: number | null;
+  weight_unit: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -39,6 +42,9 @@ const mockFakeDb = {
   runSync(sql: string, params: unknown[] = []) {
     const s = sql.trim().toUpperCase();
     if (s.startsWith("CREATE TABLE")) return;
+    // Schema is already current in this fake (see getAllSync's PRAGMA branch), so
+    // the migration in src/db/index.ts never issues these — kept as a no-op safety net.
+    if (s.startsWith("ALTER TABLE")) return;
     if (s.startsWith("INSERT INTO PETS")) {
       const [
         id,
@@ -48,17 +54,23 @@ const mockFakeDb = {
         gender,
         photo_uri,
         notes,
+        breed,
+        weight_value,
+        weight_unit,
         created_at,
         updated_at,
-      ] = params as (string | null)[];
+      ] = params as (string | number | null)[];
       fakeRows.push({
         id: id as string,
         name: name as string,
         species: species as string,
-        species_other: species_other,
+        species_other: species_other as string | null,
         gender: gender as string | null,
         photo_uri: photo_uri as string | null,
         notes: notes as string | null,
+        breed: breed as string | null,
+        weight_value: weight_value as number | null,
+        weight_unit: weight_unit as string | null,
         created_at: created_at as string,
         updated_at: updated_at as string,
       });
@@ -72,17 +84,23 @@ const mockFakeDb = {
         gender,
         photo_uri,
         notes,
+        breed,
+        weight_value,
+        weight_unit,
         updated_at,
         id,
-      ] = params as (string | null)[];
+      ] = params as (string | number | null)[];
       const row = fakeRows.find((r) => r.id === id);
       if (row) {
         row.name = name as string;
         row.species = species as string;
-        row.species_other = species_other;
+        row.species_other = species_other as string | null;
         row.gender = gender as string | null;
         row.photo_uri = photo_uri as string | null;
         row.notes = notes as string | null;
+        row.breed = breed as string | null;
+        row.weight_value = weight_value as number | null;
+        row.weight_unit = weight_unit as string | null;
         row.updated_at = updated_at as string;
       }
       return;
@@ -100,10 +118,23 @@ const mockFakeDb = {
   },
   getAllSync<T>(sql: string): T[] {
     const u = sql.trim().toUpperCase();
-    // columnExists() migration check — report the column as already present so
+    // columnExists() migration check — report all columns as already present so
     // the index.ts migration's ALTER TABLE (unhandled by this fake) never runs.
     if (u.startsWith("PRAGMA")) {
-      return [{ name: "species_other" }] as unknown as T[];
+      return [
+        { name: "id" },
+        { name: "name" },
+        { name: "species" },
+        { name: "species_other" },
+        { name: "gender" },
+        { name: "photo_uri" },
+        { name: "notes" },
+        { name: "breed" },
+        { name: "weight_value" },
+        { name: "weight_unit" },
+        { name: "created_at" },
+        { name: "updated_at" },
+      ] as unknown as T[];
     }
     // Cascade: deleteTasksForPet queries tasks by pet_id — return empty (no tasks seeded here)
     if (u.includes("FROM TASKS")) return [] as unknown as T[];
@@ -168,7 +199,6 @@ beforeEach(() => {
 afterEach(() => {
   jest.useRealTimers();
 });
-
 describe("petsStore – init", () => {
   test("initialises pets from listPets() at module load, sorted created_at DESC", () => {
     // Seed two rows directly into the fake db before the store loads.
@@ -181,6 +211,9 @@ describe("petsStore – init", () => {
         gender: null,
         photo_uri: null,
         notes: null,
+        breed: null,
+        weight_value: null,
+        weight_unit: null,
         created_at: "2026-01-01T00:00:00.000Z",
         updated_at: "2026-01-01T00:00:00.000Z",
       },
@@ -192,6 +225,9 @@ describe("petsStore – init", () => {
         gender: null,
         photo_uri: null,
         notes: null,
+        breed: null,
+        weight_value: null,
+        weight_unit: null,
         created_at: "2026-02-01T00:00:00.000Z",
         updated_at: "2026-02-01T00:00:00.000Z",
       },

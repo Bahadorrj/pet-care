@@ -27,13 +27,16 @@ db.runSync(`
     gender        TEXT,
     photo_uri     TEXT,
     notes         TEXT,
+    breed         TEXT,
+    weight_value  REAL,
+    weight_unit   TEXT,
     created_at    TEXT    NOT NULL,
     updated_at    TEXT    NOT NULL
   )
 `);
 
 // Existing installs: CREATE TABLE IF NOT EXISTS above is a no-op for them, so
-// add the column that pre-dates this migration explicitly.
+// add columns that post-date the original migration explicitly.
 function columnExists(table: string, column: string): boolean {
   return db
     .getAllSync<{ name: string }>(`PRAGMA table_info(${table})`)
@@ -41,6 +44,15 @@ function columnExists(table: string, column: string): boolean {
 }
 if (!columnExists("pets", "species_other")) {
   db.runSync("ALTER TABLE pets ADD COLUMN species_other TEXT");
+}
+if (!columnExists("pets", "breed")) {
+  db.runSync("ALTER TABLE pets ADD COLUMN breed TEXT");
+}
+if (!columnExists("pets", "weight_value")) {
+  db.runSync("ALTER TABLE pets ADD COLUMN weight_value REAL");
+}
+if (!columnExists("pets", "weight_unit")) {
+  db.runSync("ALTER TABLE pets ADD COLUMN weight_unit TEXT");
 }
 
 db.runSync(`

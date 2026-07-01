@@ -73,6 +73,9 @@ const PET: Pet = {
   gender: "male",
   photoUri: null,
   notes: "یادداشت تست",
+  breed: null,
+  weightValue: null,
+  weightUnit: null,
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-02-01T00:00:00Z",
 };
@@ -101,6 +104,19 @@ describe("PetDetailScreen – render", () => {
     const { getByTestId } = await render(<PetDetailScreen />);
     expect(getByTestId("petdetail-photo")).toBeTruthy();
     expect(getByTestId("petdetail-edit")).toBeTruthy();
+  });
+
+  test("renders breed and weight when set, and omits them when null", async () => {
+    mockPets = [
+      { ...PET, breed: "گلدن رتریور", weightValue: 4.5, weightUnit: "kg" },
+    ];
+    const { getByText } = await render(<PetDetailScreen />);
+    expect(getByText("گلدن رتریور")).toBeTruthy();
+    expect(getByText("4.5 کیلوگرم")).toBeTruthy();
+
+    mockPets = [PET]; // breed/weight null on the base fixture
+    const { queryByText } = await render(<PetDetailScreen />);
+    expect(queryByText("گلدن رتریور")).toBeNull();
   });
 });
 

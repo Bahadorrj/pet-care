@@ -44,6 +44,9 @@ const PET_DOG: Pet = {
   gender: "male",
   photoUri: null,
   notes: null,
+  breed: null,
+  weightValue: null,
+  weightUnit: null,
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
 };
@@ -56,6 +59,9 @@ const PET_CAT: Pet = {
   gender: "female",
   photoUri: null,
   notes: null,
+  breed: null,
+  weightValue: null,
+  weightUnit: null,
   createdAt: "2024-01-02T00:00:00Z",
   updatedAt: "2024-01-02T00:00:00Z",
 };

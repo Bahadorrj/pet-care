@@ -69,6 +69,9 @@ const EXISTING_PET: Pet = {
   gender: "male",
   photoUri: null,
   notes: "یادداشت تست",
+  breed: "گلدن رتریور",
+  weightValue: 4.5,
+  weightUnit: "kg",
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
 };
@@ -140,6 +143,21 @@ describe("PetFormScreen – Add mode – validation", () => {
     });
     expect(mockAdd).not.toHaveBeenCalled();
   });
+
+  test("non-numeric weight blocks save and shows weight error", async () => {
+    mockAdd.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await render(<PetFormScreen />);
+
+    await fireEvent.changeText(getByTestId("petform-name"), "مکس");
+    await fireEvent.press(getByTestId("petform-species-dog"));
+    await fireEvent.changeText(getByTestId("petform-weight"), "abc");
+    await fireEvent.press(getByTestId("petform-submit"));
+
+    await waitFor(() => {
+      expect(getByText("وزن معتبر نیست")).toBeTruthy();
+    });
+    expect(mockAdd).not.toHaveBeenCalled();
+  });
 });
 
 describe("PetFormScreen – Add mode – happy path", () => {
@@ -183,6 +201,30 @@ describe("PetFormScreen – Add mode – happy path", () => {
       expect(mockGoBack).toHaveBeenCalledTimes(1);
     });
   });
+
+  test("selecting species defaults the weight unit chip, and entering a weight submits it", async () => {
+    mockAdd.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<PetFormScreen />);
+
+    await fireEvent.changeText(getByTestId("petform-name"), "توییتی");
+    await fireEvent.press(getByTestId("petform-species-bird"));
+    expect(
+      getByTestId("petform-weight-unit-g").props.accessibilityState.selected,
+    ).toBe(true);
+
+    await fireEvent.changeText(getByTestId("petform-weight"), "35");
+    await fireEvent.press(getByTestId("petform-submit"));
+
+    await waitFor(() => {
+      expect(mockAdd).toHaveBeenCalledWith(
+        expect.objectContaining({
+          breed: null,
+          weightValue: 35,
+          weightUnit: "g",
+        }),
+      );
+    });
+  });
 });
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -210,6 +252,15 @@ describe("PetFormScreen – Edit mode", () => {
     expect(getByTestId("petform-species-other-input").props.value).toBe(
       "لاک‌پشت",
     );
+  });
+
+  test("pre-fills breed and weight from existing pet", async () => {
+    const { getByTestId } = await render(<PetFormScreen />);
+    expect(getByTestId("petform-breed").props.value).toBe("گلدن رتریور");
+    expect(getByTestId("petform-weight").props.value).toBe("4.5");
+    expect(
+      getByTestId("petform-weight-unit-kg").props.accessibilityState.selected,
+    ).toBe(true);
   });
 
   test("submit calls store.update (not add) and navigates back", async () => {

@@ -222,6 +222,22 @@ export default function PetDetailScreen() {
             </View>
           )}
 
+          {pet.breed != null && pet.breed !== "" && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>{t("pets.field.breed")}</Text>
+              <Text style={styles.value}>{pet.breed}</Text>
+            </View>
+          )}
+
+          {pet.weightValue != null && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>{t("pets.field.weight")}</Text>
+              <Text style={styles.value}>
+                {pet.weightValue} {t(`pets.unit.${pet.weightUnit}`)}
+              </Text>
+            </View>
+          )}
+
           {pet.notes != null && pet.notes !== "" && (
             <View style={styles.notesGroup}>
               <Text style={styles.label}>{t("pets.field.notes")}</Text>

@@ -27,12 +27,20 @@ import type {
   PetsStackParamList,
   PetsNavigationProp,
 } from "../../navigation/PetsStack";
-import type { Species, Gender } from "../../db/types";
+import type { Species, Gender, WeightUnit } from "../../db/types";
 
 type PetFormRouteProp = RouteProp<PetsStackParamList, "PetForm">;
 
 const SPECIES: Species[] = ["dog", "cat", "bird", "rabbit", "other"];
 const GENDERS: Gender[] = ["male", "female"];
+const WEIGHT_UNITS: WeightUnit[] = ["kg", "g"];
+const DEFAULT_WEIGHT_UNIT: Record<Species, WeightUnit> = {
+  dog: "kg",
+  cat: "kg",
+  bird: "g",
+  rabbit: "g",
+  other: "kg",
+};
 
 export default function PetFormScreen() {
   const { t } = useTranslation();
@@ -56,10 +64,22 @@ export default function PetFormScreen() {
     existing?.photoUri ?? null,
   );
   const [notes, setNotes] = useState(existing?.notes ?? "");
+  const [breed, setBreed] = useState(existing?.breed ?? "");
+  const [weightValue, setWeightValue] = useState(
+    existing?.weightValue != null ? String(existing.weightValue) : "",
+  );
+  const [weightUnit, setWeightUnit] = useState<WeightUnit | null>(
+    existing?.weightUnit ?? null,
+  );
+  // Once the user (or an existing pet) has an explicit unit, species changes stop overriding it.
+  const [weightUnitManual, setWeightUnitManual] = useState(
+    existing?.weightUnit != null,
+  );
 
   const [nameError, setNameError] = useState("");
   const [speciesError, setSpeciesError] = useState("");
   const [speciesOtherError, setSpeciesOtherError] = useState("");
+  const [weightError, setWeightError] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inFlightRef = useRef(false);
@@ -95,6 +115,19 @@ export default function PetFormScreen() {
     } else {
       setSpeciesOtherError("");
     }
+    let weightValueNum: number | null = null;
+    if (weightValue.trim()) {
+      const n = Number(weightValue.trim());
+      if (!Number.isFinite(n) || n <= 0) {
+        setWeightError(t("pets.error.weight_invalid"));
+        hasError = true;
+      } else {
+        weightValueNum = n;
+        setWeightError("");
+      }
+    } else {
+      setWeightError("");
+    }
     if (hasError) return;
 
     inFlightRef.current = true;
@@ -107,6 +140,12 @@ export default function PetFormScreen() {
       gender,
       photoUri,
       notes: notes.trim() || null,
+      breed: breed.trim() || null,
+      weightValue: weightValueNum,
+      weightUnit:
+        weightValueNum != null
+          ? (weightUnit ?? DEFAULT_WEIGHT_UNIT[species!])
+          : null,
     };
 
     try {
@@ -171,6 +210,8 @@ export default function PetFormScreen() {
                   onPress={() => {
                     setSpecies(s);
                     if (speciesError) setSpeciesError("");
+                    if (!weightUnitManual)
+                      setWeightUnit(DEFAULT_WEIGHT_UNIT[s]);
                   }}
                   style={[styles.chip, species === s && styles.chipSelected]}
                   accessibilityRole="button"
@@ -208,6 +249,18 @@ export default function PetFormScreen() {
             )}
           </View>
 
+          {/* Breed */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>{t("pets.field.breed")}</Text>
+            <TextField
+              testID="petform-breed"
+              placeholder={t("pets.field.breed_placeholder")}
+              value={breed}
+              onChangeText={setBreed}
+              accessibilityLabel={t("pets.field.breed")}
+            />
+          </View>
+
           {/* Gender */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>{t("pets.field.gender")}</Text>
@@ -232,6 +285,57 @@ export default function PetFormScreen() {
                 </Pressable>
               ))}
             </View>
+          </View>
+
+          {/* Weight */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>{t("pets.field.weight")}</Text>
+            <View style={styles.weightRow}>
+              <View style={styles.weightInput}>
+                <TextField
+                  testID="petform-weight"
+                  placeholder={t("pets.field.weight_placeholder")}
+                  value={weightValue}
+                  onChangeText={(v) => {
+                    setWeightValue(v);
+                    if (weightError) setWeightError("");
+                  }}
+                  keyboardType="decimal-pad"
+                  invalid={weightError !== ""}
+                  accessibilityLabel={t("pets.field.weight")}
+                />
+              </View>
+              <View style={styles.chipRow}>
+                {WEIGHT_UNITS.map((u) => (
+                  <Pressable
+                    key={u}
+                    testID={`petform-weight-unit-${u}`}
+                    onPress={() => {
+                      setWeightUnit(u);
+                      setWeightUnitManual(true);
+                    }}
+                    style={[
+                      styles.chip,
+                      weightUnit === u && styles.chipSelected,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: weightUnit === u }}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        weightUnit === u && styles.chipTextSelected,
+                      ]}
+                    >
+                      {t(`pets.unit.${u}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+            {weightError !== "" && (
+              <Text style={styles.errorText}>{weightError}</Text>
+            )}
           </View>
 
           {/* Photo */}
@@ -308,6 +412,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: spacing.sm,
+  },
+  weightRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  weightInput: {
+    flex: 1,
   },
   chip: {
     minHeight: 44,

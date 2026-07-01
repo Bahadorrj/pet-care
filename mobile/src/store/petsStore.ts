@@ -4,7 +4,11 @@ import { deleteTasksForPet } from "../db/tasks";
 import { savePhoto, deletePhoto } from "../lib/petPhoto";
 import type { Pet, Species } from "../db/types";
 
-type PetInput = Omit<Pet, "id" | "createdAt" | "updatedAt">;
+type PetInput = Omit<
+  Pet,
+  "id" | "createdAt" | "updatedAt" | "breed" | "weightValue" | "weightUnit"
+> &
+  Partial<Pick<Pet, "breed" | "weightValue" | "weightUnit">>;
 
 interface PetsState {
   pets: Pet[];
@@ -42,7 +46,13 @@ export const usePetsStore = create<PetsState>((set) => ({
     // Copy the picked temp file into app storage; persist the stored path.
     const photoUri = input.photoUri ? await savePhoto(input.photoUri) : null;
 
-    insertPet({ ...input, photoUri });
+    insertPet({
+      ...input,
+      photoUri,
+      breed: input.breed ?? null,
+      weightValue: input.weightValue ?? null,
+      weightUnit: input.weightUnit ?? null,
+    });
     set({ pets: listPets() });
   },
 
@@ -61,7 +71,13 @@ export const usePetsStore = create<PetsState>((set) => ({
       await deletePhoto(prevPhoto);
     }
 
-    updatePet(id, { ...input, photoUri });
+    updatePet(id, {
+      ...input,
+      photoUri,
+      breed: input.breed ?? null,
+      weightValue: input.weightValue ?? null,
+      weightUnit: input.weightUnit ?? null,
+    });
     set({ pets: listPets() });
   },
 

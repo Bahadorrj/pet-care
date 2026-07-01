@@ -61,6 +61,9 @@ jest.mock("expo-sqlite", () => {
           gender,
           photo_uri,
           notes,
+          breed,
+          weight_value,
+          weight_unit,
           created_at,
           updated_at,
         ] = params;
@@ -72,6 +75,9 @@ jest.mock("expo-sqlite", () => {
           gender,
           photo_uri,
           notes,
+          breed,
+          weight_value,
+          weight_unit,
           created_at,
           updated_at,
         });
@@ -85,6 +91,9 @@ jest.mock("expo-sqlite", () => {
           gender,
           photo_uri,
           notes,
+          breed,
+          weight_value,
+          weight_unit,
           updated_at,
           id,
         ] = params;
@@ -97,6 +106,9 @@ jest.mock("expo-sqlite", () => {
             gender,
             photo_uri,
             notes,
+            breed,
+            weight_value,
+            weight_unit,
             updated_at,
           });
         return;

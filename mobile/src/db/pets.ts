@@ -1,6 +1,6 @@
 import * as Crypto from "expo-crypto";
 import { db } from "./index";
-import type { Pet, Species, Gender } from "./types";
+import type { Pet, Species, Gender, WeightUnit } from "./types";
 
 interface PetRow {
   id: string;
@@ -10,6 +10,9 @@ interface PetRow {
   gender: string | null;
   photo_uri: string | null;
   notes: string | null;
+  breed: string | null;
+  weight_value: number | null;
+  weight_unit: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +26,9 @@ function rowToPet(row: PetRow): Pet {
     gender: row.gender as Gender | null,
     photoUri: row.photo_uri,
     notes: row.notes,
+    breed: row.breed,
+    weightValue: row.weight_value,
+    weightUnit: row.weight_unit as WeightUnit | null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -34,8 +40,8 @@ export function insertPet(
   const id = Crypto.randomUUID();
   const now = new Date().toISOString();
   db.runSync(
-    `INSERT INTO pets (id, name, species, species_other, gender, photo_uri, notes, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO pets (id, name, species, species_other, gender, photo_uri, notes, breed, weight_value, weight_unit, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       data.name,
@@ -44,6 +50,9 @@ export function insertPet(
       data.gender ?? null,
       data.photoUri ?? null,
       data.notes ?? null,
+      data.breed ?? null,
+      data.weightValue ?? null,
+      data.weightUnit ?? null,
       now,
       now,
     ],
@@ -55,6 +64,9 @@ export function insertPet(
     gender: data.gender ?? null,
     photoUri: data.photoUri ?? null,
     notes: data.notes ?? null,
+    breed: data.breed ?? null,
+    weightValue: data.weightValue ?? null,
+    weightUnit: data.weightUnit ?? null,
     createdAt: now,
     updatedAt: now,
   };
@@ -78,7 +90,7 @@ export function updatePet(
 ): Pet {
   const now = new Date().toISOString();
   db.runSync(
-    `UPDATE pets SET name = ?, species = ?, species_other = ?, gender = ?, photo_uri = ?, notes = ?, updated_at = ?
+    `UPDATE pets SET name = ?, species = ?, species_other = ?, gender = ?, photo_uri = ?, notes = ?, breed = ?, weight_value = ?, weight_unit = ?, updated_at = ?
      WHERE id = ?`,
     [
       data.name,
@@ -87,6 +99,9 @@ export function updatePet(
       data.gender ?? null,
       data.photoUri ?? null,
       data.notes ?? null,
+      data.breed ?? null,
+      data.weightValue ?? null,
+      data.weightUnit ?? null,
       now,
       id,
     ],
