@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -8,24 +8,31 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
 
-import Button from '../../components/ui/Button';
-import TextField from '../../components/ui/TextField';
-import { usePetsStore } from '../../store/petsStore';
-import { getPet } from '../../db/pets';
-import { pickPhoto } from '../../lib/petPhoto';
-import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
-import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
-import type { Species, Gender } from '../../db/types';
+import Button from "../../components/ui/Button";
+import TextField from "../../components/ui/TextField";
+import { usePetsStore } from "../../store/petsStore";
+import { getPet } from "../../db/pets";
+import { pickPhoto } from "../../lib/petPhoto";
+import { colors, fonts, radius, spacing, typography } from "../../theme/theme";
+import type {
+  PetsStackParamList,
+  PetsNavigationProp,
+} from "../../navigation/PetsStack";
+import type { Species, Gender } from "../../db/types";
 
-type PetFormRouteProp = RouteProp<PetsStackParamList, 'PetForm'>;
+type PetFormRouteProp = RouteProp<PetsStackParamList, "PetForm">;
 
-const SPECIES: Species[] = ['dog', 'cat', 'bird', 'rabbit', 'other'];
-const GENDERS: Gender[] = ['male', 'female'];
+const SPECIES: Species[] = ["dog", "cat", "bird", "rabbit", "other"];
+const GENDERS: Gender[] = ["male", "female"];
 
 export default function PetFormScreen() {
   const { t } = useTranslation();
@@ -37,14 +44,18 @@ export default function PetFormScreen() {
   // Prefill in edit mode
   const existing = isEdit ? getPet(petId) : null;
 
-  const [name, setName] = useState(existing?.name ?? '');
-  const [species, setSpecies] = useState<Species | null>(existing?.species ?? null);
+  const [name, setName] = useState(existing?.name ?? "");
+  const [species, setSpecies] = useState<Species | null>(
+    existing?.species ?? null,
+  );
   const [gender, setGender] = useState<Gender | null>(existing?.gender ?? null);
-  const [photoUri, setPhotoUri] = useState<string | null>(existing?.photoUri ?? null);
-  const [notes, setNotes] = useState(existing?.notes ?? '');
+  const [photoUri, setPhotoUri] = useState<string | null>(
+    existing?.photoUri ?? null,
+  );
+  const [notes, setNotes] = useState(existing?.notes ?? "");
 
-  const [nameError, setNameError] = useState('');
-  const [speciesError, setSpeciesError] = useState('');
+  const [nameError, setNameError] = useState("");
+  const [speciesError, setSpeciesError] = useState("");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inFlightRef = useRef(false);
@@ -63,16 +74,16 @@ export default function PetFormScreen() {
     // Client-side required checks
     let hasError = false;
     if (!name.trim()) {
-      setNameError(t('pets.error.name_required'));
+      setNameError(t("pets.error.name_required"));
       hasError = true;
     } else {
-      setNameError('');
+      setNameError("");
     }
     if (!species) {
-      setSpeciesError(t('pets.error.species_required'));
+      setSpeciesError(t("pets.error.species_required"));
       hasError = true;
     } else {
-      setSpeciesError('');
+      setSpeciesError("");
     }
     if (hasError) return;
 
@@ -95,10 +106,10 @@ export default function PetFormScreen() {
       }
       navigation.goBack();
     } catch (err) {
-      const key = err instanceof Error ? err.message : '';
-      if (key === 'pets.error.name_required') {
+      const key = err instanceof Error ? err.message : "";
+      if (key === "pets.error.name_required") {
         setNameError(t(key));
-      } else if (key === 'pets.error.species_required') {
+      } else if (key === "pets.error.species_required") {
         setSpeciesError(t(key));
       }
     } finally {
@@ -108,10 +119,10 @@ export default function PetFormScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['bottom']}>
+    <SafeAreaView style={styles.root} edges={["bottom"]}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={styles.form}
@@ -119,47 +130,58 @@ export default function PetFormScreen() {
         >
           {/* Name */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('pets.field.name')}</Text>
+            <Text style={styles.label}>{t("pets.field.name")}</Text>
             <TextField
               testID="petform-name"
-              placeholder={t('pets.field.name')}
+              placeholder={t("pets.field.name_placeholder")}
               value={name}
-              onChangeText={(v) => { setName(v); if (nameError) setNameError(''); }}
-              invalid={nameError !== ''}
-              accessibilityLabel={t('pets.field.name')}
+              onChangeText={(v) => {
+                setName(v);
+                if (nameError) setNameError("");
+              }}
+              invalid={nameError !== ""}
+              accessibilityLabel={t("pets.field.name")}
             />
-            {nameError !== '' && (
+            {nameError !== "" && (
               <Text style={styles.errorText}>{nameError}</Text>
             )}
           </View>
 
           {/* Species */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('pets.field.species')}</Text>
+            <Text style={styles.label}>{t("pets.field.species")}</Text>
             <View style={styles.chipRow}>
               {SPECIES.map((s) => (
                 <Pressable
                   key={s}
                   testID={`petform-species-${s}`}
-                  onPress={() => { setSpecies(s); if (speciesError) setSpeciesError(''); }}
+                  onPress={() => {
+                    setSpecies(s);
+                    if (speciesError) setSpeciesError("");
+                  }}
                   style={[styles.chip, species === s && styles.chipSelected]}
                   accessibilityRole="button"
                   accessibilityState={{ selected: species === s }}
                 >
-                  <Text style={[styles.chipText, species === s && styles.chipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      species === s && styles.chipTextSelected,
+                    ]}
+                  >
                     {t(`pets.species.${s}`)}
                   </Text>
                 </Pressable>
               ))}
             </View>
-            {speciesError !== '' && (
+            {speciesError !== "" && (
               <Text style={styles.errorText}>{speciesError}</Text>
             )}
           </View>
 
           {/* Gender */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('pets.field.gender')}</Text>
+            <Text style={styles.label}>{t("pets.field.gender")}</Text>
             <View style={styles.chipRow}>
               {GENDERS.map((g) => (
                 <Pressable
@@ -170,7 +192,12 @@ export default function PetFormScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: gender === g }}
                 >
-                  <Text style={[styles.chipText, gender === g && styles.chipTextSelected]}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      gender === g && styles.chipTextSelected,
+                    ]}
+                  >
                     {t(`pets.gender.${g}`)}
                   </Text>
                 </Pressable>
@@ -180,11 +207,11 @@ export default function PetFormScreen() {
 
           {/* Photo */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('pets.field.photo')}</Text>
+            <Text style={styles.label}>{t("pets.field.photo")}</Text>
             <Button
               testID="petform-photo"
               variant="secondary"
-              label={t('pets.field.photo')}
+              label={t("pets.field.photo")}
               onPress={handlePickPhoto}
             />
             {photoUri != null && (
@@ -192,29 +219,29 @@ export default function PetFormScreen() {
                 testID="petform-photo-preview"
                 source={{ uri: photoUri }}
                 style={styles.photoPreview}
-                accessibilityLabel={t('pets.field.photo')}
+                accessibilityLabel={t("pets.field.photo")}
               />
             )}
           </View>
 
           {/* Notes */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t('pets.field.notes')}</Text>
+            <Text style={styles.label}>{t("pets.field.notes")}</Text>
             <TextField
               testID="petform-notes"
-              placeholder={t('pets.field.notes')}
+              placeholder={t("pets.field.notes_placeholder")}
               value={notes}
               onChangeText={setNotes}
               multiline
               numberOfLines={4}
-              accessibilityLabel={t('pets.field.notes')}
+              accessibilityLabel={t("pets.field.notes")}
               style={styles.notesInput}
             />
           </View>
 
           <Button
             testID="petform-submit"
-            label={isEdit ? t('pets.edit') : t('pets.add')}
+            label={isEdit ? t("pets.edit") : t("pets.add")}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={isSubmitting}
@@ -249,8 +276,8 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
   },
   chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   chip: {
@@ -261,8 +288,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   chipSelected: {
     backgroundColor: colors.primarySoft,
@@ -293,6 +320,6 @@ const styles = StyleSheet.create({
   },
   notesInput: {
     height: 96,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
 });
