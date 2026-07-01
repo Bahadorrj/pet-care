@@ -23,7 +23,6 @@ import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
 import { getPet } from "../../db/pets";
 import {
-  streak,
   adherence,
   nextOccurrence,
   toTehranTime,
@@ -68,7 +67,7 @@ function scheduleLabel(
 // 30-day adherence window
 const ADHERENCE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
-/** Secondary stats per task row: streak chip + adherence bar (hidden if no history). */
+/** Secondary stats per task row: adherence bar (hidden if no history). */
 function TaskStats({
   task,
   getLogsForTask,
@@ -82,37 +81,23 @@ function TaskStats({
   const since = new Date(now.getTime() - ADHERENCE_WINDOW_MS);
   const logs = getLogsForTask(task.id);
 
-  const streakCount = streak(task, logs, now);
   const adh = adherence(task, logs, since, now);
 
-  // Render if either stat has a value; skips the new-task case (0 streak / null
-  // adherence). Partial states (streak-only or adherence-only) are intentional.
-  if (adh === null && streakCount === 0) return null;
+  if (adh === null) return null;
 
-  const percent = adh !== null ? Math.round(adh * 100) : null;
+  const percent = Math.round(adh * 100);
 
   return (
     <View style={styles.statsRow}>
-      {streakCount > 0 && (
-        <View
-          style={styles.streakChip}
-          accessibilityLabel={t("tasks.stat.streak", { count: streakCount })}
-        >
-          <MaterialCommunityIcons name="fire" size={14} color={colors.ink} />
-          <Text style={styles.streakChipText}>{streakCount}</Text>
+      <View
+        style={styles.adhWrap}
+        accessibilityLabel={t("tasks.stat.adherence", { percent })}
+      >
+        <View style={styles.adhTrack}>
+          <View style={[styles.adhFill, { width: `${percent}%` }]} />
         </View>
-      )}
-      {percent !== null && (
-        <View
-          style={styles.adhWrap}
-          accessibilityLabel={t("tasks.stat.adherence", { percent })}
-        >
-          <View style={styles.adhTrack}>
-            <View style={[styles.adhFill, { width: `${percent}%` }]} />
-          </View>
-          <Text style={styles.adhPercent}>{percent}٪</Text>
-        </View>
-      )}
+        <Text style={styles.adhPercent}>{percent}٪</Text>
+      </View>
     </View>
   );
 }
@@ -495,17 +480,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: spacing.md,
     marginTop: spacing.xs,
-  },
-  streakChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  streakChipText: {
-    fontSize: typography.caption.fontSize,
-    lineHeight: typography.caption.lineHeight,
-    fontFamily: fonts.medium,
-    color: colors.ink,
   },
   adhWrap: {
     flexDirection: "row",
