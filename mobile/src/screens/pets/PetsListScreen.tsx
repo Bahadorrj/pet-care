@@ -1,6 +1,7 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
+  BackHandler,
   FlatList,
   Image,
   Pressable,
@@ -62,6 +63,16 @@ export default function PetsListScreen() {
     setSelectionActive(false);
     setSelectedIds(new Set());
   }, []);
+
+  // Android hardware back exits selection mode instead of leaving the tab.
+  useEffect(() => {
+    if (!selectionActive) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
+      exitSelection();
+      return true;
+    });
+    return () => sub.remove();
+  }, [selectionActive, exitSelection]);
 
   const allSelected = pets.length > 0 && selectedIds.size === pets.length;
 

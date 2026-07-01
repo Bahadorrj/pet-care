@@ -11,7 +11,7 @@
  */
 
 import React from "react";
-import { Alert } from "react-native";
+import { Alert, BackHandler } from "react-native";
 import {
   render,
   screen,
@@ -306,5 +306,63 @@ describe("PetsListScreen – selection toolbar & delete", () => {
     expect(cancelBtn).toBeDefined();
     expect(mockRemoveMany).not.toHaveBeenCalled();
     alertSpy.mockRestore();
+  });
+});
+
+describe("PetsListScreen – Android hardware back", () => {
+  beforeEach(() => {
+    mockPets = [PET_DOG, PET_CAT];
+  });
+
+  async function enterSelectionWith(id: string) {
+    fireEvent(screen.getByTestId(`pet-card-${id}`), "longPress");
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${id}`).props.accessibilityState?.selected,
+      ).toBe(true),
+    );
+  }
+
+  test("exits selection mode instead of navigating away when selecting", async () => {
+    const removeFn = jest.fn();
+    const addSpy = jest
+      .spyOn(BackHandler, "addEventListener")
+      .mockReturnValue({ remove: removeFn });
+
+    await render(<PetsListScreen />);
+    await enterSelectionWith(PET_DOG.id);
+
+    expect(addSpy).toHaveBeenCalledWith(
+      "hardwareBackPress",
+      expect.any(Function),
+    );
+    const handler = addSpy.mock.calls[0][1] as () => boolean;
+    const handled = handler();
+
+    expect(handled).toBe(true);
+    await waitFor(() =>
+      expect(screen.queryByTestId("selection-cancel")).toBeNull(),
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+
+    addSpy.mockRestore();
+  });
+
+  test("listener is only registered while selecting, and is cleaned up on exit", async () => {
+    const removeFn = jest.fn();
+    const addSpy = jest
+      .spyOn(BackHandler, "addEventListener")
+      .mockReturnValue({ remove: removeFn });
+
+    await render(<PetsListScreen />);
+    expect(addSpy).not.toHaveBeenCalled();
+
+    await enterSelectionWith(PET_DOG.id);
+    expect(addSpy).toHaveBeenCalledTimes(1);
+
+    fireEvent.press(screen.getByTestId("selection-cancel"));
+    await waitFor(() => expect(removeFn).toHaveBeenCalledTimes(1));
+
+    addSpy.mockRestore();
   });
 });
