@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
+  Alert,
   FlatList,
   Image,
   Pressable,
@@ -41,10 +42,12 @@ export default function PetsListScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
   const pets = usePetsStore((s) => s.pets);
+  const removeMany = usePetsStore((s) => s.removeMany);
   const tasks = useTasksStore((s) => s.tasks);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const selectionMode = selectedIds.size > 0;
+  const [selectionActive, setSelectionActive] = useState(false);
+  const selectionMode = selectionActive;
 
   const toggleSelected = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -54,6 +57,39 @@ export default function PetsListScreen() {
       return next;
     });
   }, []);
+
+  const exitSelection = useCallback(() => {
+    setSelectionActive(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const allSelected = pets.length > 0 && selectedIds.size === pets.length;
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) =>
+      prev.size === pets.length ? new Set() : new Set(pets.map((p) => p.id)),
+    );
+  }, [pets]);
+
+  const confirmDelete = useCallback(() => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    Alert.alert(
+      t("pets.delete"),
+      t("pets.delete_confirm_many", { count: ids.length }),
+      [
+        { text: t("common.cancel"), style: "cancel" },
+        {
+          text: t("pets.delete"),
+          style: "destructive",
+          onPress: async () => {
+            await removeMany(ids);
+            exitSelection();
+          },
+        },
+      ],
+    );
+  }, [selectedIds, t, removeMany, exitSelection]);
 
   // Group active tasks by pet once per render rather than filtering per card.
   const tasksByPet = React.useMemo(() => {
@@ -98,6 +134,7 @@ export default function PetsListScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(
               () => {},
             );
+            setSelectionActive(true);
             toggleSelected(item.id);
           }}
           accessibilityRole="button"
@@ -172,14 +209,58 @@ export default function PetsListScreen() {
           </View>
         }
       />
-      <Pressable
-        onPress={() => navigation.navigate("PetForm", {})}
-        accessibilityRole="button"
-        accessibilityLabel={t("pets.add")}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-      >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </Pressable>
+      {selectionMode ? (
+        <View style={styles.selectionBar}>
+          <Pressable
+            testID="selection-cancel"
+            onPress={exitSelection}
+            accessibilityRole="button"
+            accessibilityLabel={t("common.cancel")}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={24} color={colors.ink} />
+          </Pressable>
+          <Text style={styles.selectionCount}>
+            {t("pets.select_mode.selected_count", { count: selectedIds.size })}
+          </Text>
+          <Pressable
+            testID="selection-select-all"
+            onPress={toggleSelectAll}
+            accessibilityRole="button"
+            accessibilityLabel={t("pets.select_mode.select_all")}
+            hitSlop={8}
+          >
+            <Ionicons
+              name={allSelected ? "checkbox" : "checkbox-outline"}
+              size={22}
+              color={colors.ink}
+            />
+          </Pressable>
+          <Pressable
+            testID="selection-delete"
+            onPress={confirmDelete}
+            disabled={selectedIds.size === 0}
+            accessibilityRole="button"
+            accessibilityLabel={t("pets.delete")}
+            hitSlop={8}
+          >
+            <Ionicons
+              name="trash"
+              size={22}
+              color={selectedIds.size === 0 ? colors.inkFaint : colors.danger}
+            />
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          onPress={() => navigation.navigate("PetForm", {})}
+          accessibilityRole="button"
+          accessibilityLabel={t("pets.add")}
+          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+        >
+          <Ionicons name="add" size={28} color="#FFFFFF" />
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
@@ -310,5 +391,28 @@ const styles = StyleSheet.create({
   },
   fabPressed: {
     opacity: 0.85,
+  },
+  selectionBar: {
+    position: "absolute",
+    bottom: spacing.xl,
+    start: spacing.xl,
+    end: spacing.xl,
+    height: 56,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md,
+    ...shadow.card,
+  },
+  selectionCount: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: typography.body.fontSize,
+    lineHeight: typography.body.lineHeight,
+    fontFamily: fonts.medium,
+    color: colors.ink,
   },
 });

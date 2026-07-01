@@ -11,6 +11,7 @@
  */
 
 import React from "react";
+import { Alert } from "react-native";
 import {
   render,
   screen,
@@ -19,13 +20,19 @@ import {
 } from "@testing-library/react-native";
 
 // petsStore calls listPets() (SQLite) at module load — mock the whole module.
-// usePetsStore is called with a selector: usePetsStore((s) => s.pets).
-// We intercept the selector call and return the controlled pets array.
+// usePetsStore is called with a selector: usePetsStore((s) => s.pets) or
+// usePetsStore((s) => s.removeMany). We intercept the selector call and
+// return the controlled pets array + a jest.fn() for removeMany.
 let mockPets: Pet[] = [];
+const mockRemoveMany = jest.fn();
 
 jest.mock("../store/petsStore", () => ({
-  usePetsStore: (selector: (s: { pets: Pet[] }) => Pet[]) =>
-    selector({ pets: mockPets }),
+  usePetsStore: (
+    selector: (s: {
+      pets: Pet[];
+      removeMany: typeof mockRemoveMany;
+    }) => unknown,
+  ) => selector({ pets: mockPets, removeMany: mockRemoveMany }),
 }));
 
 const mockNavigate = jest.fn();
@@ -74,6 +81,7 @@ const PET_CAT: Pet = {
 beforeEach(() => {
   mockNavigate.mockClear();
   mockSetOptions.mockClear();
+  mockRemoveMany.mockClear();
   mockPets = [];
 });
 
@@ -187,5 +195,116 @@ describe("PetsListScreen – selection mode", () => {
           ?.selected,
       ).toBe(false),
     );
+  });
+});
+
+describe("PetsListScreen – selection toolbar & delete", () => {
+  beforeEach(() => {
+    mockPets = [PET_DOG, PET_CAT];
+  });
+
+  async function enterSelectionWith(id: string) {
+    fireEvent(screen.getByTestId(`pet-card-${id}`), "longPress");
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${id}`).props.accessibilityState?.selected,
+      ).toBe(true),
+    );
+  }
+
+  test("long-press shows the selection toolbar with a 1-selected count", async () => {
+    await render(<PetsListScreen />);
+
+    await enterSelectionWith(PET_DOG.id);
+
+    expect(
+      screen.getByText(i18n.t("pets.select_mode.selected_count", { count: 1 })),
+    ).toBeTruthy();
+  });
+
+  test("cancel exits selection mode without calling the store", async () => {
+    await render(<PetsListScreen />);
+    await enterSelectionWith(PET_DOG.id);
+
+    fireEvent.press(screen.getByTestId("selection-cancel"));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("selection-cancel")).toBeNull(),
+    );
+    expect(mockRemoveMany).not.toHaveBeenCalled();
+  });
+
+  test("select-all selects every pet; tapping again deselects all and stays in selection mode", async () => {
+    await render(<PetsListScreen />);
+    await enterSelectionWith(PET_DOG.id);
+
+    fireEvent.press(screen.getByTestId("selection-select-all"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_CAT.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(true),
+    );
+
+    fireEvent.press(screen.getByTestId("selection-select-all"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_DOG.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(false),
+    );
+    // still in selection mode — toolbar stays up (spec decision).
+    expect(screen.getByTestId("selection-cancel")).toBeTruthy();
+  });
+
+  test("deselecting the only selected card stays in selection mode with delete disabled", async () => {
+    await render(<PetsListScreen />);
+    await enterSelectionWith(PET_DOG.id);
+
+    fireEvent.press(screen.getByTestId(`pet-card-${PET_DOG.id}`)); // deselect
+
+    await waitFor(() =>
+      expect(
+        screen.getByTestId(`pet-card-${PET_DOG.id}`).props.accessibilityState
+          ?.selected,
+      ).toBe(false),
+    );
+    expect(screen.getByTestId("selection-cancel")).toBeTruthy();
+    expect(
+      screen.getByTestId("selection-delete").props.accessibilityState?.disabled,
+    ).toBe(true);
+  });
+
+  test("trash confirms via Alert.alert naming the count, and confirming calls removeMany with the selected ids", async () => {
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    await render(<PetsListScreen />);
+    await enterSelectionWith(PET_DOG.id);
+
+    fireEvent.press(screen.getByTestId("selection-delete"));
+
+    expect(alertSpy).toHaveBeenCalledTimes(1);
+    const [, message, buttons] = alertSpy.mock.calls[0];
+    expect(message).toBe(i18n.t("pets.delete_confirm_many", { count: 1 }));
+    const confirmBtn = buttons?.find((b) => b.style === "destructive");
+    expect(confirmBtn).toBeDefined();
+
+    await confirmBtn!.onPress!();
+
+    expect(mockRemoveMany).toHaveBeenCalledWith([PET_DOG.id]);
+    alertSpy.mockRestore();
+  });
+
+  test("canceling the delete Alert does not call removeMany", async () => {
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    await render(<PetsListScreen />);
+    await enterSelectionWith(PET_DOG.id);
+
+    fireEvent.press(screen.getByTestId("selection-delete"));
+
+    const [, , buttons] = alertSpy.mock.calls[0];
+    const cancelBtn = buttons?.find((b) => b.style === "cancel");
+    expect(cancelBtn).toBeDefined();
+    expect(mockRemoveMany).not.toHaveBeenCalled();
+    alertSpy.mockRestore();
   });
 });
