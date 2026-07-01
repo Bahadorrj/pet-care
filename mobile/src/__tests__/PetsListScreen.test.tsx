@@ -11,7 +11,7 @@
  */
 
 import React from "react";
-import { Alert, BackHandler } from "react-native";
+import { BackHandler } from "react-native";
 import {
   render,
   screen,
@@ -275,37 +275,38 @@ describe("PetsListScreen – selection toolbar & delete", () => {
     ).toBe(true);
   });
 
-  test("trash confirms via Alert.alert naming the count, and confirming calls removeMany with the selected ids", async () => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  test("trash confirms via ConfirmDialog naming the count, and confirming calls removeMany with the selected ids", async () => {
     await render(<PetsListScreen />);
     await enterSelectionWith(PET_DOG.id);
 
     fireEvent.press(screen.getByTestId("selection-delete"));
 
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    const [, message, buttons] = alertSpy.mock.calls[0];
-    expect(message).toBe(i18n.t("pets.delete_confirm_many", { count: 1 }));
-    const confirmBtn = buttons?.find((b) => b.style === "destructive");
-    expect(confirmBtn).toBeDefined();
+    await waitFor(() =>
+      expect(screen.getByTestId("pets-delete-confirm")).toBeTruthy(),
+    );
+    expect(
+      screen.getByText(i18n.t("pets.delete_confirm_many", { count: 1 })),
+    ).toBeTruthy();
 
-    await confirmBtn!.onPress!();
+    fireEvent.press(screen.getByTestId("pets-delete-confirm-confirm"));
 
-    expect(mockRemoveMany).toHaveBeenCalledWith([PET_DOG.id]);
-    alertSpy.mockRestore();
+    await waitFor(() =>
+      expect(mockRemoveMany).toHaveBeenCalledWith([PET_DOG.id]),
+    );
   });
 
-  test("canceling the delete Alert does not call removeMany", async () => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  test("canceling the delete dialog does not call removeMany", async () => {
     await render(<PetsListScreen />);
     await enterSelectionWith(PET_DOG.id);
 
     fireEvent.press(screen.getByTestId("selection-delete"));
+    await waitFor(() =>
+      expect(screen.getByTestId("pets-delete-confirm")).toBeTruthy(),
+    );
 
-    const [, , buttons] = alertSpy.mock.calls[0];
-    const cancelBtn = buttons?.find((b) => b.style === "cancel");
-    expect(cancelBtn).toBeDefined();
+    fireEvent.press(screen.getByTestId("pets-delete-confirm-cancel"));
+
     expect(mockRemoveMany).not.toHaveBeenCalled();
-    alertSpy.mockRestore();
   });
 });
 

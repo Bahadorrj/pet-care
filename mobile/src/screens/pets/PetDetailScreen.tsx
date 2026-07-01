@@ -1,6 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
 import {
-  Alert,
   Dimensions,
   Image,
   Pressable,
@@ -20,6 +19,7 @@ import { useShallow } from "zustand/react/shallow";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import Button from "../../components/ui/Button";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
 import { getPet } from "../../db/pets";
@@ -120,6 +120,8 @@ export default function PetDetailScreen() {
   );
   const getLogsForTask = useTasksStore((s) => s.getLogsForTask);
 
+  const [confirmVisible, setConfirmVisible] = useState(false);
+
   if (!pet) return null;
 
   const activeTasks = petTasks.filter((c) => c.active);
@@ -136,18 +138,10 @@ export default function PetDetailScreen() {
       tasksSummary += ` · ${t("pets.next_task", { time: toPersianDigits(toTehranTime(next)) })}`;
   }
 
-  const handleDelete = () => {
-    Alert.alert(t("pets.delete"), t("pets.delete_confirm"), [
-      { text: t("common.cancel"), style: "cancel" },
-      {
-        text: t("pets.delete"),
-        style: "destructive",
-        onPress: async () => {
-          await remove(petId);
-          navigation.goBack();
-        },
-      },
-    ]);
+  const handleConfirmDelete = async () => {
+    setConfirmVisible(false);
+    await remove(petId);
+    navigation.goBack();
   };
 
   return (
@@ -287,7 +281,7 @@ export default function PetDetailScreen() {
 
           <Pressable
             testID="petdetail-delete"
-            onPress={handleDelete}
+            onPress={() => setConfirmVisible(true)}
             accessibilityRole="button"
             accessibilityLabel={t("pets.delete")}
             style={({ pressed }) => [
@@ -299,6 +293,17 @@ export default function PetDetailScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      <ConfirmDialog
+        testID="pet-delete-confirm"
+        visible={confirmVisible}
+        title={t("pets.delete")}
+        message={t("pets.delete_confirm")}
+        confirmLabel={t("pets.delete")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmVisible(false)}
+      />
     </SafeAreaView>
   );
 }

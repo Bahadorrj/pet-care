@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   BackHandler,
   FlatList,
   Image,
@@ -15,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
 import { nextOccurrence, toTehranTime } from "../../lib/taskSchedule";
@@ -82,25 +82,18 @@ export default function PetsListScreen() {
     );
   }, [pets]);
 
-  const confirmDelete = useCallback(() => {
-    const ids = [...selectedIds];
-    if (ids.length === 0) return;
-    Alert.alert(
-      t("pets.delete"),
-      t("pets.delete_confirm_many", { count: ids.length }),
-      [
-        { text: t("common.cancel"), style: "cancel" },
-        {
-          text: t("pets.delete"),
-          style: "destructive",
-          onPress: async () => {
-            await removeMany(ids);
-            exitSelection();
-          },
-        },
-      ],
-    );
-  }, [selectedIds, t, removeMany, exitSelection]);
+  const [confirmVisible, setConfirmVisible] = useState(false);
+
+  const openDeleteConfirm = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    setConfirmVisible(true);
+  }, [selectedIds]);
+
+  const handleConfirmDelete = useCallback(async () => {
+    setConfirmVisible(false);
+    await removeMany([...selectedIds]);
+    exitSelection();
+  }, [selectedIds, removeMany, exitSelection]);
 
   // Group active tasks by pet once per render rather than filtering per card.
   const tasksByPet = React.useMemo(() => {
@@ -249,7 +242,7 @@ export default function PetsListScreen() {
           </Pressable>
           <Pressable
             testID="selection-delete"
-            onPress={confirmDelete}
+            onPress={openDeleteConfirm}
             disabled={selectedIds.size === 0}
             accessibilityRole="button"
             accessibilityLabel={t("pets.delete")}
@@ -272,6 +265,17 @@ export default function PetsListScreen() {
           <Ionicons name="add" size={28} color="#FFFFFF" />
         </Pressable>
       )}
+      <ConfirmDialog
+        testID="pets-delete-confirm"
+        visible={confirmVisible}
+        title={t("pets.delete")}
+        message={t("pets.delete_confirm_many", { count: selectedIds.size })}
+        confirmLabel={t("pets.delete")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmVisible(false)}
+      />
     </SafeAreaView>
   );
 }

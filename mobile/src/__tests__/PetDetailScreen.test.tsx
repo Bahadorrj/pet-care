@@ -4,15 +4,14 @@
  * Verifies:
  * - Renders the pet name and translated species.
  * - Edit button navigates to PetForm with { petId }.
- * - Delete button fires Alert.alert; invoking the destructive confirm callback
- *   calls store.remove(petId) and navigation.goBack().
+ * - Delete button opens the ConfirmDialog; pressing confirm calls
+ *   store.remove(petId) and navigation.goBack().
  * - Cancel path does NOT call store.remove.
  *
- * Mocks: Alert.alert, petsStore, getPet, navigation, i18n.
+ * Mocks: petsStore, getPet, navigation, i18n.
  */
 
 import React from "react";
-import { Alert } from "react-native";
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 
 // ── Store mock ────────────────────────────────────────────────────────────────
@@ -203,51 +202,32 @@ describe("PetDetailScreen – tasks section (useShallow selector stability)", ()
 });
 
 describe("PetDetailScreen – delete", () => {
-  test("Delete fires Alert.alert; confirm callback removes pet and goes back", async () => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  test("Delete opens the ConfirmDialog; confirm removes pet and goes back", async () => {
     mockRemove.mockResolvedValue(undefined);
 
     const { getByTestId } = await render(<PetDetailScreen />);
     fireEvent.press(getByTestId("petdetail-delete"));
 
-    expect(alertSpy).toHaveBeenCalledTimes(1);
-    const buttons = alertSpy.mock.calls[0][2] as {
-      text: string;
-      style?: string;
-      onPress?: () => void;
-    }[];
-    const confirm = buttons.find((b) => b.style === "destructive");
-    expect(confirm).toBeDefined();
+    await waitFor(() => expect(getByTestId("pet-delete-confirm")).toBeTruthy());
 
-    await confirm!.onPress!();
+    fireEvent.press(getByTestId("pet-delete-confirm-confirm"));
 
     await waitFor(() => {
       expect(mockRemove).toHaveBeenCalledTimes(1);
       expect(mockRemove).toHaveBeenCalledWith(PET.id);
       expect(mockGoBack).toHaveBeenCalledTimes(1);
     });
-
-    alertSpy.mockRestore();
   });
 
   test("cancel button does NOT call remove", async () => {
-    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(() => {});
-
     const { getByTestId } = await render(<PetDetailScreen />);
     fireEvent.press(getByTestId("petdetail-delete"));
 
-    const buttons = alertSpy.mock.calls[0][2] as {
-      text: string;
-      style?: string;
-      onPress?: () => void;
-    }[];
-    const cancel = buttons.find((b) => b.style === "cancel");
-    expect(cancel).toBeDefined();
-    cancel!.onPress?.();
+    await waitFor(() => expect(getByTestId("pet-delete-confirm")).toBeTruthy());
+
+    fireEvent.press(getByTestId("pet-delete-confirm-cancel"));
 
     expect(mockRemove).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
-
-    alertSpy.mockRestore();
   });
 });
