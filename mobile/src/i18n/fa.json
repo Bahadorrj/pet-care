@@ -152,7 +152,6 @@
   "tasks.filter.apply": "اعمال",
   "tasks.filter.clear": "پاک کردن",
   "tasks.no_match": "هیچ کاری با این فیلتر یافت نشد",
-  "tasks.stat.streak": "{{count}} بار متوالی",
   "tasks.stat.adherence": "{{percent}}٪ پایبندی",
   "pets.list.tasks": "{{count}} کار",
   "pets.active_tasks": "{{count}} کار فعال",
