@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  InteractionManager,
   Modal,
   Pressable,
   SectionList,
@@ -8,6 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
+import InteractionManagerModule from "react-native/Libraries/Interaction/InteractionManager";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
@@ -31,6 +31,11 @@ import { utcIsoToTehranJalali, toPersianDigits } from "../../lib/jalali";
 import { bucketOccurrences } from "./todayBuckets";
 import type { Occurrence, TaskType } from "../../db/types";
 import type { TasksNavigationProp } from "../../navigation/TasksStack";
+
+// Bypasses react-native's warnOnce("interaction-manager-deprecated") getter;
+// same underlying module, no behavior change.
+const InteractionManager =
+  InteractionManagerModule as unknown as typeof import("react-native").InteractionManager;
 
 // ── Tehran time helper ─────────────────────────────────────────────────────────
 // ponytail: mirrors utcIsoToTehranTime in TaskFormScreen — shift +210 min, read UTC fields
