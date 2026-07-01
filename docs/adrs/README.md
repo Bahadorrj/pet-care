@@ -42,3 +42,8 @@ relevant ADR. Every ADR ends with an explicit **Guardrails** section
 | [0011](0011-guest-first-no-login-wall.md) | Guest-first access; no login wall on knowledge | Accepted | — |
 | [0012](0012-zustand-securestore-auth-state.md) | Zustand + expo-secure-store for mobile auth | Accepted | — |
 | [0013](0013-async-sqlalchemy-aiosqlite.md) | Async SQLAlchemy over aiosqlite; Alembic stays sync | Accepted | — |
+| [0014](0014-bottom-tab-navigation.md) | Bottom Tab navigator as the root navigation shell | Superseded by ADR-0018 | — |
+| [0015](0015-mobile-sqlite-local-store.md) | On-device SQLite for user-generated app data (mobile) | Accepted | — |
+| [0016](0016-chores-rule-plus-log.md) | Chores — rule + completion log (approach B); first Notifee realization | Accepted | — |
+| [0017](0017-lively-task-done-toast.md) | Task-done toast — a sanctioned side-stripe success accent | Accepted | — |
+| [0018](0018-swipeable-bottom-tabs.md) | Swipeable bottom tabs via material-top-tabs pinned to the bottom | Accepted | — |

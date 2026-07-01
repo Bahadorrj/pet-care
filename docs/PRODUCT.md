@@ -12,6 +12,8 @@ Persian-speaking pet owners — individuals and families with one or more pets (
 
 پت‌کر (PetCare) is a mobile app for managing pet profiles: name, species, gender, photo, notes, and care history. It keeps everything about a user's animals in one place, persisted locally with optional account sync. Success looks like: a user who just adopted a rabbit can add it in under a minute, and a family with three pets can find any pet's details without effort.
 
+A supporting **care-reminders** feature builds on those profiles — recurring tasks (feeding, medication, grooming) surface as a daily agenda with optional local notifications, so caring on schedule is easy. Reminders help users follow through; they don't change what the app is about. Profiles remain the core; tasks are the helpful layer on top.
+
 ## Brand Personality
 
 Calm · Caring · Warm
@@ -31,6 +33,7 @@ The app should feel like a trusted companion — gentle and reassuring, not clin
 3. **Persian-native, not translated.** RTL layout, Jalali calendar, Vazirmatn typography: the interface is built for Persian speakers, not adapted for them.
 4. **Consistency is care.** Same vocabulary, same affordances, same interaction patterns screen to screen. Inconsistency in a care context reads as unreliable.
 5. **Empty states earn their place.** An empty pet list is a first-run moment — it should encourage action, not just report absence.
+6. **A gentle nudge, never a nag.** Reminders are calm and respectful — easy to act on or dismiss, never anxious. No badge-count pressure, no guilt for a missed task. A notification helps the user care; it doesn't scold them.
 
 ## Accessibility & Inclusion
 

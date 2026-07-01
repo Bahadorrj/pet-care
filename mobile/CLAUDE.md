@@ -21,6 +21,12 @@ npx tsc --noEmit             # typecheck (must be 0 errors)
 
 Requires `EXPO_PUBLIC_API_BASE_URL` in `.env` (default `http://10.0.2.2:8000`, the Android emulator's alias for the host). Use the machine's LAN IP for a physical device.
 
+## Design Context
+
+Read before any creative work.
+- `../docs/PRODUCT.md` — strategic design context (register, users, brand personality, anti-references, principles).
+- `../docs/DESIGN.md` — visual system (colors, typography, components); kept in sync with `src/theme/theme.ts` (the runtime source of truth).
+
 ## Architecture
 
 Swipeable bottom-tab navigator (`src/navigation/RootNavigator.tsx`) — a material top-tab navigator pinned to the bottom (`tabBarPosition="bottom"`) with a custom flat tab bar (`src/navigation/BottomTabBar.tsx`), so a horizontal swipe switches tabs (ADR-0018). Three tabs: `Pets` (PetsStack), `Tasks` (TasksStack), and `Profile` (ProfileStack). `RootTabParamList` is the root typed contract. `TasksStack` is a native stack inside the Tasks tab hosting `TasksScreen` (tasks hub) and `TaskForm`; `TasksStackParamList` / `TasksNavigationProp` are the typed contracts for that stack. `ProfileStack` is a native stack inside the Profile tab hosting `ProfileMain`, `Signin`, and `Signup` screens; `ProfileStackParamList` / `ProfileNavigationProp` are the typed contracts for that stack.
@@ -34,6 +40,8 @@ Swipeable bottom-tab navigator (`src/navigation/RootNavigator.tsx`) — a materi
 **Theme** — `src/theme/theme.ts` is the single source of truth for colors, spacing, radius, typography, shadow. Import tokens instead of hard-coding. Custom font weights are selected by **family name** (`fonts.regular`/`medium`/…), not `fontWeight` — those families must match the keys registered in `useFonts` in `App.tsx`.
 
 **UI primitives** — `src/components/ui/` (`Button`, `TextField`). Reuse these rather than raw RN components.
+
+**Native UI patterns** — before building or restyling a screen, consult `expo:building-native-ui` (and `expo:expo-ui` for native components). They carry the SDK-56-correct idioms; pair them with `docs/DESIGN.md` for the visual system. Impeccable (`/impeccable`) is for design *judgment* (critique, copy, empty states) — translate its output to `StyleSheet`, not CSS.
 
 **Pets** — `src/store/petsStore.ts` is a Zustand store backed by SQLite (`src/db/pets.ts`). `listPets()` is synchronous (expo-sqlite sync API), so `pets` is populated at module load with no async hydration step. Photo files are copied into app storage by `src/lib/petPhoto.ts`; the stored path is what goes in `photoUri`.
 
