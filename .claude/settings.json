@@ -33,5 +33,8 @@
   "enabledPlugins": {
     "agent-skills@addy-agent-skills": true,
     "expo@claude-plugins-official": true
+  },
+  "worktree": {
+    "baseRef": "head"
   }
 }
