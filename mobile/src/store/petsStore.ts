@@ -15,6 +15,7 @@ interface PetsState {
   add: (input: PetInput) => Promise<void>;
   update: (id: string, input: PetInput) => Promise<void>;
   remove: (id: string) => Promise<void>;
+  removeMany: (ids: string[]) => Promise<void>;
 }
 
 const VALID_SPECIES: readonly Species[] = [
@@ -86,6 +87,18 @@ export const usePetsStore = create<PetsState>((set) => ({
     deleteTasksForPet(id);
     deletePet(id);
     if (p?.photoUri) await deletePhoto(p.photoUri);
+    set({ pets: listPets() });
+  },
+
+  // Same per-pet cleanup as remove(), but a single listPets() refresh for the
+  // whole batch instead of one per id.
+  removeMany: async (ids) => {
+    for (const id of ids) {
+      const p = getPet(id);
+      deleteTasksForPet(id);
+      deletePet(id);
+      if (p?.photoUri) await deletePhoto(p.photoUri);
+    }
     set({ pets: listPets() });
   },
 }));

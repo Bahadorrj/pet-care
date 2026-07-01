@@ -600,3 +600,122 @@ describe("petsStore – remove", () => {
     expect(usePetsStore.getState().pets).toHaveLength(0);
   });
 });
+
+describe("petsStore – removeMany", () => {
+  test("deletes the stored photo for every id in the batch, then removes all rows", async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await usePetsStore.getState().add({
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: null,
+      photoUri: "file:///picked/rex.jpg",
+      notes: null,
+    });
+    await usePetsStore.getState().add({
+      name: "Milo",
+      species: "cat",
+      speciesOther: null,
+      gender: null,
+      photoUri: "file:///picked/milo.jpg",
+      notes: null,
+    });
+    const ids = usePetsStore.getState().pets.map((p) => p.id);
+    jest.clearAllMocks();
+
+    await usePetsStore.getState().removeMany(ids);
+
+    expect(mockedDeletePhoto).toHaveBeenCalledWith("file:///doc/saved.jpg");
+    expect(mockedDeletePhoto).toHaveBeenCalledTimes(2);
+    expect(usePetsStore.getState().pets).toHaveLength(0);
+  });
+
+  test("skips pets with no photo without throwing", async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await usePetsStore.getState().add({
+      name: "Bird",
+      species: "bird",
+      speciesOther: null,
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+    await usePetsStore.getState().add({
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: null,
+      photoUri: "file:///picked/rex.jpg",
+      notes: null,
+    });
+    const ids = usePetsStore.getState().pets.map((p) => p.id);
+
+    await expect(
+      usePetsStore.getState().removeMany(ids),
+    ).resolves.toBeUndefined();
+    expect(usePetsStore.getState().pets).toHaveLength(0);
+  });
+
+  test("is a no-op for an empty array", async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await usePetsStore.getState().add({
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+
+    await usePetsStore.getState().removeMany([]);
+
+    expect(usePetsStore.getState().pets).toHaveLength(1);
+  });
+
+  test("refreshes pets exactly once for the whole batch, not once per id", async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await usePetsStore.getState().add({
+      name: "A",
+      species: "dog",
+      speciesOther: null,
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+    await usePetsStore.getState().add({
+      name: "B",
+      species: "cat",
+      speciesOther: null,
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+    await usePetsStore.getState().add({
+      name: "C",
+      species: "rabbit",
+      speciesOther: null,
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+    const ids = usePetsStore.getState().pets.map((p) => p.id);
+
+    const getAllSyncSpy = jest.spyOn(mockFakeDb, "getAllSync");
+    getAllSyncSpy.mockClear();
+
+    await usePetsStore.getState().removeMany(ids);
+
+    // Reads of the pets table itself (excludes the PRAGMA migration check and
+    // the tasks-table reads issued by deleteTasksForPet per id).
+    const petsTableReads = getAllSyncSpy.mock.calls.filter(([sql]) => {
+      const s = String(sql).trim().toUpperCase();
+      return !s.startsWith("PRAGMA") && !s.includes("FROM TASKS");
+    });
+    expect(petsTableReads).toHaveLength(1);
+    expect(usePetsStore.getState().pets).toHaveLength(0);
+  });
+});
