@@ -17,8 +17,9 @@ import {
 } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
+import Button from "../../components/ui/Button";
 import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
 import { getPet } from "../../db/pets";
@@ -178,19 +179,6 @@ export default function PetDetailScreen() {
               <Text style={styles.heroChipText}>{speciesLabel(pet, t)}</Text>
             </View>
           </View>
-
-          <Pressable
-            testID="petdetail-edit"
-            onPress={() => navigation.navigate("PetForm", { petId })}
-            accessibilityRole="button"
-            accessibilityLabel={t("pets.edit")}
-            style={({ pressed }) => [
-              styles.editFab,
-              pressed && styles.editFabPressed,
-            ]}
-          >
-            <Ionicons name="pencil" size={20} color={colors.primary} />
-          </Pressable>
         </View>
 
         {/* ── Info card ───────────────────────────────────────────────────── */}
@@ -268,7 +256,7 @@ export default function PetDetailScreen() {
                 <MaterialCommunityIcons
                   name={TASK_TYPE_ICON[task.type]}
                   size={22}
-                  color={colors.primary}
+                  color={colors.inkMuted}
                   style={styles.taskIcon}
                 />
                 <View style={styles.taskInfo}>
@@ -290,6 +278,13 @@ export default function PetDetailScreen() {
         </View>
 
         <View style={styles.actions}>
+          <Button
+            testID="petdetail-edit"
+            variant="secondary"
+            label={t("pets.edit")}
+            onPress={() => navigation.navigate("PetForm", { petId })}
+          />
+
           <Pressable
             testID="petdetail-delete"
             onPress={handleDelete}
@@ -342,7 +337,7 @@ const styles = StyleSheet.create({
     height: 100,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
-    backgroundColor: "rgba(0,0,0,0.45)",
+    backgroundColor: "rgba(0,0,0,0.55)",
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
@@ -366,21 +361,6 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     fontFamily: fonts.medium,
     color: "#FFFFFF",
-  },
-  editFab: {
-    position: "absolute",
-    top: spacing.md,
-    end: spacing.md,
-    width: 44,
-    height: 44,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
-    ...shadow.card,
-  },
-  editFabPressed: {
-    opacity: 0.7,
   },
   // ── Info card ───────────────────────────────────────────────────────────────
   infoCard: {
@@ -515,6 +495,7 @@ const styles = StyleSheet.create({
   actions: {
     marginHorizontal: spacing.xl,
     marginTop: spacing.lg,
+    gap: spacing.md,
   },
   deleteButton: {
     minHeight: 54,

@@ -101,7 +101,7 @@ describe("PetDetailScreen – render", () => {
     ).toBeGreaterThanOrEqual(1);
   });
 
-  test("renders hero photo and floating edit button", async () => {
+  test("renders hero photo and edit button", async () => {
     mockPets = [{ ...PET, photoUri: "file:///rexi.jpg" }];
     const { getByTestId } = await render(<PetDetailScreen />);
     expect(getByTestId("petdetail-photo")).toBeTruthy();
