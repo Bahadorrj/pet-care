@@ -61,7 +61,7 @@ jest.mock("@react-navigation/native", () => ({
 }));
 
 // ── Initialise i18n (real Farsi strings) ─────────────────────────────────────
-import "../i18n";
+import i18n from "../i18n";
 import PetDetailScreen from "../screens/pets/PetDetailScreen";
 import type { Task, Pet } from "../db/types";
 
@@ -96,7 +96,9 @@ describe("PetDetailScreen – render", () => {
     const { getByText, getAllByText } = await render(<PetDetailScreen />);
     expect(getByText("رکسی")).toBeTruthy();
     // species appears twice now: hero chip + info card value
-    expect(getAllByText("سگ").length).toBeGreaterThanOrEqual(1); // pets.species.dog
+    expect(
+      getAllByText(i18n.t("pets.species.dog")).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   test("renders hero photo and floating edit button", async () => {
@@ -112,7 +114,7 @@ describe("PetDetailScreen – render", () => {
     ];
     const { getByText } = await render(<PetDetailScreen />);
     expect(getByText("گلدن رتریور")).toBeTruthy();
-    expect(getByText("4.5 کیلوگرم")).toBeTruthy();
+    expect(getByText(`4.5 ${i18n.t("pets.unit.kg")}`)).toBeTruthy();
 
     mockPets = [PET]; // breed/weight null on the base fixture
     const { queryByText } = await render(<PetDetailScreen />);
@@ -162,7 +164,7 @@ describe("PetDetailScreen – add-task button removed", () => {
   test("empty state renders when pet has no tasks", async () => {
     mockTasks = [];
     const { getByText } = await render(<PetDetailScreen />);
-    expect(getByText("امروز کاری برای انجام ندارید")).toBeTruthy();
+    expect(getByText(i18n.t("tasks.empty"))).toBeTruthy();
   });
 });
 
@@ -186,7 +188,7 @@ describe("PetDetailScreen – tasks section (useShallow selector stability)", ()
     mockTasks = []; // default — already set in beforeEach but explicit for clarity
     const { getByText } = await render(<PetDetailScreen />);
     // tasks.empty key
-    expect(getByText("امروز کاری برای انجام ندارید")).toBeTruthy();
+    expect(getByText(i18n.t("tasks.empty"))).toBeTruthy();
   });
 
   test("tapping a task row navigates to TaskForm with petId + taskId", async () => {

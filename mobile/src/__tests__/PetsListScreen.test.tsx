@@ -32,7 +32,7 @@ jest.mock("@react-navigation/native", () => ({
 }));
 
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
-import "../i18n";
+import i18n from "../i18n";
 import PetsListScreen from "../screens/pets/PetsListScreen";
 import type { Pet } from "../db/types";
 
@@ -79,7 +79,7 @@ describe("PetsListScreen – empty store", () => {
 
   test("renders the empty state message", async () => {
     await render(<PetsListScreen />);
-    expect(screen.getByText("هنوز پتی اینجا نیست")).toBeTruthy();
+    expect(screen.getByText(i18n.t("pets.empty_title"))).toBeTruthy();
   });
 
   test("does not render any pet names", async () => {
@@ -101,12 +101,12 @@ describe("PetsListScreen – populated store", () => {
 
   test("renders translated species for each pet", async () => {
     await render(<PetsListScreen />);
-    expect(screen.getByText("سگ")).toBeTruthy(); // pets.species.dog
-    expect(screen.getByText("گربه")).toBeTruthy(); // pets.species.cat
+    expect(screen.getByText(i18n.t("pets.species.dog"))).toBeTruthy();
+    expect(screen.getByText(i18n.t("pets.species.cat"))).toBeTruthy();
   });
 
   test("does not render the empty state message", async () => {
     await render(<PetsListScreen />);
-    expect(screen.queryByText("هنوز پتی اینجا نیست")).toBeNull();
+    expect(screen.queryByText(i18n.t("pets.empty_title"))).toBeNull();
   });
 });

@@ -56,7 +56,7 @@ jest.mock("@react-navigation/native", () => ({
 }));
 
 // ── Initialise i18n (real Farsi strings) ─────────────────────────────────────
-import "../i18n";
+import i18n from "../i18n";
 import PetFormScreen from "../screens/pets/PetFormScreen";
 import type { Pet } from "../db/types";
 
@@ -97,7 +97,7 @@ describe("PetFormScreen – Add mode – validation", () => {
     await fireEvent.press(getByTestId("petform-submit"));
 
     await waitFor(() => {
-      expect(getByText("نام پت الزامی است")).toBeTruthy();
+      expect(getByText(i18n.t("pets.error.name_required"))).toBeTruthy();
     });
     expect(mockAdd).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
@@ -112,7 +112,7 @@ describe("PetFormScreen – Add mode – validation", () => {
     await fireEvent.press(getByTestId("petform-submit"));
 
     await waitFor(() => {
-      expect(getByText("نام پت الزامی است")).toBeTruthy();
+      expect(getByText(i18n.t("pets.error.name_required"))).toBeTruthy();
     });
     expect(mockAdd).not.toHaveBeenCalled();
   });
@@ -125,7 +125,7 @@ describe("PetFormScreen – Add mode – validation", () => {
     await fireEvent.press(getByTestId("petform-submit"));
 
     await waitFor(() => {
-      expect(getByText("انتخاب گونه الزامی است")).toBeTruthy();
+      expect(getByText(i18n.t("pets.error.species_required"))).toBeTruthy();
     });
     expect(mockAdd).not.toHaveBeenCalled();
   });
@@ -139,7 +139,9 @@ describe("PetFormScreen – Add mode – validation", () => {
     await fireEvent.press(getByTestId("petform-submit"));
 
     await waitFor(() => {
-      expect(getByText("توضیح گونه الزامی است")).toBeTruthy();
+      expect(
+        getByText(i18n.t("pets.error.species_other_required")),
+      ).toBeTruthy();
     });
     expect(mockAdd).not.toHaveBeenCalled();
   });
@@ -154,7 +156,7 @@ describe("PetFormScreen – Add mode – validation", () => {
     await fireEvent.press(getByTestId("petform-submit"));
 
     await waitFor(() => {
-      expect(getByText("وزن معتبر نیست")).toBeTruthy();
+      expect(getByText(i18n.t("pets.error.weight_invalid"))).toBeTruthy();
     });
     expect(mockAdd).not.toHaveBeenCalled();
   });

@@ -12,7 +12,7 @@ import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
-import "../i18n";
+import i18n from "../i18n";
 import TasksScreen from "../screens/tasks/TasksScreen";
 import { toPersianDigits } from "../lib/jalali";
 import type { Occurrence } from "../db/types";
@@ -338,7 +338,7 @@ describe("TasksScreen – action sheet", () => {
     fireEvent.press(getByTestId("tasks-more-task-today"));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    expect(opts.options[2]).toBe("حذف این کار و همه تکرارهای آن");
+    expect(opts.options[2]).toBe(i18n.t("tasks.action.delete_recurring"));
   });
 
   test("delete label is the one-off-delete translation for one-off task", async () => {
@@ -349,7 +349,7 @@ describe("TasksScreen – action sheet", () => {
     fireEvent.press(getByTestId("tasks-more-task-oneoff"));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    expect(opts.options[2]).toBe("حذف این کار");
+    expect(opts.options[2]).toBe(i18n.t("tasks.action.delete_one_off"));
   });
 
   test("destructiveButtonIndex is 2, cancelButtonIndex is 3", async () => {

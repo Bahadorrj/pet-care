@@ -106,7 +106,7 @@ jest.mock("@react-navigation/native", () => ({
 }));
 
 // ── i18n (real Farsi strings) ─────────────────────────────────────────────────
-import "../i18n";
+import i18n from "../i18n";
 import TaskFormScreen from "../screens/tasks/TaskFormScreen";
 // Note: Pet/Task types imported above (before jest.mock) — no second import needed
 
@@ -317,7 +317,7 @@ describe("TaskFormScreen – Add – one_off", () => {
     await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText("تاریخ انتخاب نشده است")).toBeTruthy(),
+      expect(getByText(i18n.t("tasks.error.invalid_date"))).toBeTruthy(),
     );
     expect(mockAddTask).not.toHaveBeenCalled();
   });
@@ -355,7 +355,7 @@ describe("TaskFormScreen – end-until Jalali input", () => {
     await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText("تاریخ انتخاب نشده است")).toBeTruthy(),
+      expect(getByText(i18n.t("tasks.error.invalid_date"))).toBeTruthy(),
     );
     expect(mockAddTask).not.toHaveBeenCalled();
   });
@@ -427,7 +427,7 @@ describe("TaskFormScreen – validation – no type", () => {
     await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText("انتخاب نوع کار الزامی است")).toBeTruthy(),
+      expect(getByText(i18n.t("tasks.error.type_required"))).toBeTruthy(),
     );
     expect(mockAddTask).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
@@ -444,7 +444,9 @@ describe("TaskFormScreen – validation – schedule_empty from store", () => {
     await press(getByTestId("taskform-type-feeding"));
     await press(getByTestId("taskform-submit"));
 
-    await waitFor(() => expect(getByText("زمان‌بندی الزامی است")).toBeTruthy());
+    await waitFor(() =>
+      expect(getByText(i18n.t("tasks.error.schedule_required"))).toBeTruthy(),
+    );
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 
@@ -458,7 +460,7 @@ describe("TaskFormScreen – validation – schedule_empty from store", () => {
     await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText("حداقل یک روز الزامی است")).toBeTruthy(),
+      expect(getByText(i18n.t("tasks.error.days_required"))).toBeTruthy(),
     );
     expect(mockGoBack).not.toHaveBeenCalled();
   });
@@ -587,7 +589,7 @@ describe("TaskFormScreen – pet picker – empty selection error", () => {
     await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText("حداقل یک پت را انتخاب کنید")).toBeTruthy(),
+      expect(getByText(i18n.t("tasks.error.pet_required"))).toBeTruthy(),
     );
     expect(mockAddTask).not.toHaveBeenCalled();
   });
