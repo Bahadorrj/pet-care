@@ -1,10 +1,14 @@
-import { create } from 'zustand';
-import { insertPet, updatePet, deletePet, listPets, getPet } from '../db/pets';
-import { deleteTasksForPet } from '../db/tasks';
-import { savePhoto, deletePhoto } from '../lib/petPhoto';
-import type { Pet, Species } from '../db/types';
+import { create } from "zustand";
+import { insertPet, updatePet, deletePet, listPets, getPet } from "../db/pets";
+import { deleteTasksForPet } from "../db/tasks";
+import { savePhoto, deletePhoto } from "../lib/petPhoto";
+import type { Pet, Species } from "../db/types";
 
-type PetInput = Omit<Pet, 'id' | 'createdAt' | 'updatedAt'>;
+type PetInput = Omit<
+  Pet,
+  "id" | "createdAt" | "updatedAt" | "breed" | "weightValue" | "weightUnit"
+> &
+  Partial<Pick<Pet, "breed" | "weightValue" | "weightUnit">>;
 
 interface PetsState {
   pets: Pet[];
@@ -13,13 +17,20 @@ interface PetsState {
   remove: (id: string) => Promise<void>;
 }
 
-const VALID_SPECIES: readonly Species[] = ['dog', 'cat', 'bird', 'rabbit', 'other'];
+const VALID_SPECIES: readonly Species[] = [
+  "dog",
+  "cat",
+  "bird",
+  "rabbit",
+  "other",
+];
 
 // Validate before touching the db or filesystem so a rejected input leaves no
 // orphaned photo file or partial row. Throws translation keys the UI surfaces.
 function validate(input: PetInput): void {
-  if (!input.name.trim()) throw new Error('pets.error.name_required');
-  if (!VALID_SPECIES.includes(input.species)) throw new Error('pets.error.species_required');
+  if (!input.name.trim()) throw new Error("pets.error.name_required");
+  if (!VALID_SPECIES.includes(input.species))
+    throw new Error("pets.error.species_required");
 }
 
 export const usePetsStore = create<PetsState>((set) => ({
@@ -32,7 +43,13 @@ export const usePetsStore = create<PetsState>((set) => ({
     // Copy the picked temp file into app storage; persist the stored path.
     const photoUri = input.photoUri ? await savePhoto(input.photoUri) : null;
 
-    insertPet({ ...input, photoUri });
+    insertPet({
+      ...input,
+      photoUri,
+      breed: input.breed ?? null,
+      weightValue: input.weightValue ?? null,
+      weightUnit: input.weightUnit ?? null,
+    });
     set({ pets: listPets() });
   },
 
@@ -51,7 +68,13 @@ export const usePetsStore = create<PetsState>((set) => ({
       await deletePhoto(prevPhoto);
     }
 
-    updatePet(id, { ...input, photoUri });
+    updatePet(id, {
+      ...input,
+      photoUri,
+      breed: input.breed ?? null,
+      weightValue: input.weightValue ?? null,
+      weightUnit: input.weightUnit ?? null,
+    });
     set({ pets: listPets() });
   },
 

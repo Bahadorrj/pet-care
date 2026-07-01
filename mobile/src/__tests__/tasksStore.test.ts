@@ -60,6 +60,9 @@ jest.mock("expo-sqlite", () => {
           gender,
           photo_uri,
           notes,
+          breed,
+          weight_value,
+          weight_unit,
           created_at,
           updated_at,
         ] = params;
@@ -70,14 +73,27 @@ jest.mock("expo-sqlite", () => {
           gender,
           photo_uri,
           notes,
+          breed,
+          weight_value,
+          weight_unit,
           created_at,
           updated_at,
         });
         return;
       }
       if (u.startsWith("UPDATE PETS")) {
-        const [name, species, gender, photo_uri, notes, updated_at, id] =
-          params;
+        const [
+          name,
+          species,
+          gender,
+          photo_uri,
+          notes,
+          breed,
+          weight_value,
+          weight_unit,
+          updated_at,
+          id,
+        ] = params;
         const row = s.pets.find((r) => r.id === id);
         if (row)
           Object.assign(row, {
@@ -86,6 +102,9 @@ jest.mock("expo-sqlite", () => {
             gender,
             photo_uri,
             notes,
+            breed,
+            weight_value,
+            weight_unit,
             updated_at,
           });
         return;

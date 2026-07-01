@@ -1,29 +1,60 @@
-import React from 'react';
-import { Alert, Dimensions, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
-import { useTranslation } from 'react-i18next';
-import { useShallow } from 'zustand/react/shallow';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React from "react";
+import {
+  Alert,
+  Dimensions,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from "@react-navigation/native";
+import { useTranslation } from "react-i18next";
+import { useShallow } from "zustand/react/shallow";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
-import { usePetsStore } from '../../store/petsStore';
-import { useTasksStore } from '../../store/tasksStore';
-import { getPet } from '../../db/pets';
-import { streak, adherence, nextOccurrence, toTehranTime } from '../../lib/taskSchedule';
-import { toPersianDigits } from '../../lib/jalali';
-import { colors, fonts, radius, shadow, spacing, typography } from '../../theme/theme';
-import { SPECIES_ICON, TASK_TYPE_ICON } from '../../theme/icons';
-import type { PetsStackParamList, PetsNavigationProp } from '../../navigation/PetsStack';
-import type { Task, TaskLog } from '../../db/types';
+import { usePetsStore } from "../../store/petsStore";
+import { useTasksStore } from "../../store/tasksStore";
+import { getPet } from "../../db/pets";
+import {
+  streak,
+  adherence,
+  nextOccurrence,
+  toTehranTime,
+} from "../../lib/taskSchedule";
+import { toPersianDigits } from "../../lib/jalali";
+import {
+  colors,
+  fonts,
+  radius,
+  shadow,
+  spacing,
+  typography,
+} from "../../theme/theme";
+import { SPECIES_ICON, TASK_TYPE_ICON } from "../../theme/icons";
+import type {
+  PetsStackParamList,
+  PetsNavigationProp,
+} from "../../navigation/PetsStack";
+import type { Task, TaskLog } from "../../db/types";
 
-type PetDetailRouteProp = RouteProp<PetsStackParamList, 'PetDetail'>;
+type PetDetailRouteProp = RouteProp<PetsStackParamList, "PetDetail">;
 
 const HERO_HEIGHT = 280;
-const SCREEN_WIDTH = Dimensions.get('window').width;
+const SCREEN_WIDTH = Dimensions.get("window").width;
 const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Short schedule summary for the tasks list row */
-function scheduleLabel(t: (key: string) => string, task: { schedule: { kind: string } }): string {
+function scheduleLabel(
+  t: (key: string) => string,
+  task: { schedule: { kind: string } },
+): string {
   const kind = task.schedule.kind;
   return t(`tasks.schedule.${kind}`);
 }
@@ -59,7 +90,7 @@ function TaskStats({
       {streakCount > 0 && (
         <View
           style={styles.streakChip}
-          accessibilityLabel={t('tasks.stat.streak', { count: streakCount })}
+          accessibilityLabel={t("tasks.stat.streak", { count: streakCount })}
         >
           <MaterialCommunityIcons name="fire" size={14} color={colors.ink} />
           <Text style={styles.streakChipText}>{streakCount}</Text>
@@ -68,7 +99,7 @@ function TaskStats({
       {percent !== null && (
         <View
           style={styles.adhWrap}
-          accessibilityLabel={t('tasks.stat.adherence', { percent })}
+          accessibilityLabel={t("tasks.stat.adherence", { percent })}
         >
           <View style={styles.adhTrack}>
             <View style={[styles.adhFill, { width: `${percent}%` }]} />
@@ -88,10 +119,13 @@ export default function PetDetailScreen() {
 
   const remove = usePetsStore((s) => s.remove);
   // Prefer the in-memory store list; fall back to a direct read.
-  const pet = usePetsStore((s) => s.pets.find((p) => p.id === petId)) ?? getPet(petId);
+  const pet =
+    usePetsStore((s) => s.pets.find((p) => p.id === petId)) ?? getPet(petId);
 
   // Tasks for this pet — useShallow prevents infinite re-render from new array ref each call (zustand v5)
-  const petTasks = useTasksStore(useShallow((s) => s.tasks.filter((c) => c.petId === petId)));
+  const petTasks = useTasksStore(
+    useShallow((s) => s.tasks.filter((c) => c.petId === petId)),
+  );
   const getLogsForTask = useTasksStore((s) => s.getLogsForTask);
 
   if (!pet) return null;
@@ -100,17 +134,22 @@ export default function PetDetailScreen() {
   let tasksSummary: string | null = null;
   if (activeTasks.length > 0) {
     const now = new Date();
-    const next = nextOccurrence(activeTasks, now, new Date(now.getTime() + NEXT_WINDOW_MS));
-    tasksSummary = t('pets.active_tasks', { count: activeTasks.length });
-    if (next) tasksSummary += ` · ${t('pets.next_task', { time: toPersianDigits(toTehranTime(next)) })}`;
+    const next = nextOccurrence(
+      activeTasks,
+      now,
+      new Date(now.getTime() + NEXT_WINDOW_MS),
+    );
+    tasksSummary = t("pets.active_tasks", { count: activeTasks.length });
+    if (next)
+      tasksSummary += ` · ${t("pets.next_task", { time: toPersianDigits(toTehranTime(next)) })}`;
   }
 
   const handleDelete = () => {
-    Alert.alert(t('pets.delete'), t('pets.delete_confirm'), [
-      { text: t('common.cancel'), style: 'cancel' },
+    Alert.alert(t("pets.delete"), t("pets.delete_confirm"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: t('pets.delete'),
-        style: 'destructive',
+        text: t("pets.delete"),
+        style: "destructive",
         onPress: async () => {
           await remove(petId);
           navigation.goBack();
@@ -120,7 +159,7 @@ export default function PetDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={['bottom']}>
+    <SafeAreaView style={styles.root} edges={["bottom"]}>
       <ScrollView contentContainerStyle={styles.content}>
         {/* ── Hero zone ───────────────────────────────────────────────────── */}
         <View style={styles.hero}>
@@ -145,16 +184,21 @@ export default function PetDetailScreen() {
               {pet.name}
             </Text>
             <View style={styles.heroChip}>
-              <Text style={styles.heroChipText}>{t(`pets.species.${pet.species}`)}</Text>
+              <Text style={styles.heroChipText}>
+                {t(`pets.species.${pet.species}`)}
+              </Text>
             </View>
           </View>
 
           <Pressable
             testID="petdetail-edit"
-            onPress={() => navigation.navigate('PetForm', { petId })}
+            onPress={() => navigation.navigate("PetForm", { petId })}
             accessibilityRole="button"
-            accessibilityLabel={t('pets.edit')}
-            style={({ pressed }) => [styles.editFab, pressed && styles.editFabPressed]}
+            accessibilityLabel={t("pets.edit")}
+            style={({ pressed }) => [
+              styles.editFab,
+              pressed && styles.editFabPressed,
+            ]}
           >
             <Ionicons name="pencil" size={20} color={colors.primary} />
           </Pressable>
@@ -163,20 +207,36 @@ export default function PetDetailScreen() {
         {/* ── Info card ───────────────────────────────────────────────────── */}
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Text style={styles.label}>{t('pets.field.species')}</Text>
+            <Text style={styles.label}>{t("pets.field.species")}</Text>
             <Text style={styles.value}>{t(`pets.species.${pet.species}`)}</Text>
           </View>
 
           {pet.gender != null && (
             <View style={styles.infoRow}>
-              <Text style={styles.label}>{t('pets.field.gender')}</Text>
+              <Text style={styles.label}>{t("pets.field.gender")}</Text>
               <Text style={styles.value}>{t(`pets.gender.${pet.gender}`)}</Text>
             </View>
           )}
 
-          {pet.notes != null && pet.notes !== '' && (
+          {pet.breed != null && pet.breed !== "" && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>{t("pets.field.breed")}</Text>
+              <Text style={styles.value}>{pet.breed}</Text>
+            </View>
+          )}
+
+          {pet.weightValue != null && (
+            <View style={styles.infoRow}>
+              <Text style={styles.label}>{t("pets.field.weight")}</Text>
+              <Text style={styles.value}>
+                {pet.weightValue} {t(`pets.unit.${pet.weightUnit}`)}
+              </Text>
+            </View>
+          )}
+
+          {pet.notes != null && pet.notes !== "" && (
             <View style={styles.notesGroup}>
-              <Text style={styles.label}>{t('pets.field.notes')}</Text>
+              <Text style={styles.label}>{t("pets.field.notes")}</Text>
               <Text style={styles.value}>{pet.notes}</Text>
             </View>
           )}
@@ -184,7 +244,9 @@ export default function PetDetailScreen() {
 
         {/* ── Tasks section ──────────────────────────────────────────────── */}
         <View style={styles.tasksSection}>
-          <Text style={styles.tasksSectionTitle}>{t('tasks.section_title')}</Text>
+          <Text style={styles.tasksSectionTitle}>
+            {t("tasks.section_title")}
+          </Text>
 
           {tasksSummary && (
             <View style={styles.summaryCard}>
@@ -198,13 +260,15 @@ export default function PetDetailScreen() {
           )}
 
           {petTasks.length === 0 ? (
-            <Text style={styles.tasksEmpty}>{t('tasks.empty')}</Text>
+            <Text style={styles.tasksEmpty}>{t("tasks.empty")}</Text>
           ) : (
             petTasks.map((task, idx) => (
               <Pressable
                 key={task.id}
                 testID={`petdetail-task-${task.id}`}
-                onPress={() => navigation.navigate('TaskForm', { petId, taskId: task.id })}
+                onPress={() =>
+                  navigation.navigate("TaskForm", { petId, taskId: task.id })
+                }
                 accessibilityRole="button"
                 style={({ pressed }) => [
                   styles.taskRow,
@@ -222,8 +286,14 @@ export default function PetDetailScreen() {
                   <Text style={styles.taskTitle}>
                     {task.title ?? t(`tasks.type.${task.type}`)}
                   </Text>
-                  <Text style={styles.taskSchedule}>{scheduleLabel(t, task)}</Text>
-                  <TaskStats task={task} getLogsForTask={getLogsForTask} t={t} />
+                  <Text style={styles.taskSchedule}>
+                    {scheduleLabel(t, task)}
+                  </Text>
+                  <TaskStats
+                    task={task}
+                    getLogsForTask={getLogsForTask}
+                    t={t}
+                  />
                 </View>
               </Pressable>
             ))
@@ -235,10 +305,13 @@ export default function PetDetailScreen() {
             testID="petdetail-delete"
             onPress={handleDelete}
             accessibilityRole="button"
-            accessibilityLabel={t('pets.delete')}
-            style={({ pressed }) => [styles.deleteButton, pressed && styles.deleteButtonPressed]}
+            accessibilityLabel={t("pets.delete")}
+            style={({ pressed }) => [
+              styles.deleteButton,
+              pressed && styles.deleteButtonPressed,
+            ]}
           >
-            <Text style={styles.deleteText}>{t('pets.delete')}</Text>
+            <Text style={styles.deleteText}>{t("pets.delete")}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -260,11 +333,11 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: HERO_HEIGHT,
     backgroundColor: colors.surfaceSunken,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   heroPhoto: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
     start: 0,
@@ -273,17 +346,17 @@ const styles = StyleSheet.create({
     height: HERO_HEIGHT,
   },
   heroScrim: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     start: 0,
     end: 0,
     height: 100,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    backgroundColor: "rgba(0,0,0,0.45)",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
     gap: spacing.sm,
   },
   heroName: {
@@ -291,30 +364,30 @@ const styles = StyleSheet.create({
     fontSize: typography.title.fontSize,
     lineHeight: typography.title.lineHeight,
     fontFamily: fonts.bold,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   heroChip: {
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: '#FFFFFF',
+    borderColor: "#FFFFFF",
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
   },
   heroChipText: {
     fontSize: typography.caption.fontSize,
     fontFamily: fonts.medium,
-    color: '#FFFFFF',
+    color: "#FFFFFF",
   },
   editFab: {
-    position: 'absolute',
+    position: "absolute",
     top: spacing.md,
     end: spacing.md,
     width: 44,
     height: 44,
     borderRadius: radius.pill,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     ...shadow.card,
   },
   editFabPressed: {
@@ -330,9 +403,9 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     gap: spacing.md,
   },
   notesGroup: {
@@ -350,7 +423,7 @@ const styles = StyleSheet.create({
     lineHeight: typography.body.lineHeight,
     fontFamily: fonts.regular,
     color: colors.ink,
-    textAlign: 'right',
+    textAlign: "right",
   },
   // ── Tasks section ──────────────────────────────────────────────────────────
   tasksSection: {
@@ -364,8 +437,8 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
   },
   summaryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     backgroundColor: colors.primarySoft,
     borderRadius: radius.md,
@@ -378,8 +451,8 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
     paddingVertical: spacing.md,
     minHeight: 56,
@@ -394,7 +467,7 @@ const styles = StyleSheet.create({
   },
   taskIcon: {
     width: 32,
-    textAlign: 'center',
+    textAlign: "center",
   },
   taskInfo: {
     flex: 1,
@@ -414,14 +487,14 @@ const styles = StyleSheet.create({
   },
   // ── Per-task stats ──────────────────────────────────────────────────────────
   statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
     marginTop: spacing.xs,
   },
   streakChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.xs,
   },
   streakChipText: {
@@ -431,8 +504,8 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   adhWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   adhTrack: {
@@ -440,7 +513,7 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: radius.pill,
     backgroundColor: colors.primarySoft,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   adhFill: {
     height: 4,
@@ -468,8 +541,8 @@ const styles = StyleSheet.create({
   deleteButton: {
     minHeight: 54,
     borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: spacing.xl,
     backgroundColor: colors.dangerSoft,
   },

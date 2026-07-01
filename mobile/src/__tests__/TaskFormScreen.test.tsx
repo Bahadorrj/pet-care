@@ -18,20 +18,20 @@
  * This pattern was verified against the jest-expo + RNTL v14 setup.
  */
 
-import React from 'react';
+import React from "react";
 import {
   render,
   fireEvent,
   waitFor,
   act,
   act as rnAct,
-} from '@testing-library/react-native';
+} from "@testing-library/react-native";
 
 // ── Store mock ────────────────────────────────────────────────────────────────
 const mockAddTask = jest.fn();
 const mockUpdateTask = jest.fn();
 
-jest.mock('../store/tasksStore', () => ({
+jest.mock("../store/tasksStore", () => ({
   useTasksStore: (
     selector: (s: {
       addTask: typeof mockAddTask;
@@ -41,38 +41,56 @@ jest.mock('../store/tasksStore', () => ({
 }));
 
 // ── Pets store mock ───────────────────────────────────────────────────────────
-import type { Pet } from '../db/types';
+import type { Pet, Task } from "../db/types";
 
 let mockPets: Pet[] = [
-  { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+  {
+    id: "pet-1",
+    name: "رکس",
+    species: "dog",
+    gender: null,
+    photoUri: null,
+    notes: null,
+    breed: null,
+    weightValue: null,
+    weightUnit: null,
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+  } as Pet,
 ];
 
-jest.mock('../store/petsStore', () => ({
-  usePetsStore: (selector: (s: { pets: Pet[] }) => unknown) => selector({ pets: mockPets }),
+jest.mock("../store/petsStore", () => ({
+  usePetsStore: (selector: (s: { pets: Pet[] }) => unknown) =>
+    selector({ pets: mockPets }),
 }));
 
 // ── Time picker mock ──────────────────────────────────────────────────────────
 // Native module; render as a plain host element so fireEvent can fire `onChange`.
-jest.mock('@react-native-community/datetimepicker', () => {
-  const ReactMock = require('react');
-  const { View } = require('react-native');
-  return (props: Record<string, unknown>) => ReactMock.createElement(View, props);
+jest.mock("@react-native-community/datetimepicker", () => {
+  const ReactMock = require("react");
+  const { View } = require("react-native");
+  return (props: Record<string, unknown>) =>
+    ReactMock.createElement(View, props);
 });
 
 // DatePickerField → plain TextInput in tests, so date specs drive it via
 // changeText / read .props.value. The real component is a wheel picker that
 // only ever emits valid Jalali strings; the invalid-date specs exercise the
 // form's defensive validation guard, which the mock still lets through.
-jest.mock('../components/ui/DatePickerField', () => {
-  const ReactMock = require('react');
-  const { TextInput } = require('react-native');
+jest.mock("../components/ui/DatePickerField", () => {
+  const ReactMock = require("react");
+  const { TextInput } = require("react-native");
   return ({ value, onChange, ...rest }: Record<string, any>) =>
-    ReactMock.createElement(TextInput, { value, onChangeText: onChange, ...rest });
+    ReactMock.createElement(TextInput, {
+      value,
+      onChangeText: onChange,
+      ...rest,
+    });
 });
 
 // ── DB mock ───────────────────────────────────────────────────────────────────
 const mockGetTask = jest.fn();
-jest.mock('../db/tasks', () => ({
+jest.mock("../db/tasks", () => ({
   getTask: (...args: unknown[]) => mockGetTask(...args),
 }));
 
@@ -80,58 +98,70 @@ jest.mock('../db/tasks', () => ({
 const mockGoBack = jest.fn();
 let mockRouteParams: { petId?: string; taskId?: string; title?: string } = {};
 
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
+jest.mock("@react-navigation/native", () => ({
+  ...jest.requireActual("@react-navigation/native"),
   useNavigation: () => ({ goBack: mockGoBack }),
   useRoute: () => ({ params: mockRouteParams }),
 }));
 
 // ── i18n (real Farsi strings) ─────────────────────────────────────────────────
-import '../i18n';
-import TaskFormScreen from '../screens/tasks/TaskFormScreen';
-import type { Task } from '../db/types';
-// Note: Pet type imported above (before jest.mock) — no second import needed
+import "../i18n";
+import TaskFormScreen from "../screens/tasks/TaskFormScreen";
+// Note: Pet/Task types imported above (before jest.mock) — no second import needed
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Press a Pressable, flushing state updates. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const press = async (el: any) => {
-  await act(async () => { fireEvent.press(el); });
+  await act(async () => {
+    fireEvent.press(el);
+  });
 };
 
 /** Change text, flushing state updates. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const changeText = async (el: any, value: string) => {
-  await act(async () => { fireEvent.changeText(el, value); });
+  await act(async () => {
+    fireEvent.changeText(el, value);
+  });
 };
 
 /** Open a TimePickerField and pick `HH:MM`, flushing state updates. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pickTime = async (getByTestId: any, fieldTestId: string, hhmm: string) => {
+
+const pickTime = async (
+  getByTestId: any,
+  fieldTestId: string,
+  hhmm: string,
+) => {
   await press(getByTestId(fieldTestId));
-  const [h, m] = hhmm.split(':').map(Number);
+  const [h, m] = hhmm.split(":").map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
   await act(async () => {
-    fireEvent(getByTestId(`${fieldTestId}-picker`), 'valueChange', { type: 'set' }, d);
+    fireEvent(
+      getByTestId(`${fieldTestId}-picker`),
+      "valueChange",
+      { type: "set" },
+      d,
+    );
   });
 };
 
 // ── Fixture ───────────────────────────────────────────────────────────────────
 
 const EXISTING_TASK: Task = {
-  id: 'task-edit-1',
-  petId: 'pet-1',
-  type: 'meds',
-  title: 'صبح دارو',
-  schedule: { kind: 'daily_times', times: ['07:00'] },
-  endKind: 'never',
+  id: "task-edit-1",
+  petId: "pet-1",
+  type: "meds",
+  title: "صبح دارو",
+  schedule: { kind: "daily_times", times: ["07:00"] },
+  endKind: "never",
   endUntil: null,
   endCount: null,
   active: true,
-  createdAt: '2024-01-01T00:00:00Z',
-  updatedAt: '2024-01-01T00:00:00Z',
+  createdAt: "2024-01-01T00:00:00Z",
+  updatedAt: "2024-01-01T00:00:00Z",
 };
 
 beforeEach(() => {
@@ -141,75 +171,87 @@ beforeEach(() => {
   mockGoBack.mockClear();
   mockRouteParams = {};
   mockPets = [
-    { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+    {
+      id: "pet-1",
+      name: "رکس",
+      species: "dog",
+      gender: null,
+      photoUri: null,
+      notes: null,
+      breed: null,
+      weightValue: null,
+      weightUnit: null,
+      createdAt: "2024-01-01T00:00:00Z",
+      updatedAt: "2024-01-01T00:00:00Z",
+    } as Pet,
   ];
 });
 
 // ── 1. Add – daily_times happy path ──────────────────────────────────────────
 
-describe('TaskFormScreen – Add – daily_times', () => {
-  test('type + default time → addTask with correct schedule, navigates back', async () => {
+describe("TaskFormScreen – Add – daily_times", () => {
+  test("type + default time → addTask with correct schedule, navigates back", async () => {
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-feeding'));
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-feeding"));
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
     const call = mockAddTask.mock.calls[0][0];
-    expect(call.petId).toBe('pet-1');
-    expect(call.type).toBe('feeding');
-    expect(call.schedule.kind).toBe('daily_times');
-    expect(call.schedule.times).toContain('08:00');
+    expect(call.petId).toBe("pet-1");
+    expect(call.type).toBe("feeding");
+    expect(call.schedule.kind).toBe("daily_times");
+    expect(call.schedule.times).toContain("08:00");
     expect(mockGoBack).toHaveBeenCalledTimes(1);
   });
 
-  test('second time added → both times in schedule', async () => {
+  test("second time added → both times in schedule", async () => {
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-meds'));
-    await press(getByTestId('taskform-time-add'));
-    await pickTime(getByTestId, 'taskform-time-1', '20:00');
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-meds"));
+    await press(getByTestId("taskform-time-add"));
+    await pickTime(getByTestId, "taskform-time-1", "20:00");
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
     const call = mockAddTask.mock.calls[0][0];
-    expect(call.schedule.kind).toBe('daily_times');
+    expect(call.schedule.kind).toBe("daily_times");
     expect(call.schedule.times).toHaveLength(2);
-    expect(call.schedule.times).toContain('20:00');
+    expect(call.schedule.times).toContain("20:00");
   });
 
-  test('sole pet is pre-selected → addTask called without pressing a pet chip', async () => {
+  test("sole pet is pre-selected → addTask called without pressing a pet chip", async () => {
     mockAddTask.mockResolvedValue(undefined);
     // mockPets default (beforeEach) is the single pet 'pet-1'
     const { getByTestId } = await render(<TaskFormScreen />);
-    await press(getByTestId('taskform-type-feeding'));
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-feeding"));
+    await press(getByTestId("taskform-submit"));
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
-    expect(mockAddTask.mock.calls[0][0].petId).toBe('pet-1');
+    expect(mockAddTask.mock.calls[0][0].petId).toBe("pet-1");
   });
 });
 
 // ── 2. Add – weekdays ─────────────────────────────────────────────────────────
 
-describe('TaskFormScreen – Add – weekdays', () => {
-  test('days + times → correct weekdays schedule', async () => {
+describe("TaskFormScreen – Add – weekdays", () => {
+  test("days + times → correct weekdays schedule", async () => {
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-play'));
-    await press(getByTestId('taskform-schedule-weekdays'));
-    await press(getByTestId('taskform-day-1')); // Mon
-    await press(getByTestId('taskform-day-3')); // Wed
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-play"));
+    await press(getByTestId("taskform-schedule-weekdays"));
+    await press(getByTestId("taskform-day-1")); // Mon
+    await press(getByTestId("taskform-day-3")); // Wed
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
     const call = mockAddTask.mock.calls[0][0];
-    expect(call.schedule.kind).toBe('weekdays');
+    expect(call.schedule.kind).toBe("weekdays");
     expect(call.schedule.days).toContain(1);
     expect(call.schedule.days).toContain(3);
     expect(Array.isArray(call.schedule.times)).toBe(true);
@@ -219,167 +261,171 @@ describe('TaskFormScreen – Add – weekdays', () => {
 
 // ── 3. Add – interval ─────────────────────────────────────────────────────────
 
-describe('TaskFormScreen – Add – interval', () => {
-  test('n=3, unit=days → correct interval schedule with UTC anchor', async () => {
+describe("TaskFormScreen – Add – interval", () => {
+  test("n=3, unit=days → correct interval schedule with UTC anchor", async () => {
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-grooming'));
-    await press(getByTestId('taskform-schedule-interval'));
-    await changeText(getByTestId('taskform-interval-n'), '3');
-    await press(getByTestId('taskform-unit-days'));
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-grooming"));
+    await press(getByTestId("taskform-schedule-interval"));
+    await changeText(getByTestId("taskform-interval-n"), "3");
+    await press(getByTestId("taskform-unit-days"));
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
     const call = mockAddTask.mock.calls[0][0];
-    expect(call.schedule.kind).toBe('interval');
+    expect(call.schedule.kind).toBe("interval");
     expect(call.schedule.n).toBe(3);
-    expect(call.schedule.unit).toBe('days');
-    expect(typeof call.schedule.anchor).toBe('string'); // UTC ISO
+    expect(call.schedule.unit).toBe("days");
+    expect(typeof call.schedule.anchor).toBe("string"); // UTC ISO
   });
 });
 
 // ── 4. Add – one_off (Jalali input) ──────────────────────────────────────────
 
-describe('TaskFormScreen – Add – one_off', () => {
-  test('Jalali 1405/04/10 at Tehran 10:00 → UTC 06:30 ISO at field', async () => {
+describe("TaskFormScreen – Add – one_off", () => {
+  test("Jalali 1405/04/10 at Tehran 10:00 → UTC 06:30 ISO at field", async () => {
     // 1405/04/10 (Jalali) = 2026-07-01 (Gregorian). Tehran +03:30: 10:00 − 210min = 06:30 UTC.
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-vet'));
-    await press(getByTestId('taskform-schedule-one_off'));
-    await changeText(getByTestId('taskform-oneoff-date'), '1405/04/10');
-    await pickTime(getByTestId, 'taskform-oneoff-time', '10:00');
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-vet"));
+    await press(getByTestId("taskform-schedule-one_off"));
+    await changeText(getByTestId("taskform-oneoff-date"), "1405/04/10");
+    await pickTime(getByTestId, "taskform-oneoff-time", "10:00");
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
     const call = mockAddTask.mock.calls[0][0];
-    expect(call.schedule.kind).toBe('one_off');
+    expect(call.schedule.kind).toBe("one_off");
     // No Gregorian date reaches the user; UTC conversion must still be correct
-    expect(call.schedule.at).toBe('2026-07-01T06:30:00.000Z');
+    expect(call.schedule.at).toBe("2026-07-01T06:30:00.000Z");
   });
 
-  test('invalid Jalali date → schedule error shown, addTask not called', async () => {
+  test("invalid Jalali date → schedule error shown, addTask not called", async () => {
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-vet'));
-    await press(getByTestId('taskform-schedule-one_off'));
+    await press(getByTestId("taskform-type-vet"));
+    await press(getByTestId("taskform-schedule-one_off"));
     // Type garbage — form-level validation rejects with invalid_date before submit
-    await changeText(getByTestId('taskform-oneoff-date'), 'not-a-date');
-    await press(getByTestId('taskform-submit'));
+    await changeText(getByTestId("taskform-oneoff-date"), "not-a-date");
+    await press(getByTestId("taskform-submit"));
 
-    await waitFor(() => expect(getByText('تاریخ انتخاب نشده است')).toBeTruthy());
+    await waitFor(() =>
+      expect(getByText("تاریخ انتخاب نشده است")).toBeTruthy(),
+    );
     expect(mockAddTask).not.toHaveBeenCalled();
   });
 });
 
 // ── 4b. end-until Jalali input ────────────────────────────────────────────────
 
-describe('TaskFormScreen – end-until Jalali input', () => {
-  test('Jalali end-until 1405/04/10 → correct UTC endUntil on submit', async () => {
+describe("TaskFormScreen – end-until Jalali input", () => {
+  test("Jalali end-until 1405/04/10 → correct UTC endUntil on submit", async () => {
     // 1405/04/10 = 2026-07-01 Gregorian. toUtcIso('00:00', '2026-07-01') = '2026-06-30T20:30:00.000Z'
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId("taskform-type-feeding"));
     // press the "until" chip (testID = taskform-end-until); then fill the date field
-    await press(getByTestId('taskform-end-until'));
-    await changeText(getByTestId('taskform-end-until-date'), '1405/04/10');
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-end-until"));
+    await changeText(getByTestId("taskform-end-until-date"), "1405/04/10");
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(1));
 
     const call = mockAddTask.mock.calls[0][0];
-    expect(call.endKind).toBe('until');
+    expect(call.endKind).toBe("until");
     // Tehran midnight 00:00 on 2026-07-01 = UTC 2026-06-30T20:30:00.000Z
-    expect(call.endUntil).toBe('2026-06-30T20:30:00.000Z');
+    expect(call.endUntil).toBe("2026-06-30T20:30:00.000Z");
   });
 
   test('end-until "until" with an invalid date is rejected, not silently saved as never', async () => {
     mockAddTask.mockResolvedValue(undefined);
     const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-feeding'));
-    await press(getByTestId('taskform-end-until'));
-    await changeText(getByTestId('taskform-end-until-date'), 'garbage');
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-feeding"));
+    await press(getByTestId("taskform-end-until"));
+    await changeText(getByTestId("taskform-end-until-date"), "garbage");
+    await press(getByTestId("taskform-submit"));
 
-    await waitFor(() => expect(getByText('تاریخ انتخاب نشده است')).toBeTruthy());
+    await waitFor(() =>
+      expect(getByText("تاریخ انتخاب نشده است")).toBeTruthy(),
+    );
     expect(mockAddTask).not.toHaveBeenCalled();
   });
 });
 
 // ── 4c. Edit mode prefill: Jalali, not Gregorian ──────────────────────────────
 
-describe('TaskFormScreen – Edit mode Jalali prefill', () => {
+describe("TaskFormScreen – Edit mode Jalali prefill", () => {
   const TASK_WITH_UNTIL: Task = {
-    id: 'task-edit-until',
-    petId: 'pet-1',
-    type: 'meds',
+    id: "task-edit-until",
+    petId: "pet-1",
+    type: "meds",
     title: null,
-    schedule: { kind: 'daily_times', times: ['08:00'] },
-    endKind: 'until',
+    schedule: { kind: "daily_times", times: ["08:00"] },
+    endKind: "until",
     // endUntil = UTC ISO for 2026-07-01 midnight Tehran
-    endUntil: '2026-06-30T20:30:00.000Z',
+    endUntil: "2026-06-30T20:30:00.000Z",
     endCount: null,
     active: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
   };
 
   beforeEach(() => {
-    mockRouteParams = { petId: 'pet-1', taskId: TASK_WITH_UNTIL.id };
+    mockRouteParams = { petId: "pet-1", taskId: TASK_WITH_UNTIL.id };
     mockGetTask.mockReturnValue(TASK_WITH_UNTIL);
   });
 
-  test('end-until prefill shows Jalali yyyy/MM/dd, not Gregorian YYYY-MM-DD', async () => {
+  test("end-until prefill shows Jalali yyyy/MM/dd, not Gregorian YYYY-MM-DD", async () => {
     const { getByTestId } = await render(<TaskFormScreen />);
-    const field = getByTestId('taskform-end-until-date');
+    const field = getByTestId("taskform-end-until-date");
     const val: string = field.props.value;
     // endUntil 2026-06-30T20:30:00Z = Tehran 2026-07-01 00:00 = Jalali 1405/04/10.
     // (Slicing the raw UTC date would wrongly give 2026-06-30 → 1405/04/09.)
-    expect(val).toBe('1405/04/10');
+    expect(val).toBe("1405/04/10");
   });
 
-  test('one_off edit prefills the stored Tehran date AND time (not 09:00)', async () => {
+  test("one_off edit prefills the stored Tehran date AND time (not 09:00)", async () => {
     // at = 2026-06-30T22:30:00Z = Tehran 2026-07-01 02:00 (crosses UTC day).
     // Date must be the Tehran day (1405/04/10), time the stored 02:00 — not 09:00.
     const TASK_ONE_OFF: Task = {
-      id: 'task-edit-oneoff',
-      petId: 'pet-1',
-      type: 'vet',
+      id: "task-edit-oneoff",
+      petId: "pet-1",
+      type: "vet",
       title: null,
-      schedule: { kind: 'one_off', at: '2026-06-30T22:30:00.000Z' },
-      endKind: 'never',
+      schedule: { kind: "one_off", at: "2026-06-30T22:30:00.000Z" },
+      endKind: "never",
       endUntil: null,
       endCount: null,
       active: true,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
+      createdAt: "2024-01-01T00:00:00Z",
+      updatedAt: "2024-01-01T00:00:00Z",
     };
-    mockRouteParams = { petId: 'pet-1', taskId: TASK_ONE_OFF.id };
+    mockRouteParams = { petId: "pet-1", taskId: TASK_ONE_OFF.id };
     mockGetTask.mockReturnValue(TASK_ONE_OFF);
 
     const { getByTestId, getByText } = await render(<TaskFormScreen />);
-    expect(getByTestId('taskform-oneoff-date').props.value).toBe('1405/04/10');
-    expect(getByText('۰۲:۰۰')).toBeTruthy();
+    expect(getByTestId("taskform-oneoff-date").props.value).toBe("1405/04/10");
+    expect(getByText("۰۲:۰۰")).toBeTruthy();
   });
 });
 
 // ── 5. Validation – no type ───────────────────────────────────────────────────
 
-describe('TaskFormScreen – validation – no type', () => {
-  test('submit with no type shows translated error; addTask not called', async () => {
+describe("TaskFormScreen – validation – no type", () => {
+  test("submit with no type shows translated error; addTask not called", async () => {
     const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText('انتخاب نوع کار الزامی است')).toBeTruthy(),
+      expect(getByText("انتخاب نوع کار الزامی است")).toBeTruthy(),
     );
     expect(mockAddTask).not.toHaveBeenCalled();
     expect(mockGoBack).not.toHaveBeenCalled();
@@ -388,31 +434,29 @@ describe('TaskFormScreen – validation – no type', () => {
 
 // ── 6. Validation – store throws schedule_empty ───────────────────────────────
 
-describe('TaskFormScreen – validation – schedule_empty from store', () => {
-  test('daily_times: store rejects schedule_empty → translated error; goBack not called', async () => {
-    mockAddTask.mockRejectedValue(new Error('tasks.error.schedule_empty'));
+describe("TaskFormScreen – validation – schedule_empty from store", () => {
+  test("daily_times: store rejects schedule_empty → translated error; goBack not called", async () => {
+    mockAddTask.mockRejectedValue(new Error("tasks.error.schedule_empty"));
     const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-feeding'));
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-feeding"));
+    await press(getByTestId("taskform-submit"));
 
-    await waitFor(() =>
-      expect(getByText('زمان‌بندی الزامی است')).toBeTruthy(),
-    );
+    await waitFor(() => expect(getByText("زمان‌بندی الزامی است")).toBeTruthy());
     expect(mockGoBack).not.toHaveBeenCalled();
   });
 
-  test('weekdays with no days: store rejects → translated error; goBack not called', async () => {
-    mockAddTask.mockRejectedValue(new Error('tasks.error.schedule_empty'));
+  test("weekdays with no days: store rejects → translated error; goBack not called", async () => {
+    mockAddTask.mockRejectedValue(new Error("tasks.error.schedule_empty"));
     const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-type-play'));
-    await press(getByTestId('taskform-schedule-weekdays'));
+    await press(getByTestId("taskform-type-play"));
+    await press(getByTestId("taskform-schedule-weekdays"));
     // No days selected — form-level validation rejects with days_required
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText('حداقل یک روز الزامی است')).toBeTruthy(),
+      expect(getByText("حداقل یک روز الزامی است")).toBeTruthy(),
     );
     expect(mockGoBack).not.toHaveBeenCalled();
   });
@@ -420,19 +464,22 @@ describe('TaskFormScreen – validation – schedule_empty from store', () => {
 
 // ── 7. In-flight guard ────────────────────────────────────────────────────────
 
-describe('TaskFormScreen – in-flight guard', () => {
-  test('rapid double-press calls addTask at most once', async () => {
+describe("TaskFormScreen – in-flight guard", () => {
+  test("rapid double-press calls addTask at most once", async () => {
     let resolveAdd!: () => void;
     mockAddTask.mockImplementation(
-      () => new Promise<void>((resolve) => { resolveAdd = resolve; }),
+      () =>
+        new Promise<void>((resolve) => {
+          resolveAdd = resolve;
+        }),
     );
 
     const { getByTestId } = await render(<TaskFormScreen />);
-    await press(getByTestId('taskform-type-feeding'));
+    await press(getByTestId("taskform-type-feeding"));
 
     await rnAct(async () => {
-      fireEvent.press(getByTestId('taskform-submit'));
-      fireEvent.press(getByTestId('taskform-submit'));
+      fireEvent.press(getByTestId("taskform-submit"));
+      fireEvent.press(getByTestId("taskform-submit"));
       await Promise.resolve();
       expect(mockAddTask).toHaveBeenCalledTimes(1);
       resolveAdd();
@@ -442,51 +489,99 @@ describe('TaskFormScreen – in-flight guard', () => {
 
 // ── 9. Pet picker – multi-pet submit ─────────────────────────────────────────
 
-describe('TaskFormScreen – pet picker – multi-pet submit', () => {
-  test('selecting two pets calls addTask twice with distinct petIds and same payload', async () => {
+describe("TaskFormScreen – pet picker – multi-pet submit", () => {
+  test("selecting two pets calls addTask twice with distinct petIds and same payload", async () => {
     mockAddTask.mockResolvedValue(undefined);
     mockPets = [
-      { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
-      { id: 'pet-2', name: 'پیشی', species: 'cat', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+      {
+        id: "pet-1",
+        name: "رکس",
+        species: "dog",
+        gender: null,
+        photoUri: null,
+        notes: null,
+        breed: null,
+        weightValue: null,
+        weightUnit: null,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+      } as Pet,
+      {
+        id: "pet-2",
+        name: "پیشی",
+        species: "cat",
+        gender: null,
+        photoUri: null,
+        notes: null,
+        breed: null,
+        weightValue: null,
+        weightUnit: null,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+      } as Pet,
     ];
 
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-pet-pet-1'));
-    await press(getByTestId('taskform-pet-pet-2'));
-    await press(getByTestId('taskform-type-feeding'));
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-pet-pet-1"));
+    await press(getByTestId("taskform-pet-pet-2"));
+    await press(getByTestId("taskform-type-feeding"));
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => expect(mockAddTask).toHaveBeenCalledTimes(2));
 
     const calls = mockAddTask.mock.calls.map((c) => c[0]);
     const petIds = calls.map((c) => c.petId);
-    expect(petIds).toContain('pet-1');
-    expect(petIds).toContain('pet-2');
+    expect(petIds).toContain("pet-1");
+    expect(petIds).toContain("pet-2");
     // Same payload otherwise
-    expect(calls[0].type).toBe('feeding');
-    expect(calls[1].type).toBe('feeding');
+    expect(calls[0].type).toBe("feeding");
+    expect(calls[1].type).toBe("feeding");
     expect(calls[0].schedule.kind).toBe(calls[1].schedule.kind);
   });
 });
 
 // ── 10. Pet picker – empty selection ─────────────────────────────────────────
 
-describe('TaskFormScreen – pet picker – empty selection error', () => {
-  test('no pet selected → shows pet_required error, addTask not called', async () => {
+describe("TaskFormScreen – pet picker – empty selection error", () => {
+  test("no pet selected → shows pet_required error, addTask not called", async () => {
     mockPets = [
-      { id: 'pet-1', name: 'رکس', species: 'dog', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
-      { id: 'pet-2', name: 'پیشی', species: 'cat', gender: null, photoUri: null, notes: null, createdAt: '2024-01-01T00:00:00Z', updatedAt: '2024-01-01T00:00:00Z' } as Pet,
+      {
+        id: "pet-1",
+        name: "رکس",
+        species: "dog",
+        gender: null,
+        photoUri: null,
+        notes: null,
+        breed: null,
+        weightValue: null,
+        weightUnit: null,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+      } as Pet,
+      {
+        id: "pet-2",
+        name: "پیشی",
+        species: "cat",
+        gender: null,
+        photoUri: null,
+        notes: null,
+        breed: null,
+        weightValue: null,
+        weightUnit: null,
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z",
+      } as Pet,
     ];
 
     const { getByTestId, getByText } = await render(<TaskFormScreen />);
 
     // Neither pet pre-selected (two pets → no auto-select)
-    await press(getByTestId('taskform-type-feeding'));
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-type-feeding"));
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() =>
-      expect(getByText('حداقل یک پت را انتخاب کنید')).toBeTruthy(),
+      expect(getByText("حداقل یک پت را انتخاب کنید")).toBeTruthy(),
     );
     expect(mockAddTask).not.toHaveBeenCalled();
   });
@@ -494,47 +589,47 @@ describe('TaskFormScreen – pet picker – empty selection error', () => {
 
 // ── 11. Edit mode pet name display ────────────────────────────────────────────
 
-describe('TaskFormScreen – Edit mode – pet name read-only', () => {
+describe("TaskFormScreen – Edit mode – pet name read-only", () => {
   beforeEach(() => {
-    mockRouteParams = { petId: 'pet-1', taskId: EXISTING_TASK.id };
+    mockRouteParams = { petId: "pet-1", taskId: EXISTING_TASK.id };
     mockGetTask.mockReturnValue(EXISTING_TASK);
   });
 
-  test('edit mode shows pet name text, no picker chips', async () => {
+  test("edit mode shows pet name text, no picker chips", async () => {
     const { getByTestId, queryByTestId } = await render(<TaskFormScreen />);
 
     // Pet name displayed
-    expect(getByTestId('taskform-pet-name').props.children).toBe('رکس');
+    expect(getByTestId("taskform-pet-name").props.children).toBe("رکس");
 
     // No picker chip rendered
-    expect(queryByTestId('taskform-pet-pet-1')).toBeNull();
+    expect(queryByTestId("taskform-pet-pet-1")).toBeNull();
   });
 });
 
 // ── 8. Edit mode ──────────────────────────────────────────────────────────────
 
-describe('TaskFormScreen – Edit mode', () => {
+describe("TaskFormScreen – Edit mode", () => {
   beforeEach(() => {
-    mockRouteParams = { petId: 'pet-1', taskId: EXISTING_TASK.id };
+    mockRouteParams = { petId: "pet-1", taskId: EXISTING_TASK.id };
     mockGetTask.mockReturnValue(EXISTING_TASK);
   });
 
-  test('pre-fills title from existing task', async () => {
+  test("pre-fills title from existing task", async () => {
     const { getByTestId } = await render(<TaskFormScreen />);
-    expect(getByTestId('taskform-title').props.value).toBe('صبح دارو');
+    expect(getByTestId("taskform-title").props.value).toBe("صبح دارو");
   });
 
-  test('submit calls updateTask (not addTask) and navigates back', async () => {
+  test("submit calls updateTask (not addTask) and navigates back", async () => {
     mockUpdateTask.mockResolvedValue(undefined);
     const { getByTestId } = await render(<TaskFormScreen />);
 
-    await press(getByTestId('taskform-submit'));
+    await press(getByTestId("taskform-submit"));
 
     await waitFor(() => {
       expect(mockUpdateTask).toHaveBeenCalledTimes(1);
       expect(mockUpdateTask).toHaveBeenCalledWith(
         EXISTING_TASK.id,
-        expect.objectContaining({ type: 'meds' }),
+        expect.objectContaining({ type: "meds" }),
       );
       expect(mockAddTask).not.toHaveBeenCalled();
       expect(mockGoBack).toHaveBeenCalledTimes(1);

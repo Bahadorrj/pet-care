@@ -1,5 +1,6 @@
 export type Species = "dog" | "cat" | "bird" | "rabbit" | "other";
 export type Gender = "male" | "female";
+export type WeightUnit = "kg" | "g";
 
 export interface Pet {
   id: string; // uuid
@@ -8,6 +9,9 @@ export interface Pet {
   gender: Gender | null;
   photoUri: string | null;
   notes: string | null;
+  breed: string | null;
+  weightValue: number | null;
+  weightUnit: WeightUnit | null;
   createdAt: string; // UTC ISO
   updatedAt: string; // UTC ISO
 }
