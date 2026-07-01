@@ -9,7 +9,6 @@
  */
 
 import React from "react";
-import { InteractionManager } from "react-native";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
@@ -148,12 +147,12 @@ describe("TasksScreen – deferred focus reload", () => {
     // Capture the deferred callback instead of letting it run, so the assertion
     // is deterministic.
     let deferred: (() => void) | null = null;
-    const spy = jest
-      .spyOn(InteractionManager, "runAfterInteractions")
-      .mockImplementation(((cb: () => void) => {
-        deferred = cb;
-        return { cancel: jest.fn(), then: jest.fn(), done: jest.fn() };
-      }) as never);
+    const spy = jest.spyOn(global, "requestIdleCallback").mockImplementation(((
+      cb: () => void,
+    ) => {
+      deferred = cb;
+      return 1;
+    }) as never);
 
     try {
       mockWindowOccurrences = [OCC_TODAY];
