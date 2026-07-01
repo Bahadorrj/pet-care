@@ -1,10 +1,10 @@
-import { create } from 'zustand';
-import { insertPet, updatePet, deletePet, listPets, getPet } from '../db/pets';
-import { deleteTasksForPet } from '../db/tasks';
-import { savePhoto, deletePhoto } from '../lib/petPhoto';
-import type { Pet, Species } from '../db/types';
+import { create } from "zustand";
+import { insertPet, updatePet, deletePet, listPets, getPet } from "../db/pets";
+import { deleteTasksForPet } from "../db/tasks";
+import { savePhoto, deletePhoto } from "../lib/petPhoto";
+import type { Pet, Species } from "../db/types";
 
-type PetInput = Omit<Pet, 'id' | 'createdAt' | 'updatedAt'>;
+type PetInput = Omit<Pet, "id" | "createdAt" | "updatedAt">;
 
 interface PetsState {
   pets: Pet[];
@@ -13,13 +13,23 @@ interface PetsState {
   remove: (id: string) => Promise<void>;
 }
 
-const VALID_SPECIES: readonly Species[] = ['dog', 'cat', 'bird', 'rabbit', 'other'];
+const VALID_SPECIES: readonly Species[] = [
+  "dog",
+  "cat",
+  "bird",
+  "rabbit",
+  "other",
+];
 
 // Validate before touching the db or filesystem so a rejected input leaves no
 // orphaned photo file or partial row. Throws translation keys the UI surfaces.
 function validate(input: PetInput): void {
-  if (!input.name.trim()) throw new Error('pets.error.name_required');
-  if (!VALID_SPECIES.includes(input.species)) throw new Error('pets.error.species_required');
+  if (!input.name.trim()) throw new Error("pets.error.name_required");
+  if (!VALID_SPECIES.includes(input.species))
+    throw new Error("pets.error.species_required");
+  if (input.species === "other" && !input.speciesOther?.trim()) {
+    throw new Error("pets.error.species_other_required");
+  }
 }
 
 export const usePetsStore = create<PetsState>((set) => ({

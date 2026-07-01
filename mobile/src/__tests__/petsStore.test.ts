@@ -24,6 +24,7 @@ interface FakeRow {
   id: string;
   name: string;
   species: string;
+  species_other: string | null;
   gender: string | null;
   photo_uri: string | null;
   notes: string | null;
@@ -37,14 +38,24 @@ let fakeRows: FakeRow[] = [];
 const mockFakeDb = {
   runSync(sql: string, params: unknown[] = []) {
     const s = sql.trim().toUpperCase();
-    if (s.startsWith('CREATE TABLE')) return;
-    if (s.startsWith('INSERT INTO PETS')) {
-      const [id, name, species, gender, photo_uri, notes, created_at, updated_at] =
-        params as (string | null)[];
+    if (s.startsWith("CREATE TABLE")) return;
+    if (s.startsWith("INSERT INTO PETS")) {
+      const [
+        id,
+        name,
+        species,
+        species_other,
+        gender,
+        photo_uri,
+        notes,
+        created_at,
+        updated_at,
+      ] = params as (string | null)[];
       fakeRows.push({
         id: id as string,
         name: name as string,
         species: species as string,
+        species_other: species_other,
         gender: gender as string | null,
         photo_uri: photo_uri as string | null,
         notes: notes as string | null,
@@ -53,13 +64,22 @@ const mockFakeDb = {
       });
       return;
     }
-    if (s.startsWith('UPDATE PETS')) {
-      const [name, species, gender, photo_uri, notes, updated_at, id] =
-        params as (string | null)[];
+    if (s.startsWith("UPDATE PETS")) {
+      const [
+        name,
+        species,
+        species_other,
+        gender,
+        photo_uri,
+        notes,
+        updated_at,
+        id,
+      ] = params as (string | null)[];
       const row = fakeRows.find((r) => r.id === id);
       if (row) {
         row.name = name as string;
         row.species = species as string;
+        row.species_other = species_other;
         row.gender = gender as string | null;
         row.photo_uri = photo_uri as string | null;
         row.notes = notes as string | null;
@@ -67,21 +87,26 @@ const mockFakeDb = {
       }
       return;
     }
-    if (s.startsWith('DELETE FROM PETS')) {
+    if (s.startsWith("DELETE FROM PETS")) {
       const [id] = params as string[];
       fakeRows = fakeRows.filter((r) => r.id !== id);
       return;
     }
     // Cascade deletes from deleteTasksForPet — petsStore now calls it on remove.
     // No task rows exist in this fake, so these are no-ops.
-    if (s.startsWith('DELETE FROM TASK_LOGS')) return;
-    if (s.startsWith('DELETE FROM TASKS')) return;
+    if (s.startsWith("DELETE FROM TASK_LOGS")) return;
+    if (s.startsWith("DELETE FROM TASKS")) return;
     throw new Error(`fakeDb.runSync: unhandled SQL: ${sql}`);
   },
   getAllSync<T>(sql: string): T[] {
     const u = sql.trim().toUpperCase();
+    // columnExists() migration check — report the column as already present so
+    // the index.ts migration's ALTER TABLE (unhandled by this fake) never runs.
+    if (u.startsWith("PRAGMA")) {
+      return [{ name: "species_other" }] as unknown as T[];
+    }
     // Cascade: deleteTasksForPet queries tasks by pet_id — return empty (no tasks seeded here)
-    if (u.includes('FROM TASKS')) return [] as unknown as T[];
+    if (u.includes("FROM TASKS")) return [] as unknown as T[];
     // SELECT * FROM pets ORDER BY created_at DESC
     return [...fakeRows].sort((a, b) =>
       a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0,
@@ -94,24 +119,24 @@ const mockFakeDb = {
   },
 };
 
-jest.mock('expo-sqlite', () => ({
+jest.mock("expo-sqlite", () => ({
   openDatabaseSync: jest.fn(() => mockFakeDb),
 }));
 
 // Deterministic UUIDs so we can assert on them. `mock`-prefixed counter holder
 // so the factory may close over it under jest's hoisting rules.
 const mockUuid = { counter: 0 };
-jest.mock('expo-crypto', () => ({
+jest.mock("expo-crypto", () => ({
   randomUUID: jest.fn(() => `uuid-${++mockUuid.counter}`),
 }));
 
 // petPhoto file-lifecycle helpers are pure jest.fn()s.
-jest.mock('../lib/petPhoto', () => ({
+jest.mock("../lib/petPhoto", () => ({
   savePhoto: jest.fn(),
   deletePhoto: jest.fn(),
 }));
 
-import * as petPhoto from '../lib/petPhoto';
+import * as petPhoto from "../lib/petPhoto";
 
 const mockedSavePhoto = petPhoto.savePhoto as jest.MockedFunction<
   typeof petPhoto.savePhoto
@@ -123,9 +148,9 @@ const mockedDeletePhoto = petPhoto.deletePhoto as jest.MockedFunction<
 // Load a fresh store after the fake db is seeded, so module-level
 // `pets: listPets()` reads the seeded rows.
 function loadFreshStore() {
-  let store: typeof import('../store/petsStore');
+  let store: typeof import("../store/petsStore");
   jest.isolateModules(() => {
-    store = require('../store/petsStore');
+    store = require("../store/petsStore");
   });
   return store!;
 }
@@ -134,39 +159,41 @@ beforeEach(() => {
   jest.clearAllMocks();
   fakeRows = [];
   mockUuid.counter = 0;
-  mockedSavePhoto.mockResolvedValue('file:///doc/saved.jpg');
+  mockedSavePhoto.mockResolvedValue("file:///doc/saved.jpg");
   mockedDeletePhoto.mockResolvedValue(undefined);
   jest.useFakeTimers();
-  jest.setSystemTime(new Date('2026-01-01T00:00:00.000Z'));
+  jest.setSystemTime(new Date("2026-01-01T00:00:00.000Z"));
 });
 
 afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('petsStore – init', () => {
-  test('initialises pets from listPets() at module load, sorted created_at DESC', () => {
+describe("petsStore – init", () => {
+  test("initialises pets from listPets() at module load, sorted created_at DESC", () => {
     // Seed two rows directly into the fake db before the store loads.
     fakeRows = [
       {
-        id: 'a',
-        name: 'Older',
-        species: 'dog',
+        id: "a",
+        name: "Older",
+        species: "dog",
+        species_other: null,
         gender: null,
         photo_uri: null,
         notes: null,
-        created_at: '2026-01-01T00:00:00.000Z',
-        updated_at: '2026-01-01T00:00:00.000Z',
+        created_at: "2026-01-01T00:00:00.000Z",
+        updated_at: "2026-01-01T00:00:00.000Z",
       },
       {
-        id: 'b',
-        name: 'Newer',
-        species: 'cat',
+        id: "b",
+        name: "Newer",
+        species: "cat",
+        species_other: null,
         gender: null,
         photo_uri: null,
         notes: null,
-        created_at: '2026-02-01T00:00:00.000Z',
-        updated_at: '2026-02-01T00:00:00.000Z',
+        created_at: "2026-02-01T00:00:00.000Z",
+        updated_at: "2026-02-01T00:00:00.000Z",
       },
     ];
 
@@ -174,39 +201,41 @@ describe('petsStore – init', () => {
     const pets = usePetsStore.getState().pets;
 
     expect(pets).toHaveLength(2);
-    expect(pets[0].name).toBe('Newer'); // DESC: newest first
-    expect(pets[1].name).toBe('Older');
+    expect(pets[0].name).toBe("Newer"); // DESC: newest first
+    expect(pets[1].name).toBe("Older");
   });
 });
 
-describe('petsStore – add', () => {
-  test('validates, saves photo, inserts, and refreshes pets from db', async () => {
+describe("petsStore – add", () => {
+  test("validates, saves photo, inserts, and refreshes pets from db", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Rex',
-      species: 'dog',
-      gender: 'male',
-      photoUri: 'file:///picked/tmp.jpg',
-      notes: 'good boy',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: "male",
+      photoUri: "file:///picked/tmp.jpg",
+      notes: "good boy",
     });
 
-    expect(mockedSavePhoto).toHaveBeenCalledWith('file:///picked/tmp.jpg');
+    expect(mockedSavePhoto).toHaveBeenCalledWith("file:///picked/tmp.jpg");
 
     const pets = usePetsStore.getState().pets;
     expect(pets).toHaveLength(1);
-    expect(pets[0].name).toBe('Rex');
+    expect(pets[0].name).toBe("Rex");
     // The persisted photoUri is the saved path, not the picked temp uri.
-    expect(pets[0].photoUri).toBe('file:///doc/saved.jpg');
-    expect(pets[0].createdAt).toBe('2026-01-01T00:00:00.000Z');
+    expect(pets[0].photoUri).toBe("file:///doc/saved.jpg");
+    expect(pets[0].createdAt).toBe("2026-01-01T00:00:00.000Z");
   });
 
-  test('does not call savePhoto when no photoUri is provided', async () => {
+  test("does not call savePhoto when no photoUri is provided", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Bird',
-      species: 'bird',
+      name: "Bird",
+      species: "bird",
+      speciesOther: null,
       gender: null,
       photoUri: null,
       notes: null,
@@ -216,103 +245,169 @@ describe('petsStore – add', () => {
     expect(usePetsStore.getState().pets[0].photoUri).toBeNull();
   });
 
-  test('throws name_required and performs no db/file op when name is blank', async () => {
+  test("throws name_required and performs no db/file op when name is blank", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await expect(
       usePetsStore.getState().add({
-        name: '   ',
-        species: 'dog',
+        name: "   ",
+        species: "dog",
+        speciesOther: null,
         gender: null,
-        photoUri: 'file:///picked/tmp.jpg',
+        photoUri: "file:///picked/tmp.jpg",
         notes: null,
       }),
-    ).rejects.toThrow('pets.error.name_required');
+    ).rejects.toThrow("pets.error.name_required");
 
     expect(mockedSavePhoto).not.toHaveBeenCalled();
     expect(usePetsStore.getState().pets).toHaveLength(0);
   });
 
-  test('throws species_required and performs no db/file op when species is empty', async () => {
+  test("throws species_required and performs no db/file op when species is empty", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await expect(
       usePetsStore.getState().add({
-        name: 'Rex',
-        species: '' as never,
+        name: "Rex",
+        species: "" as never,
+        speciesOther: null,
         gender: null,
-        photoUri: 'file:///picked/tmp.jpg',
+        photoUri: "file:///picked/tmp.jpg",
         notes: null,
       }),
-    ).rejects.toThrow('pets.error.species_required');
+    ).rejects.toThrow("pets.error.species_required");
 
     expect(mockedSavePhoto).not.toHaveBeenCalled();
     expect(usePetsStore.getState().pets).toHaveLength(0);
   });
 
-  test('throws species_required and writes no row for a non-empty invalid species', async () => {
+  test("throws species_required and writes no row for a non-empty invalid species", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await expect(
       usePetsStore.getState().add({
-        name: 'Rex',
-        species: 'dragon' as never,
+        name: "Rex",
+        species: "dragon" as never,
+        speciesOther: null,
         gender: null,
         photoUri: null,
         notes: null,
       }),
-    ).rejects.toThrow('pets.error.species_required');
+    ).rejects.toThrow("pets.error.species_required");
 
     expect(mockedSavePhoto).not.toHaveBeenCalled();
     expect(usePetsStore.getState().pets).toHaveLength(0);
   });
+
+  test('throws species_other_required and performs no db/file op when species is "other" with blank speciesOther', async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await expect(
+      usePetsStore.getState().add({
+        name: "Rex",
+        species: "other",
+        speciesOther: "   ",
+        gender: null,
+        photoUri: null,
+        notes: null,
+      }),
+    ).rejects.toThrow("pets.error.species_other_required");
+
+    expect(mockedSavePhoto).not.toHaveBeenCalled();
+    expect(usePetsStore.getState().pets).toHaveLength(0);
+  });
+
+  test("saves speciesOther and round-trips it through insert", async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await usePetsStore.getState().add({
+      name: "Nemo",
+      species: "other",
+      speciesOther: "Fish",
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+
+    expect(usePetsStore.getState().pets[0].speciesOther).toBe("Fish");
+  });
 });
 
-describe('petsStore – update', () => {
-  test('validates, deletes old photo when replaced, updates row, and refreshes', async () => {
+describe("petsStore – update", () => {
+  test("validates, deletes old photo when replaced, updates row, and refreshes", async () => {
     const { usePetsStore } = loadFreshStore();
 
     // Seed a pet with an existing saved photo.
     await usePetsStore.getState().add({
-      name: 'Rex',
-      species: 'dog',
-      gender: 'male',
-      photoUri: 'file:///picked/old.jpg',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: "male",
+      photoUri: "file:///picked/old.jpg",
       notes: null,
     });
     const id = usePetsStore.getState().pets[0].id;
-    expect(usePetsStore.getState().pets[0].photoUri).toBe('file:///doc/saved.jpg');
+    expect(usePetsStore.getState().pets[0].photoUri).toBe(
+      "file:///doc/saved.jpg",
+    );
 
     jest.clearAllMocks();
-    mockedSavePhoto.mockResolvedValue('file:///doc/new.jpg');
+    mockedSavePhoto.mockResolvedValue("file:///doc/new.jpg");
     mockedDeletePhoto.mockResolvedValue(undefined);
 
     await usePetsStore.getState().update(id, {
-      name: 'Rex II',
-      species: 'dog',
-      gender: 'male',
-      photoUri: 'file:///picked/new.jpg', // a fresh picked photo → replace
-      notes: 'renamed',
+      name: "Rex II",
+      species: "dog",
+      speciesOther: null,
+      gender: "male",
+      photoUri: "file:///picked/new.jpg", // a fresh picked photo → replace
+      notes: "renamed",
     });
 
     // Old saved photo deleted, new one saved.
-    expect(mockedSavePhoto).toHaveBeenCalledWith('file:///picked/new.jpg');
-    expect(mockedDeletePhoto).toHaveBeenCalledWith('file:///doc/saved.jpg');
+    expect(mockedSavePhoto).toHaveBeenCalledWith("file:///picked/new.jpg");
+    expect(mockedDeletePhoto).toHaveBeenCalledWith("file:///doc/saved.jpg");
 
     const pet = usePetsStore.getState().pets[0];
-    expect(pet.name).toBe('Rex II');
-    expect(pet.notes).toBe('renamed');
-    expect(pet.photoUri).toBe('file:///doc/new.jpg');
+    expect(pet.name).toBe("Rex II");
+    expect(pet.notes).toBe("renamed");
+    expect(pet.photoUri).toBe("file:///doc/new.jpg");
   });
 
-  test('keeps existing photo when photoUri is unchanged (no save/delete)', async () => {
+  test("saves speciesOther and round-trips it through update", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Rex',
-      species: 'dog',
-      gender: 'male',
-      photoUri: 'file:///picked/old.jpg',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+    const id = usePetsStore.getState().pets[0].id;
+
+    await usePetsStore.getState().update(id, {
+      name: "Rex",
+      species: "other",
+      speciesOther: "Turtle",
+      gender: null,
+      photoUri: null,
+      notes: null,
+    });
+
+    expect(usePetsStore.getState().pets[0].speciesOther).toBe("Turtle");
+  });
+
+  test("keeps existing photo when photoUri is unchanged (no save/delete)", async () => {
+    const { usePetsStore } = loadFreshStore();
+
+    await usePetsStore.getState().add({
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: "male",
+      photoUri: "file:///picked/old.jpg",
       notes: null,
     });
     const pet0 = usePetsStore.getState().pets[0];
@@ -322,27 +417,29 @@ describe('petsStore – update', () => {
     jest.clearAllMocks();
 
     await usePetsStore.getState().update(id, {
-      name: 'Rex',
-      species: 'dog',
-      gender: 'male',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
+      gender: "male",
       photoUri: savedUri, // same persisted uri → no photo churn
-      notes: 'note only',
+      notes: "note only",
     });
 
     expect(mockedSavePhoto).not.toHaveBeenCalled();
     expect(mockedDeletePhoto).not.toHaveBeenCalled();
     expect(usePetsStore.getState().pets[0].photoUri).toBe(savedUri);
-    expect(usePetsStore.getState().pets[0].notes).toBe('note only');
+    expect(usePetsStore.getState().pets[0].notes).toBe("note only");
   });
 
-  test('deletes old photo when cleared to null', async () => {
+  test("deletes old photo when cleared to null", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Rex',
-      species: 'dog',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
       gender: null,
-      photoUri: 'file:///picked/old.jpg',
+      photoUri: "file:///picked/old.jpg",
       notes: null,
     });
     const id = usePetsStore.getState().pets[0].id;
@@ -350,24 +447,26 @@ describe('petsStore – update', () => {
     jest.clearAllMocks();
 
     await usePetsStore.getState().update(id, {
-      name: 'Rex',
-      species: 'dog',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
       gender: null,
       photoUri: null, // cleared
       notes: null,
     });
 
-    expect(mockedDeletePhoto).toHaveBeenCalledWith('file:///doc/saved.jpg');
+    expect(mockedDeletePhoto).toHaveBeenCalledWith("file:///doc/saved.jpg");
     expect(mockedSavePhoto).not.toHaveBeenCalled();
     expect(usePetsStore.getState().pets[0].photoUri).toBeNull();
   });
 
-  test('throws name_required before any db/file op', async () => {
+  test("throws name_required before any db/file op", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Rex',
-      species: 'dog',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
       gender: null,
       photoUri: null,
       notes: null,
@@ -377,26 +476,28 @@ describe('petsStore – update', () => {
 
     await expect(
       usePetsStore.getState().update(id, {
-        name: '',
-        species: 'dog',
+        name: "",
+        species: "dog",
+        speciesOther: null,
         gender: null,
         photoUri: null,
         notes: null,
       }),
-    ).rejects.toThrow('pets.error.name_required');
+    ).rejects.toThrow("pets.error.name_required");
 
     expect(mockedSavePhoto).not.toHaveBeenCalled();
     expect(mockedDeletePhoto).not.toHaveBeenCalled();
     // unchanged
-    expect(usePetsStore.getState().pets[0].name).toBe('Rex');
+    expect(usePetsStore.getState().pets[0].name).toBe("Rex");
   });
 
-  test('bumps updatedAt and preserves createdAt', async () => {
+  test("bumps updatedAt and preserves createdAt", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Rex',
-      species: 'dog',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
       gender: null,
       photoUri: null,
       notes: null,
@@ -408,8 +509,9 @@ describe('petsStore – update', () => {
     jest.advanceTimersByTime(5000); // move clock forward 5 s
 
     await usePetsStore.getState().update(before.id, {
-      name: 'Rex Updated',
-      species: 'dog',
+      name: "Rex Updated",
+      species: "dog",
+      speciesOther: null,
       gender: null,
       photoUri: null,
       notes: null,
@@ -421,15 +523,16 @@ describe('petsStore – update', () => {
   });
 });
 
-describe('petsStore – remove', () => {
-  test('deletes the stored photo then the row, then refreshes', async () => {
+describe("petsStore – remove", () => {
+  test("deletes the stored photo then the row, then refreshes", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Rex',
-      species: 'dog',
+      name: "Rex",
+      species: "dog",
+      speciesOther: null,
       gender: null,
-      photoUri: 'file:///picked/old.jpg',
+      photoUri: "file:///picked/old.jpg",
       notes: null,
     });
     const pet = usePetsStore.getState().pets[0];
@@ -437,16 +540,17 @@ describe('petsStore – remove', () => {
 
     await usePetsStore.getState().remove(pet.id);
 
-    expect(mockedDeletePhoto).toHaveBeenCalledWith('file:///doc/saved.jpg');
+    expect(mockedDeletePhoto).toHaveBeenCalledWith("file:///doc/saved.jpg");
     expect(usePetsStore.getState().pets).toHaveLength(0);
   });
 
-  test('removes a pet with no photo without throwing', async () => {
+  test("removes a pet with no photo without throwing", async () => {
     const { usePetsStore } = loadFreshStore();
 
     await usePetsStore.getState().add({
-      name: 'Bird',
-      species: 'bird',
+      name: "Bird",
+      species: "bird",
+      speciesOther: null,
       gender: null,
       photoUri: null,
       notes: null,

@@ -57,6 +57,7 @@ jest.mock("expo-sqlite", () => {
           id,
           name,
           species,
+          species_other,
           gender,
           photo_uri,
           notes,
@@ -67,6 +68,7 @@ jest.mock("expo-sqlite", () => {
           id,
           name,
           species,
+          species_other,
           gender,
           photo_uri,
           notes,
@@ -76,13 +78,22 @@ jest.mock("expo-sqlite", () => {
         return;
       }
       if (u.startsWith("UPDATE PETS")) {
-        const [name, species, gender, photo_uri, notes, updated_at, id] =
-          params;
+        const [
+          name,
+          species,
+          species_other,
+          gender,
+          photo_uri,
+          notes,
+          updated_at,
+          id,
+        ] = params;
         const row = s.pets.find((r) => r.id === id);
         if (row)
           Object.assign(row, {
             name,
             species,
+            species_other,
             gender,
             photo_uri,
             notes,
@@ -511,6 +522,7 @@ describe("petsStore – remove cascades to tasks + logs", () => {
     await usePetsStore.getState().add({
       name: "Buddy",
       species: "dog",
+      speciesOther: null,
       gender: null,
       photoUri: null,
       notes: null,
@@ -518,6 +530,7 @@ describe("petsStore – remove cascades to tasks + logs", () => {
     await usePetsStore.getState().add({
       name: "Kitty",
       species: "cat",
+      speciesOther: null,
       gender: null,
       photoUri: null,
       notes: null,
