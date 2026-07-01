@@ -183,10 +183,10 @@ This system is ambient-first: surfaces rest close to the canvas. Shadows are fel
 
 ### Shadow Vocabulary
 
-- **Card Lift** (shadowColor `#1A1A17`, offset 0 8px, opacity 6%, blur 16px / Android elevation 3): Applied to the home screen logo halo and any element that genuinely floats above the canvas. Very diffuse — contributes a sense of air without competing with content.
+- **Card Lift** (shadowColor `#1A1A17`, offset 0 8px, opacity 6%, blur 16px / Android elevation 3): Applied wherever a surface needs to read as gently raised — the home screen logo halo, floating action buttons (Tasks, Pets list), toast banners, and boxed content cards (pet grid cards, the pet detail info card). Very diffuse — contributes a sense of air without competing with content.
 - **Button Glow** (shadowColor `#1F7A55`, offset 0 6px, opacity 18%, blur 12px / Android elevation 4): Applied only to primary action buttons. The emerald shadow tint connects button shadows to the accent color — a small branded detail. This is the most visible shadow in the system and is intentionally reserved for the highest-priority interactive element.
 
-**The Ambient-Only Rule.** No drop shadows on list rows, nav bars, section dividers, headers, or cards. Those surfaces sit flat on the canvas by default. A shadow appears only where an element genuinely floats (logo halo, primary button). If adding a shadow feels necessary to make something readable, a surface-step change or border is the right answer first.
+**The Ambient-Only Rule.** No drop shadows on list rows, nav bars, section dividers, or screen headers — those surfaces sit flat on the canvas by default, and surface-color stepping (Sunken Well → Warm Paper → White Surface) does that work instead. Shadows (Card Lift) are reserved for surfaces that are genuinely raised: floating buttons, toasts, and boxed content cards that need to separate from the canvas.
 
 ## 5. Components
 
@@ -228,12 +228,13 @@ The primary repeating unit in the app. A single 1px Border Gentle separator divi
 
 ### Detail Field Group (Signature)
 
-Used in PetDetailScreen for each data pair (species, gender, notes, dates).
+Used in PetDetailScreen for each data pair (species, gender, breed, weight, notes), inside a single elevated info card (Card Lift shadow — see §4).
 
+- **Field row:** Label at the reading start, value at the reading end, on one row (space-between; RTL puts the label on the right).
 - **Label:** Label style (SemiBold, 13px) / Ink Muted — identifies the field key.
 - **Value:** Body style (Regular, 15px) / Warm Ink — the content.
-- **Internal gap:** 4px (`xs`) between label and value.
-- **Group gap:** 16px (`lg`) between consecutive field groups.
+- **Row gap:** 12px (`md`) between consecutive rows.
+- **Notes exception:** the notes field stacks instead of running as a row (label above value, 4px/`xs` gap), since notes can run to multiple lines.
 
 ## 6. Do's and Don'ts
 
@@ -244,7 +245,7 @@ Used in PetDetailScreen for each data pair (species, gender, notes, dates).
 - **Do** display all dates in the Jalali (Persian Solar Hijri) calendar. Never show Gregorian dates in the UI.
 - **Do** use 1px Border Gentle separator lines for list items rather than wrapping them in cards. Lists are notebook-like, not deck-like.
 - **Do** keep all interactive touch targets at 44×44px minimum (WCAG 2.1 AA, mobile).
-- **Do** use the three surface steps (Sunken Well → Warm Paper → White Surface) to express depth. Reserve shadows for the two documented floating elements: the logo halo (Card Lift) and primary buttons (Button Glow).
+- **Do** use the three surface steps (Sunken Well → Warm Paper → White Surface) to express depth on flat surfaces. Reserve shadows for genuinely raised elements — floating buttons, toasts, and boxed content cards (Card Lift) — and primary buttons (Button Glow). Never on list rows, nav bars, or dividers.
 - **Do** give empty states an action that teaches the interface, not just a message that reports absence. An empty pet list is an invitation, not a dead end.
 - **Do** use Ink Muted (`#73726B`) for secondary text. Never use Ink Faint (`#A8A79E`) for readable content — it exists only for placeholder text.
 
