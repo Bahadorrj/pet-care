@@ -45,6 +45,7 @@ jest.mock("@react-navigation/native", () => ({
 
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
 import i18n from "../i18n";
+import { toPersianDigits } from "../lib/jalali";
 import PetsListScreen from "../screens/pets/PetsListScreen";
 import type { Pet } from "../db/types";
 
@@ -218,7 +219,11 @@ describe("PetsListScreen – selection toolbar & delete", () => {
     await enterSelectionWith(PET_DOG.id);
 
     expect(
-      screen.getByText(i18n.t("pets.select_mode.selected_count", { count: 1 })),
+      screen.getByText(
+        i18n.t("pets.select_mode.selected_count", {
+          count: toPersianDigits(1),
+        }),
+      ),
     ).toBeTruthy();
   });
 
@@ -285,7 +290,9 @@ describe("PetsListScreen – selection toolbar & delete", () => {
       expect(screen.getByTestId("pets-delete-confirm")).toBeTruthy(),
     );
     expect(
-      screen.getByText(i18n.t("pets.delete_confirm_many", { count: 1 })),
+      screen.getByText(
+        i18n.t("pets.delete_confirm_many", { count: toPersianDigits(1) }),
+      ),
     ).toBeTruthy();
 
     fireEvent.press(screen.getByTestId("pets-delete-confirm-confirm"));
