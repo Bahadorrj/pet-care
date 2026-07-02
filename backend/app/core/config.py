@@ -8,6 +8,12 @@ class Settings(BaseSettings):
     JWT_EXPIRE_DAYS: int = 30
     JWT_ALGORITHM: str = "HS256"
 
+    # LLM / AI chat (spec 13). Empty key = chat sends fail with provider_error,
+    # but app startup and every other endpoint stay functional by design.
+    OPENROUTER_API_KEY: str = ""
+    LLM_MODEL: str = "google/gemini-2.5-flash"
+    LLM_MAX_OUTPUT_TOKENS: int = 1024
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @property
