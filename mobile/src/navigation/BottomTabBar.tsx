@@ -11,6 +11,7 @@ import { colors, spacing, typography } from "../theme/theme";
 const ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   Pets: "paw-outline",
   Tasks: "today-outline",
+  Assistant: "chatbubble-ellipses-outline",
   Profile: "person-outline",
 };
 

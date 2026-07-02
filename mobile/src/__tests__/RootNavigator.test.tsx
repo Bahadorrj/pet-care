@@ -77,11 +77,19 @@ describe("RootNavigator", () => {
     );
   });
 
-  test("renders 3 tabs total", async () => {
+  test("renders the Assistant tab label in Farsi", async () => {
+    renderNavigator();
+    await waitFor(() =>
+      expect(screen.getByText(i18n.t("tab.assistant"))).toBeTruthy(),
+    );
+  });
+
+  test("renders 4 tabs total", async () => {
     renderNavigator();
     await waitFor(() => {
       expect(screen.getByText(i18n.t("tab.tasks"))).toBeTruthy();
       expect(screen.getByText(i18n.t("tab.pets"))).toBeTruthy();
+      expect(screen.getByText(i18n.t("tab.assistant"))).toBeTruthy();
       expect(screen.getByText(i18n.t("tab.profile"))).toBeTruthy();
     });
   });

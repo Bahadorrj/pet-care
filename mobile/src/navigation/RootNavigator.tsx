@@ -6,11 +6,13 @@ import { useTranslation } from "react-i18next";
 import ProfileStack from "./ProfileStack";
 import PetsStack from "./PetsStack";
 import TasksStack from "./TasksStack";
+import AssistantStack from "./AssistantStack";
 import BottomTabBar from "./BottomTabBar";
 
 export type RootTabParamList = {
   Tasks: undefined;
   Pets: undefined;
+  Assistant: undefined;
   Profile: undefined;
 };
 
@@ -39,6 +41,11 @@ export default function RootNavigator() {
         name="Tasks"
         component={TasksStack}
         options={{ title: t("tab.tasks") }}
+      />
+      <Tab.Screen
+        name="Assistant"
+        component={AssistantStack}
+        options={{ title: t("tab.assistant") }}
       />
       <Tab.Screen
         name="Profile"
