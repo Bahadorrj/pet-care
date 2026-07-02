@@ -70,16 +70,14 @@ describe("RootNavigator", () => {
     );
   });
 
-  // ponytail: Profile tab temporarily removed from RootNavigator for offline-first
-  // focus — re-enable once the Profile tab returns for online features.
-  test.skip("renders the Profile tab label in Farsi", async () => {
+  test("renders the Profile tab label in Farsi", async () => {
     renderNavigator();
     await waitFor(() =>
       expect(screen.getByText(i18n.t("tab.profile"))).toBeTruthy(),
     );
   });
 
-  test.skip("renders 3 tabs total", async () => {
+  test("renders 3 tabs total", async () => {
     renderNavigator();
     await waitFor(() => {
       expect(screen.getByText(i18n.t("tab.tasks"))).toBeTruthy();

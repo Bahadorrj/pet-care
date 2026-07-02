@@ -3,7 +3,6 @@ import { createMaterialTopTabNavigator } from "@react-navigation/material-top-ta
 import type { MaterialTopTabNavigationProp } from "@react-navigation/material-top-tabs";
 import { useTranslation } from "react-i18next";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for restoring the hidden Profile tab
 import ProfileStack from "./ProfileStack";
 import PetsStack from "./PetsStack";
 import TasksStack from "./TasksStack";
@@ -41,8 +40,11 @@ export default function RootNavigator() {
         component={TasksStack}
         options={{ title: t("tab.tasks") }}
       />
-      {/* ponytail: Profile tab temporarily hidden while we focus on offline-first.
-          ProfileStack + the Profile entry in RootTabParamList are kept intact — re-add this <Tab.Screen> to restore. */}
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        options={{ title: t("tab.profile") }}
+      />
     </Tab.Navigator>
   );
 }
