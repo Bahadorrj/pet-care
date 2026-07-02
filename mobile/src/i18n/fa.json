@@ -164,5 +164,8 @@
   "pets.active_tasks": "{{count}} کار فعال",
   "pets.next_task_today": "امروز {{time}}",
   "pets.next_task_tomorrow": "فردا {{time}}",
-  "pets.next_task_weekday": "{{weekday}} {{time}}"
+  "pets.next_task_weekday": "{{weekday}} {{time}}",
+  "pets.task_row.today": "امروز",
+  "pets.task_row.tomorrow": "فردا",
+  "pets.task_row.date_day": "{{date}}، {{day}}"
 }

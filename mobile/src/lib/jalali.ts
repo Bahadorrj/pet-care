@@ -5,7 +5,7 @@
  * Tehran offset is a fixed +03:30 (no DST in Iran).
  */
 
-import { format, getDaysInMonth, parse as parseJalali } from 'date-fns-jalali';
+import { format, getDaysInMonth, parse as parseJalali } from "date-fns-jalali";
 
 /**
  * Current Tehran calendar day as a Jalali string yyyy/MM/dd.
@@ -16,8 +16,12 @@ import { format, getDaysInMonth, parse as parseJalali } from 'date-fns-jalali';
 export function tehranTodayJalali(): string {
   const tehranMs = Date.now() + (3 * 60 + 30) * 60 * 1000;
   const d = new Date(tehranMs);
-  const tehranMidnight = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  return format(tehranMidnight, 'yyyy/MM/dd');
+  const tehranMidnight = new Date(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate(),
+  );
+  return format(tehranMidnight, "yyyy/MM/dd");
 }
 
 /**
@@ -29,11 +33,20 @@ export function utcIsoToTehranJalali(isoUtc: string): string {
   try {
     const tehranMs = new Date(isoUtc).getTime() + (3 * 60 + 30) * 60 * 1000;
     const d = new Date(tehranMs);
-    const tehranMidnight = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-    return format(tehranMidnight, 'yyyy/MM/dd');
+    const tehranMidnight = new Date(
+      d.getUTCFullYear(),
+      d.getUTCMonth(),
+      d.getUTCDate(),
+    );
+    return format(tehranMidnight, "yyyy/MM/dd");
   } catch {
-    return '';
+    return "";
   }
+}
+
+/** Short Jalali "MM/dd" of a UTC instant's Tehran calendar day, for compact date labels. */
+export function utcIsoToTehranShortJalali(isoUtc: string): string {
+  return utcIsoToTehranJalali(isoUtc).slice(5);
 }
 
 /**
@@ -42,11 +55,11 @@ export function utcIsoToTehranJalali(isoUtc: string): string {
  */
 export function jalaliToGregorian(jalaliStr: string): string | null {
   try {
-    const parsed = parseJalali(jalaliStr, 'yyyy/MM/dd', new Date());
+    const parsed = parseJalali(jalaliStr, "yyyy/MM/dd", new Date());
     if (isNaN(parsed.getTime())) return null;
     const yr = parsed.getFullYear();
-    const mo = String(parsed.getMonth() + 1).padStart(2, '0');
-    const dy = String(parsed.getDate()).padStart(2, '0');
+    const mo = String(parsed.getMonth() + 1).padStart(2, "0");
+    const dy = String(parsed.getDate()).padStart(2, "0");
     return `${yr}-${mo}-${dy}`;
   } catch {
     return null;
@@ -54,7 +67,9 @@ export function jalaliToGregorian(jalaliStr: string): string | null {
 }
 
 /** Split a Jalali yyyy/MM/dd string into numeric parts, or null if malformed. */
-export function jalaliParts(jalaliStr: string): { y: number; m: number; d: number } | null {
+export function jalaliParts(
+  jalaliStr: string,
+): { y: number; m: number; d: number } | null {
   const m = jalaliStr.match(/^(\d{1,4})\/(\d{1,2})\/(\d{1,2})$/);
   if (!m) return null;
   return { y: +m[1], m: +m[2], d: +m[3] };
@@ -62,15 +77,21 @@ export function jalaliParts(jalaliStr: string): { y: number; m: number; d: numbe
 
 /** Days in a given Jalali month (handles 29/30-day Esfand leap years). */
 export function daysInJalaliMonth(y: number, month: number): number {
-  return getDaysInMonth(parseJalali(`${y}/${String(month).padStart(2, '0')}/01`, 'yyyy/MM/dd', new Date()));
+  return getDaysInMonth(
+    parseJalali(
+      `${y}/${String(month).padStart(2, "0")}/01`,
+      "yyyy/MM/dd",
+      new Date(),
+    ),
+  );
 }
 
 /** Build a zero-padded Jalali yyyy/MM/dd string from numeric parts. */
 export function formatJalaliParts(y: number, m: number, d: number): string {
-  return `${y}/${String(m).padStart(2, '0')}/${String(d).padStart(2, '0')}`;
+  return `${y}/${String(m).padStart(2, "0")}/${String(d).padStart(2, "0")}`;
 }
 
 /** Latin digits → Persian digits, for display only (never feed back into parsers). */
 export function toPersianDigits(input: string | number): string {
-  return String(input).replace(/[0-9]/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]);
+  return String(input).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d]);
 }

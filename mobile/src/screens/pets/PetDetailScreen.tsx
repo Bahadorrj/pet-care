@@ -24,7 +24,11 @@ import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
 import { getPet } from "../../db/pets";
 import { nextOccurrence } from "../../lib/taskSchedule";
-import { nextTaskLabel } from "./nextTaskLabel";
+import {
+  nextTaskLabel,
+  nextTaskRowParts,
+  type NextTaskRowParts,
+} from "./nextTaskLabel";
 import { toPersianDigits } from "../../lib/jalali";
 import {
   colors,
@@ -39,7 +43,7 @@ import type {
   PetsStackParamList,
   PetsNavigationProp,
 } from "../../navigation/PetsStack";
-import type { Pet } from "../../db/types";
+import type { Pet, Task } from "../../db/types";
 
 type PetDetailRouteProp = RouteProp<PetsStackParamList, "PetDetail">;
 
@@ -52,6 +56,7 @@ function speciesLabel(pet: Pet, t: (key: string) => string): string {
 const HERO_HEIGHT = 280;
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const NEXT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+const TASK_ROW_WINDOW_MS = 365 * 24 * 60 * 60 * 1000;
 
 /** Short schedule summary for the tasks list row */
 function scheduleLabel(
@@ -60,6 +65,21 @@ function scheduleLabel(
 ): string {
   const kind = task.schedule.kind;
   return t(`tasks.schedule.${kind}`);
+}
+
+/** Next-occurrence day/date/time for a single task row, or null if inactive/none upcoming. */
+function taskRowDate(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  task: Task,
+  now: Date,
+): NextTaskRowParts | null {
+  if (!task.active) return null;
+  const next = nextOccurrence(
+    [task],
+    now,
+    new Date(now.getTime() + TASK_ROW_WINDOW_MS),
+  );
+  return next ? nextTaskRowParts(t, next, now) : null;
 }
 
 export default function PetDetailScreen() {
@@ -81,10 +101,10 @@ export default function PetDetailScreen() {
 
   if (!pet) return null;
 
+  const now = new Date();
   const activeTasks = petTasks.filter((c) => c.active);
   let nextLabel: string | null = null;
   if (activeTasks.length > 0) {
-    const now = new Date();
     const next = nextOccurrence(
       activeTasks,
       now,
@@ -207,36 +227,49 @@ export default function PetDetailScreen() {
           {petTasks.length === 0 ? (
             <Text style={styles.tasksEmpty}>{t("tasks.empty")}</Text>
           ) : (
-            petTasks.map((task, idx) => (
-              <Pressable
-                key={task.id}
-                testID={`petdetail-task-${task.id}`}
-                onPress={() =>
-                  navigation.navigate("TaskForm", { petId, taskId: task.id })
-                }
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.taskRow,
-                  idx < petTasks.length - 1 && styles.taskRowBorder,
-                  pressed && styles.taskRowPressed,
-                ]}
-              >
-                <MaterialCommunityIcons
-                  name={TASK_TYPE_ICON[task.type]}
-                  size={22}
-                  color={colors.inkMuted}
-                  style={styles.taskIcon}
-                />
-                <View style={styles.taskInfo}>
-                  <Text style={styles.taskTitle}>
-                    {task.title ?? t(`tasks.type.${task.type}`)}
-                  </Text>
-                  <Text style={styles.taskSchedule}>
-                    {scheduleLabel(t, task)}
-                  </Text>
-                </View>
-              </Pressable>
-            ))
+            petTasks.map((task, idx) => {
+              const rowDate = taskRowDate(t, task, now);
+              return (
+                <Pressable
+                  key={task.id}
+                  testID={`petdetail-task-${task.id}`}
+                  onPress={() =>
+                    navigation.navigate("TaskForm", { petId, taskId: task.id })
+                  }
+                  accessibilityRole="button"
+                  style={({ pressed }) => [
+                    styles.taskRow,
+                    idx < petTasks.length - 1 && styles.taskRowBorder,
+                    pressed && styles.taskRowPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={TASK_TYPE_ICON[task.type]}
+                    size={22}
+                    color={colors.inkMuted}
+                    style={styles.taskIcon}
+                  />
+                  <View style={styles.taskInfo}>
+                    <Text style={styles.taskTitle}>
+                      {task.title ?? t(`tasks.type.${task.type}`)}
+                    </Text>
+                    <Text style={styles.taskSchedule}>
+                      {scheduleLabel(t, task)}
+                    </Text>
+                  </View>
+                  {rowDate && (
+                    <View style={styles.taskMeta}>
+                      <Text style={styles.taskMetaPrimary} numberOfLines={1}>
+                        {rowDate.primary}
+                      </Text>
+                      <Text style={styles.taskMetaSecondary} numberOfLines={1}>
+                        {rowDate.secondary}
+                      </Text>
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })
           )}
         </View>
 
@@ -438,6 +471,23 @@ const styles = StyleSheet.create({
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
     color: colors.inkMuted,
+  },
+  taskMeta: {
+    alignItems: "flex-end",
+  },
+  taskMetaPrimary: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.medium,
+    color: colors.ink,
+    textAlign: "right",
+  },
+  taskMetaSecondary: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+    textAlign: "right",
   },
   tasksEmpty: {
     fontSize: typography.caption.fontSize,
