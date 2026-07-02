@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   BackHandler,
   FlatList,
   Pressable,
@@ -12,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import Toast from "react-native-toast-message";
 
 import Button from "../../components/ui/Button";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
@@ -34,7 +36,7 @@ export default function ConversationListScreen() {
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectionActive, setSelectionActive] = useState(false);
@@ -86,9 +88,10 @@ export default function ConversationListScreen() {
     // call from the mount effect (react-hooks/set-state-in-effect).
     try {
       await loadConversations();
-      setError("");
     } catch {
-      setError(t("chat.error.network"));
+      Toast.show({ type: "hint", text1: t("chat.error.network") });
+    } finally {
+      setLoading(false);
     }
   }, [loadConversations, t]);
 
@@ -102,7 +105,7 @@ export default function ConversationListScreen() {
   }, [load]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- load() setState is post-await, not a synchronous cascade
+     
     if (token) void load();
   }, [token, load]);
 
@@ -111,7 +114,7 @@ export default function ConversationListScreen() {
       const id = await startNewConversation();
       navigation.navigate("Chat", { conversationId: id });
     } catch {
-      setError(t("chat.error.network"));
+      Toast.show({ type: "hint", text1: t("chat.error.network") });
     }
   };
 
@@ -142,10 +145,18 @@ export default function ConversationListScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
-      <Text style={styles.header}>{t("tab.assistant")}</Text>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
       <FlatList
         data={conversations}
         keyExtractor={(c) => c.id}
@@ -312,17 +323,7 @@ export default function ConversationListScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    ...typography.title,
-    color: colors.ink,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  error: {
-    ...typography.caption,
-    color: colors.danger,
-    paddingHorizontal: spacing.lg,
-  },
+  loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: {
     paddingHorizontal: spacing.lg,
     paddingBottom: 96, // clear the FAB so the last row isn't hidden

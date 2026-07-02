@@ -7,6 +7,7 @@ export const BASE_URL =
 // eslint-disable-next-line import/no-named-as-default-member -- axios.create is the intended factory
 const client = axios.create({
   baseURL: BASE_URL,
+  timeout: 10000,
 });
 
 client.interceptors.request.use((config) => {
