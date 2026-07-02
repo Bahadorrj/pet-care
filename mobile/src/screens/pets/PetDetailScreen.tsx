@@ -23,11 +23,7 @@ import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
 import { getPet } from "../../db/pets";
-import {
-  adherence,
-  nextOccurrence,
-  toTehranTime,
-} from "../../lib/taskSchedule";
+import { nextOccurrence, toTehranTime } from "../../lib/taskSchedule";
 import { toPersianDigits } from "../../lib/jalali";
 import {
   colors,
@@ -42,7 +38,7 @@ import type {
   PetsStackParamList,
   PetsNavigationProp,
 } from "../../navigation/PetsStack";
-import type { Pet, Task, TaskLog } from "../../db/types";
+import type { Pet } from "../../db/types";
 
 type PetDetailRouteProp = RouteProp<PetsStackParamList, "PetDetail">;
 
@@ -65,44 +61,6 @@ function scheduleLabel(
   return t(`tasks.schedule.${kind}`);
 }
 
-// 30-day adherence window
-const ADHERENCE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-
-/** Secondary stats per task row: adherence bar (hidden if no history). */
-function TaskStats({
-  task,
-  getLogsForTask,
-  t,
-}: {
-  task: Task;
-  getLogsForTask: (id: string) => TaskLog[];
-  t: (key: string, opts?: Record<string, unknown>) => string;
-}) {
-  const now = new Date();
-  const since = new Date(now.getTime() - ADHERENCE_WINDOW_MS);
-  const logs = getLogsForTask(task.id);
-
-  const adh = adherence(task, logs, since, now);
-
-  if (adh === null) return null;
-
-  const percent = Math.round(adh * 100);
-
-  return (
-    <View style={styles.statsRow}>
-      <View
-        style={styles.adhWrap}
-        accessibilityLabel={t("tasks.stat.adherence", { percent })}
-      >
-        <View style={styles.adhTrack}>
-          <View style={[styles.adhFill, { width: `${percent}%` }]} />
-        </View>
-        <Text style={styles.adhPercent}>{percent}٪</Text>
-      </View>
-    </View>
-  );
-}
-
 export default function PetDetailScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
@@ -118,8 +76,6 @@ export default function PetDetailScreen() {
   const petTasks = useTasksStore(
     useShallow((s) => s.tasks.filter((c) => c.petId === petId)),
   );
-  const getLogsForTask = useTasksStore((s) => s.getLogsForTask);
-
   const [confirmVisible, setConfirmVisible] = useState(false);
 
   if (!pet) return null;
@@ -133,7 +89,9 @@ export default function PetDetailScreen() {
       now,
       new Date(now.getTime() + NEXT_WINDOW_MS),
     );
-    tasksSummary = t("pets.active_tasks", { count: activeTasks.length });
+    tasksSummary = t("pets.active_tasks", {
+      count: toPersianDigits(activeTasks.length),
+    });
     if (next)
       tasksSummary += ` · ${t("pets.next_task", { time: toPersianDigits(toTehranTime(next)) })}`;
   }
@@ -260,11 +218,6 @@ export default function PetDetailScreen() {
                   <Text style={styles.taskSchedule}>
                     {scheduleLabel(t, task)}
                   </Text>
-                  <TaskStats
-                    task={task}
-                    getLogsForTask={getLogsForTask}
-                    t={t}
-                  />
                 </View>
               </Pressable>
             ))
@@ -454,36 +407,6 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   taskSchedule: {
-    fontSize: typography.caption.fontSize,
-    lineHeight: typography.caption.lineHeight,
-    fontFamily: fonts.regular,
-    color: colors.inkMuted,
-  },
-  // ── Per-task stats ──────────────────────────────────────────────────────────
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-    marginTop: spacing.xs,
-  },
-  adhWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  adhTrack: {
-    width: 80,
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primarySoft,
-    overflow: "hidden",
-  },
-  adhFill: {
-    height: 4,
-    borderRadius: radius.pill,
-    backgroundColor: colors.primary,
-  },
-  adhPercent: {
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,
