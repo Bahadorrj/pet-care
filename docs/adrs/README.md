@@ -47,3 +47,4 @@ relevant ADR. Every ADR ends with an explicit **Guardrails** section
 | [0016](0016-chores-rule-plus-log.md) | Chores — rule + completion log (approach B); first Notifee realization | Accepted | — |
 | [0017](0017-lively-task-done-toast.md) | Task-done toast — a sanctioned side-stripe success accent | Accepted | — |
 | [0018](0018-swipeable-bottom-tabs.md) | Swipeable bottom tabs via material-top-tabs pinned to the bottom | Accepted | — |
+| [0019](0019-ai-chat-backend-llm-proxy.md) | AI chat via backend LLM proxy; client-supplied pet context; server-side history | Accepted | — |
