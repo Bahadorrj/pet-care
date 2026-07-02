@@ -20,6 +20,8 @@ python -c "import secrets; print(secrets.token_urlsafe(48))"
 ```
 
 Put that value in `SECRET_KEY=...`; leave `DATABASE_URL=sqlite:///./petcare.db`.
+`OPENROUTER_API_KEY=<your key>` enables the AI chat feature (دستیار); chat returns a
+provider error without it, but every other endpoint stays functional.
 
 Sanity check:
 
@@ -49,6 +51,12 @@ reaches the backend on `:8000`.
 Branded home → **ورود / ثبت‌نام** → sign up (email + password ≥ 8 chars) → lands back on
 home in the authenticated state → kill & relaunch the app → still authenticated (JWT persisted
 in SecureStore). Wrong password → Farsi error shown inline.
+
+### AI chat (دستیار)
+
+Sign in → دستیار tab → گفتگوی جدید → pick a pet chip → ask a question →
+reply streams in Persian and references the pet → kill & relaunch → the
+conversation is still listed → delete it via the trash icon.
 
 ## Tests (no emulator needed)
 
