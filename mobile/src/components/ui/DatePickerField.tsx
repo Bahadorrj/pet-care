@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Modal,
@@ -7,18 +7,18 @@ import {
   StyleSheet,
   Text,
   View,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 
-import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
+import { colors, fonts, radius, spacing, typography } from "../../theme/theme";
 import {
   daysInJalaliMonth,
   formatJalaliParts,
   jalaliParts,
   tehranTodayJalali,
   toPersianDigits,
-} from '../../lib/jalali';
+} from "../../lib/jalali";
 
 type Props = {
   /** Current value as a Jalali `yyyy/MM/dd` string. Empty string = unset. */
@@ -32,8 +32,18 @@ type Props = {
 
 // Jalali month names, index 0 = Farvardin (month 1).
 const MONTHS = [
-  'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-  'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند',
+  "فروردین",
+  "اردیبهشت",
+  "خرداد",
+  "تیر",
+  "مرداد",
+  "شهریور",
+  "مهر",
+  "آبان",
+  "آذر",
+  "دی",
+  "بهمن",
+  "اسفند",
 ];
 
 const ITEM_HEIGHT = 44;
@@ -77,7 +87,9 @@ function Wheel({
       >
         {items.map((label, i) => (
           <View key={i} style={styles.item}>
-            <Text style={[styles.itemText, i === index && styles.itemTextSelected]}>
+            <Text
+              style={[styles.itemText, i === index && styles.itemTextSelected]}
+            >
               {label}
             </Text>
           </View>
@@ -119,7 +131,10 @@ export default function DatePickerField({
   // current value and today so edit-mode dates are reachable.
   const minYear = Math.min(today.y - 1, initial.y);
   const maxYear = Math.max(today.y + 10, initial.y);
-  const years = Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i);
+  const years = Array.from(
+    { length: maxYear - minYear + 1 },
+    (_, i) => minYear + i,
+  );
 
   const dayCount = daysInJalaliMonth(draft.y, draft.m);
   const days = Array.from({ length: dayCount }, (_, i) => i + 1);
@@ -133,13 +148,19 @@ export default function DatePickerField({
   };
 
   const animateIn = () => {
-    Animated.timing(anim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+    Animated.timing(anim, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
   };
 
   const close = () => {
-    Animated.timing(anim, { toValue: 0, duration: 180, useNativeDriver: true }).start(
-      ({ finished }) => finished && setMounted(false),
-    );
+    Animated.timing(anim, {
+      toValue: 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start(({ finished }) => finished && setMounted(false));
   };
 
   const confirm = () => {
@@ -158,12 +179,22 @@ export default function DatePickerField({
           accessibilityLabel={accessibilityLabel}
         >
           <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          <Text style={styles.buttonText}>{t('common.select_date')}</Text>
+          <Text style={styles.buttonText}>{t("common.select_date")}</Text>
         </Pressable>
-        {value !== '' && <Text style={styles.dateLabel}>{toPersianDigits(value)}</Text>}
+        {value !== "" && (
+          <View style={styles.dateValueWrap}>
+            <Text style={styles.dateValueText}>{toPersianDigits(value)}</Text>
+          </View>
+        )}
       </View>
 
-      <Modal visible={mounted} transparent animationType="none" onShow={animateIn} onRequestClose={close}>
+      <Modal
+        visible={mounted}
+        transparent
+        animationType="none"
+        onShow={animateIn}
+        onRequestClose={close}
+      >
         <Animated.View style={[styles.backdrop, { opacity: anim }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={close} />
         </Animated.View>
@@ -217,7 +248,7 @@ export default function DatePickerField({
               style={styles.actionBtn}
               accessibilityRole="button"
             >
-              <Text style={styles.cancelText}>{t('common.cancel')}</Text>
+              <Text style={styles.cancelText}>{t("common.cancel")}</Text>
             </Pressable>
             <Pressable
               testID={testID ? `${testID}-confirm` : undefined}
@@ -225,7 +256,7 @@ export default function DatePickerField({
               style={[styles.actionBtn, styles.confirmBtn]}
               accessibilityRole="button"
             >
-              <Text style={styles.confirmText}>{t('common.confirm')}</Text>
+              <Text style={styles.confirmText}>{t("common.confirm")}</Text>
             </Pressable>
           </View>
         </Animated.View>
@@ -236,13 +267,13 @@ export default function DatePickerField({
 
 const styles = StyleSheet.create({
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   button: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     minHeight: 44,
     paddingHorizontal: spacing.lg,
@@ -259,15 +290,25 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     color: colors.primary,
   },
-  dateLabel: {
+  dateValueWrap: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    minHeight: 44,
+    justifyContent: "center",
+  },
+  dateValueText: {
     fontSize: typography.bodyLg.fontSize,
-    fontFamily: fonts.semibold,
+    fontFamily: fonts.regular,
     color: colors.ink,
   },
 
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
     backgroundColor: colors.surface,
@@ -278,7 +319,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   wheels: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
 
@@ -288,8 +329,8 @@ const styles = StyleSheet.create({
   },
   item: {
     height: ITEM_HEIGHT,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   itemText: {
     fontSize: typography.body.fontSize,
@@ -301,7 +342,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
   },
   centerBand: {
-    position: 'absolute',
+    position: "absolute",
     top: PAD,
     left: 0,
     right: 0,
@@ -312,7 +353,7 @@ const styles = StyleSheet.create({
   },
 
   actions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
     marginTop: spacing.lg,
   },
@@ -320,8 +361,8 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 44,
     borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.surfaceSunken,
   },
   confirmBtn: {

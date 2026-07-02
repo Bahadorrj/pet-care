@@ -118,7 +118,9 @@ export default function PetsListScreen() {
           now,
           new Date(now.getTime() + NEXT_WINDOW_MS),
         );
-        hint = t("pets.list.tasks", { count: petTasks.length });
+        hint = t("pets.list.tasks", {
+          count: toPersianDigits(petTasks.length),
+        });
         if (next)
           hint += ` · ${t("pets.next_task", { time: toPersianDigits(toTehranTime(next)) })}`;
       }
@@ -225,7 +227,9 @@ export default function PetsListScreen() {
             <Ionicons name="close" size={24} color={colors.ink} />
           </Pressable>
           <Text style={styles.selectionCount}>
-            {t("pets.select_mode.selected_count", { count: selectedIds.size })}
+            {t("pets.select_mode.selected_count", {
+              count: toPersianDigits(selectedIds.size),
+            })}
           </Text>
           <Pressable
             testID="selection-select-all"
@@ -269,7 +273,9 @@ export default function PetsListScreen() {
         testID="pets-delete-confirm"
         visible={confirmVisible}
         title={t("pets.delete")}
-        message={t("pets.delete_confirm_many", { count: selectedIds.size })}
+        message={t("pets.delete_confirm_many", {
+          count: toPersianDigits(selectedIds.size),
+        })}
         confirmLabel={t("pets.delete")}
         cancelLabel={t("common.cancel")}
         destructive

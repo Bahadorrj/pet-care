@@ -654,7 +654,7 @@ export default function TaskFormScreen() {
                 accessibilityLabel={t("tasks.field.date")}
               />
               <Text style={[styles.label, { marginTop: spacing.md }]}>
-                {t("tasks.schedule.times")}
+                {t("tasks.schedule.time")}
               </Text>
               <TimePickerField
                 testID="taskform-oneoff-time"
@@ -663,7 +663,7 @@ export default function TaskFormScreen() {
                   setOneOffTime(v);
                   if (scheduleError) setScheduleError("");
                 }}
-                accessibilityLabel={t("tasks.schedule.times")}
+                accessibilityLabel={t("tasks.schedule.time")}
               />
               {scheduleError !== "" && (
                 <Text style={styles.errorText}>{scheduleError}</Text>
@@ -671,71 +671,79 @@ export default function TaskFormScreen() {
             </View>
           )}
 
-          {/* ── Divider ─────────────────────────────────────────────────────── */}
-          <View style={styles.divider} />
+          {/* ── End condition (not applicable to one-off tasks) ──────────────── */}
+          {scheduleKind !== "one_off" && (
+            <>
+              <View style={styles.divider} />
 
-          {/* ── End condition ──────────────────────────────────────────────── */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("tasks.field.end_condition")}</Text>
-            <View style={styles.chipRow}>
-              {END_KINDS.map((ek) => (
-                <Pressable
-                  key={ek}
-                  testID={`taskform-end-${ek}`}
-                  onPress={() => {
-                    setEndKind(ek);
-                    if (endError) setEndError("");
-                  }}
-                  style={[styles.chip, endKind === ek && styles.chipSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: endKind === ek }}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      endKind === ek && styles.chipTextSelected,
-                    ]}
-                  >
-                    {t(`tasks.end.${ek}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.label}>
+                  {t("tasks.field.end_condition")}
+                </Text>
+                <View style={styles.chipRow}>
+                  {END_KINDS.map((ek) => (
+                    <Pressable
+                      key={ek}
+                      testID={`taskform-end-${ek}`}
+                      onPress={() => {
+                        setEndKind(ek);
+                        if (endError) setEndError("");
+                      }}
+                      style={[
+                        styles.chip,
+                        endKind === ek && styles.chipSelected,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: endKind === ek }}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          endKind === ek && styles.chipTextSelected,
+                        ]}
+                      >
+                        {t(`tasks.end.${ek}`)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
 
-            {endKind === "until" && (
-              <View style={{ marginTop: spacing.sm }}>
-                <DatePickerField
-                  testID="taskform-end-until-date"
-                  value={endUntilDate}
-                  onChange={(v) => {
-                    setEndUntilDate(v);
-                    if (endError) setEndError("");
-                  }}
-                  accessibilityLabel={t("tasks.end.until")}
-                />
+                {endKind === "until" && (
+                  <View style={{ marginTop: spacing.sm }}>
+                    <DatePickerField
+                      testID="taskform-end-until-date"
+                      value={endUntilDate}
+                      onChange={(v) => {
+                        setEndUntilDate(v);
+                        if (endError) setEndError("");
+                      }}
+                      accessibilityLabel={t("tasks.end.until")}
+                    />
+                  </View>
+                )}
+
+                {endKind === "after_n" && (
+                  <View style={{ marginTop: spacing.sm }}>
+                    <TextField
+                      testID="taskform-end-count"
+                      placeholder="10"
+                      value={endCount}
+                      onChangeText={(v) => {
+                        setEndCount(v);
+                        if (endError) setEndError("");
+                      }}
+                      keyboardType="numeric"
+                      accessibilityLabel={t("tasks.end.after_n")}
+                    />
+                  </View>
+                )}
+
+                {endError !== "" && (
+                  <Text style={styles.errorText}>{endError}</Text>
+                )}
               </View>
-            )}
-
-            {endKind === "after_n" && (
-              <View style={{ marginTop: spacing.sm }}>
-                <TextField
-                  testID="taskform-end-count"
-                  placeholder="10"
-                  value={endCount}
-                  onChangeText={(v) => {
-                    setEndCount(v);
-                    if (endError) setEndError("");
-                  }}
-                  keyboardType="numeric"
-                  accessibilityLabel={t("tasks.end.after_n")}
-                />
-              </View>
-            )}
-
-            {endError !== "" && (
-              <Text style={styles.errorText}>{endError}</Text>
-            )}
-          </View>
+            </>
+          )}
 
           {/* ── Submit ─────────────────────────────────────────────────────── */}
           <Button
