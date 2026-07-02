@@ -55,16 +55,16 @@ describe("ConversationListScreen", () => {
     await waitFor(() =>
       expect(screen.getByText("ورود / ثبت‌نام")).toBeTruthy(),
     );
-    expect(screen.queryByText("گفتگوی جدید")).toBeNull();
+    expect(screen.queryByTestId("conv-new")).toBeNull();
   });
 
-  it("shows empty state + new-chat button when signed in", async () => {
+  it("shows empty state + new-chat FAB when signed in", async () => {
     useAuthStore.setState({ token: "jwt" });
     renderScreen();
     await waitFor(() =>
       expect(screen.getByText("هنوز گفتگویی نداری")).toBeTruthy(),
     );
-    expect(screen.getByText("گفتگوی جدید")).toBeTruthy();
+    expect(screen.getByTestId("conv-new")).toBeTruthy();
   });
 
   it("lists conversations and confirms deletion", async () => {
@@ -80,5 +80,42 @@ describe("ConversationListScreen", () => {
         screen.getByText("آیا مطمئنی که می‌خواهی این گفتگو را حذف کنی؟"),
       ).toBeTruthy(),
     );
+  });
+
+  it("long-press selects multiple conversations and bulk-deletes via the selection toolbar", async () => {
+    useAuthStore.setState({ token: "jwt" });
+    api.listConversations.mockResolvedValue([
+      { id: "c1", title: "غذای گربه", updated_at: "2026-07-02T10:00:00Z" },
+      { id: "c2", title: "واکسیناسیون", updated_at: "2026-07-01T10:00:00Z" },
+    ]);
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("غذای گربه")).toBeTruthy());
+
+    fireEvent(screen.getByTestId("conv-row-c1"), "longPress");
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("conv-row-c1").props.accessibilityState?.selected,
+      ).toBe(true),
+    );
+
+    fireEvent.press(screen.getByTestId("conv-row-c2"));
+    await waitFor(() =>
+      expect(
+        screen.getByTestId("conv-row-c2").props.accessibilityState?.selected,
+      ).toBe(true),
+    );
+
+    fireEvent.press(screen.getByTestId("selection-delete"));
+    await waitFor(() =>
+      expect(screen.getByTestId("conv-delete-many-dialog")).toBeTruthy(),
+    );
+
+    fireEvent.press(screen.getByTestId("conv-delete-many-dialog-confirm"));
+
+    await waitFor(() => {
+      expect(api.deleteConversation).toHaveBeenCalledWith("c1");
+      expect(api.deleteConversation).toHaveBeenCalledWith("c2");
+    });
+    expect(screen.queryByTestId("selection-cancel")).toBeNull();
   });
 });
