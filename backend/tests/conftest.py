@@ -10,6 +10,25 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
 from app.main import app
+from app.models import chat as _chat  # noqa: F401  (register chat tables with Base before create_all)
+
+
+@pytest_asyncio.fixture()
+async def db():
+    """Bare AsyncSession on a fresh in-memory schema, for service-level tests."""
+    test_engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    TestSession = async_sessionmaker(
+        bind=test_engine, expire_on_commit=False, autoflush=False
+    )
+    async with TestSession() as session:
+        yield session
+    await test_engine.dispose()
 
 
 @pytest_asyncio.fixture()
