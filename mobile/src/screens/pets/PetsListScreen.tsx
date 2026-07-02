@@ -17,7 +17,8 @@ import * as Haptics from "expo-haptics";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
-import { nextOccurrence, toTehranTime } from "../../lib/taskSchedule";
+import { nextOccurrence } from "../../lib/taskSchedule";
+import { nextTaskLabel } from "./nextTaskLabel";
 import { toPersianDigits } from "../../lib/jalali";
 import {
   colors,
@@ -110,7 +111,7 @@ export default function PetsListScreen() {
   const renderItem = useCallback(
     ({ item }: { item: Pet }) => {
       const petTasks = tasksByPet.get(item.id) ?? [];
-      let hint: string | null = null;
+      let nextLabel: string | null = null;
       if (petTasks.length > 0) {
         const now = new Date();
         const next = nextOccurrence(
@@ -118,11 +119,7 @@ export default function PetsListScreen() {
           now,
           new Date(now.getTime() + NEXT_WINDOW_MS),
         );
-        hint = t("pets.list.tasks", {
-          count: toPersianDigits(petTasks.length),
-        });
-        if (next)
-          hint += ` · ${t("pets.next_task", { time: toPersianDigits(toTehranTime(next)) })}`;
+        if (next) nextLabel = nextTaskLabel(t, next, now);
       }
 
       const selected = selectedIds.has(item.id);
@@ -182,11 +179,32 @@ export default function PetsListScreen() {
             )}
           </View>
 
-          {hint && (
+          {petTasks.length > 0 && (
             <View style={styles.hintRow}>
-              <Text style={styles.hintText} numberOfLines={1}>
-                {hint}
-              </Text>
+              <View style={styles.hintLine}>
+                <MaterialCommunityIcons
+                  name="clipboard-text-outline"
+                  size={13}
+                  color={colors.inkMuted}
+                />
+                <Text style={styles.hintText} numberOfLines={1}>
+                  {t("pets.list.tasks", {
+                    count: toPersianDigits(petTasks.length),
+                  })}
+                </Text>
+              </View>
+              {nextLabel && (
+                <View style={styles.hintLine}>
+                  <MaterialCommunityIcons
+                    name="clock-outline"
+                    size={13}
+                    color={colors.inkMuted}
+                  />
+                  <Text style={styles.hintText} numberOfLines={1}>
+                    {nextLabel}
+                  </Text>
+                </View>
+              )}
             </View>
           )}
         </Pressable>
@@ -370,8 +388,15 @@ const styles = StyleSheet.create({
   hintRow: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
+    gap: spacing.xs,
+  },
+  hintLine: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   hintText: {
+    flexShrink: 1,
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
     fontFamily: fonts.regular,

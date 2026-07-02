@@ -46,7 +46,7 @@ function tehranDateStr(utc: Date): string {
 /**
  * Given a UTC Date, return the Tehran day-of-week (0=Sunday .. 6=Saturday).
  */
-function tehranDayOfWeek(utc: Date): number {
+export function tehranDayOfWeek(utc: Date): number {
   const tehranMs = utc.getTime() + TEHRAN_OFFSET_MINUTES * 60 * 1000;
   return new Date(tehranMs).getUTCDay();
 }
@@ -293,6 +293,23 @@ export function toTehranTime(isoUtc: string): string {
   const h = String(d.getUTCHours()).padStart(2, "0");
   const m = String(d.getUTCMinutes()).padStart(2, "0");
   return `${h}:${m}`;
+}
+
+/**
+ * Tehran calendar-day offset of `isoUtc` from `now` (0 = today, 1 = tomorrow, ...).
+ */
+export function tehranDayOffset(
+  isoUtc: string,
+  now: Date = new Date(),
+): number {
+  const toMs = (ds: string) => {
+    const [y, m, d] = ds.split("-").map(Number);
+    return Date.UTC(y, m - 1, d);
+  };
+  return Math.round(
+    (toMs(tehranDateStr(new Date(isoUtc))) - toMs(tehranDateStr(now))) /
+      (24 * 60 * 60 * 1000),
+  );
 }
 
 /**

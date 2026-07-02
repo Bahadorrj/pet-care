@@ -23,7 +23,8 @@ import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { usePetsStore } from "../../store/petsStore";
 import { useTasksStore } from "../../store/tasksStore";
 import { getPet } from "../../db/pets";
-import { nextOccurrence, toTehranTime } from "../../lib/taskSchedule";
+import { nextOccurrence } from "../../lib/taskSchedule";
+import { nextTaskLabel } from "./nextTaskLabel";
 import { toPersianDigits } from "../../lib/jalali";
 import {
   colors,
@@ -81,7 +82,7 @@ export default function PetDetailScreen() {
   if (!pet) return null;
 
   const activeTasks = petTasks.filter((c) => c.active);
-  let tasksSummary: string | null = null;
+  let nextLabel: string | null = null;
   if (activeTasks.length > 0) {
     const now = new Date();
     const next = nextOccurrence(
@@ -89,11 +90,7 @@ export default function PetDetailScreen() {
       now,
       new Date(now.getTime() + NEXT_WINDOW_MS),
     );
-    tasksSummary = t("pets.active_tasks", {
-      count: toPersianDigits(activeTasks.length),
-    });
-    if (next)
-      tasksSummary += ` · ${t("pets.next_task", { time: toPersianDigits(toTehranTime(next)) })}`;
+    if (next) nextLabel = nextTaskLabel(t, next, now);
   }
 
   const handleConfirmDelete = async () => {
@@ -177,14 +174,33 @@ export default function PetDetailScreen() {
             {t("tasks.section_title")}
           </Text>
 
-          {tasksSummary && (
+          {activeTasks.length > 0 && (
             <View style={styles.summaryCard}>
-              <MaterialCommunityIcons
-                name="clipboard-text-outline"
-                size={18}
-                color={colors.primary}
-              />
-              <Text style={styles.summaryText}>{tasksSummary}</Text>
+              <View style={styles.summaryItem}>
+                <MaterialCommunityIcons
+                  name="clipboard-text-outline"
+                  size={18}
+                  color={colors.primary}
+                />
+                <Text style={styles.summaryText}>
+                  {t("pets.active_tasks", {
+                    count: toPersianDigits(activeTasks.length),
+                  })}
+                </Text>
+              </View>
+              {nextLabel && (
+                <>
+                  <View style={styles.summaryDivider} />
+                  <View style={styles.summaryItem}>
+                    <MaterialCommunityIcons
+                      name="clock-outline"
+                      size={18}
+                      color={colors.primary}
+                    />
+                    <Text style={styles.summaryText}>{nextLabel}</Text>
+                  </View>
+                </>
+              )}
             </View>
           )}
 
@@ -366,10 +382,21 @@ const styles = StyleSheet.create({
   summaryCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacing.sm,
     backgroundColor: colors.primarySoft,
     borderRadius: radius.md,
     padding: spacing.md,
+  },
+  summaryItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  summaryDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: colors.primary,
+    opacity: 0.25,
+    marginHorizontal: spacing.md,
   },
   summaryText: {
     fontSize: typography.body.fontSize,

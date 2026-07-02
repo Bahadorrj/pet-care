@@ -130,6 +130,13 @@
   "tasks.weekday.thu": "پ",
   "tasks.weekday.fri": "ج",
   "tasks.weekday.sat": "ش",
+  "tasks.weekday_full.sun": "یکشنبه",
+  "tasks.weekday_full.mon": "دوشنبه",
+  "tasks.weekday_full.tue": "سه‌شنبه",
+  "tasks.weekday_full.wed": "چهارشنبه",
+  "tasks.weekday_full.thu": "پنجشنبه",
+  "tasks.weekday_full.fri": "جمعه",
+  "tasks.weekday_full.sat": "شنبه",
   "tasks.empty_title": "امروز کاری برای انجام نداری",
   "tasks.empty_subtitle": "همه‌چیز رو به راه است",
   "tasks.section.overdue": "عقب‌افتاده",
@@ -155,5 +162,7 @@
   "tasks.no_match": "هیچ کاری با این فیلتر یافت نشد",
   "pets.list.tasks": "{{count}} کار",
   "pets.active_tasks": "{{count}} کار فعال",
-  "pets.next_task": "بعدی {{time}}"
+  "pets.next_task_today": "امروز {{time}}",
+  "pets.next_task_tomorrow": "فردا {{time}}",
+  "pets.next_task_weekday": "{{weekday}} {{time}}"
 }
