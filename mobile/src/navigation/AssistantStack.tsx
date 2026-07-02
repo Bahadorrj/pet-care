@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import ConversationListScreen from "../screens/assistant/ConversationListScreen";
+import ChatScreen from "../screens/assistant/ChatScreen";
 import { colors } from "../theme/theme";
 
 export type AssistantStackParamList = {
@@ -32,7 +33,7 @@ export default function AssistantStack() {
         component={ConversationListScreen}
         options={{ headerShown: false }}
       />
-      {/* Chat screen registered in the next task */}
+      <Stack.Screen name="Chat" component={ChatScreen} />
     </Stack.Navigator>
   );
 }
