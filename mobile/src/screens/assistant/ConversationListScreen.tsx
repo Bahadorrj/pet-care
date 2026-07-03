@@ -105,7 +105,6 @@ export default function ConversationListScreen() {
   }, [load]);
 
   useEffect(() => {
-     
     if (token) void load();
   }, [token, load]);
 
@@ -326,6 +325,7 @@ const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: {
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: 96, // clear the FAB so the last row isn't hidden
     gap: spacing.sm,
     flexGrow: 1,

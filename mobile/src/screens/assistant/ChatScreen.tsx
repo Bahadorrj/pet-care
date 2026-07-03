@@ -145,7 +145,7 @@ export default function ChatScreen() {
     <SafeAreaView style={styles.root} edges={["bottom"]}>
       <KeyboardAvoidingView
         style={styles.inner}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {showDisclaimer ? (
           <View style={styles.disclaimer}>
@@ -156,6 +156,7 @@ export default function ChatScreen() {
                 setShowDisclaimer(false);
               }}
               accessibilityRole="button"
+              hitSlop={8}
             >
               <Text style={styles.disclaimerDismiss}>
                 {t("chat.disclaimer.dismiss")}
@@ -165,6 +166,7 @@ export default function ChatScreen() {
         ) : null}
 
         <FlatList
+          style={styles.messageList}
           inverted
           data={inverted}
           keyExtractor={(m) => m.id}
@@ -188,11 +190,32 @@ export default function ChatScreen() {
 
         {pets.length > 0 ? (
           <FlatList
+            style={styles.chipsList}
             horizontal
             data={pets}
             keyExtractor={(p) => p.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.chips}
+            ListHeaderComponent={
+              <Pressable
+                onPress={() => setSelectedPetIds([])}
+                style={[
+                  styles.chip,
+                  selectedPetIds.length === 0 && styles.chipSelected,
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: selectedPetIds.length === 0 }}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    selectedPetIds.length === 0 && styles.chipTextSelected,
+                  ]}
+                >
+                  {t("chat.chips.all")}
+                </Text>
+              </Pressable>
+            }
             renderItem={({ item }) => {
               const selected = selectedPetIds.includes(item.id);
               return (
@@ -249,6 +272,7 @@ export default function ChatScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   inner: { flex: 1 },
+  messageList: { flex: 1 },
   listContent: { padding: spacing.lg, gap: spacing.sm },
   bubble: {
     maxWidth: "85%",
@@ -256,8 +280,11 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.xs,
   },
-  userBubble: { alignSelf: "flex-end", backgroundColor: colors.primarySoft },
-  aiBubble: { alignSelf: "flex-start", backgroundColor: colors.surface },
+  // I18nManager forces RTL app-wide, which mirrors flex-start/flex-end — swap
+  // them here so the user's own bubble stays right-aligned like every other
+  // chat UI, regardless of writing direction.
+  userBubble: { alignSelf: "flex-start", backgroundColor: colors.primarySoft },
+  aiBubble: { alignSelf: "flex-end", backgroundColor: colors.surface },
   userText: { ...typography.body, color: colors.ink },
   aiText: { ...typography.body, color: colors.ink },
   interrupted: { ...typography.caption, color: colors.danger },
@@ -291,6 +318,7 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     textAlign: "center",
   },
+  chipsList: { flexGrow: 0 },
   chips: { paddingHorizontal: spacing.lg, gap: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,
@@ -311,6 +339,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: spacing.sm,
     padding: spacing.lg,
+    marginBottom: spacing.sm,
   },
   input: {
     flex: 1,
