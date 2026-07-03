@@ -76,6 +76,18 @@ it("send marks the user message failed on transport error", async () => {
   });
 });
 
+it("openConversation no-ops when the id is already active", async () => {
+  useChatStore.setState({
+    activeConversationId: "c1",
+    messages: [{ id: "m1", role: "user", content: "قبلی" }],
+  });
+  await useChatStore.getState().openConversation("c1");
+  expect(api.listMessages).not.toHaveBeenCalled();
+  expect(useChatStore.getState().messages).toEqual([
+    { id: "m1", role: "user", content: "قبلی" },
+  ]);
+});
+
 it("stream error event marks the assistant bubble interrupted", async () => {
   useChatStore.setState({ activeConversationId: "c1" });
   api.sendMessage.mockImplementation(

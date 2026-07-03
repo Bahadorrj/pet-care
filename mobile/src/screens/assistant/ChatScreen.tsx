@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -10,6 +10,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
 import { Ionicons } from "@expo/vector-icons";
 import { useNetInfo } from "@react-native-community/netinfo";
@@ -21,6 +26,7 @@ import { useTasksStore } from "../../store/tasksStore";
 import { buildPetContext } from "../../lib/petContext";
 import { kvGet, kvSet } from "../../db/kv";
 import { colors, fonts, radius, spacing, typography } from "../../theme/theme";
+import type { AssistantStackParamList } from "../../navigation/AssistantStack";
 
 const DISCLAIMER_KEY = "chat_disclaimer_dismissed";
 
@@ -28,11 +34,16 @@ export default function ChatScreen() {
   const { t } = useTranslation();
   const netInfo = useNetInfo();
   const offline = netInfo.isConnected === false;
+  const navigation = useNavigation();
+  const route = useRoute<RouteProp<AssistantStackParamList, "Chat">>();
 
   const messages = useChatStore((s) => s.messages);
   const streaming = useChatStore((s) => s.streaming);
   const send = useChatStore((s) => s.send);
   const retry = useChatStore((s) => s.retry);
+  const conversations = useChatStore((s) => s.conversations);
+  const activeConversationId = useChatStore((s) => s.activeConversationId);
+  const openConversation = useChatStore((s) => s.openConversation);
 
   const pets = usePetsStore((s) => s.pets);
   const tasks = useTasksStore((s) => s.tasks);
@@ -46,6 +57,26 @@ export default function ChatScreen() {
   );
   // Synchronous in-flight guard (repo convention) on top of `streaming` state.
   const inFlightRef = useRef(false);
+
+  // Screen owns loading its own conversation instead of trusting the caller
+  // to have primed the store — no-ops when the caller already did.
+  useEffect(() => {
+    if (activeConversationId !== route.params.conversationId) {
+      openConversation(route.params.conversationId).catch(() =>
+        setError(t("chat.error.network")),
+      );
+    }
+  }, [route.params.conversationId, activeConversationId, openConversation, t]);
+
+  useEffect(() => {
+    // AssistantStack's screenOptions sets headerTitle: "" for the whole
+    // stack, and a string headerTitle always outranks `title` — must set
+    // headerTitle directly here to actually override it.
+    const headerTitle =
+      conversations.find((c) => c.id === activeConversationId)?.title ??
+      t("chat.list.untitled");
+    navigation.setOptions({ headerTitle });
+  }, [navigation, conversations, activeConversationId, t]);
 
   const context = () =>
     buildPetContext(pets, tasks, getLogsForTask, selectedPetIds);

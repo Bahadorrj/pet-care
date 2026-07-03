@@ -85,6 +85,7 @@ export const useChatStore = create<ChatState>((set, get) => {
     },
 
     openConversation: async (id) => {
+      if (get().activeConversationId === id) return;
       set({ activeConversationId: id, messages: [] });
       const msgs = await listMessages(id);
       set({
