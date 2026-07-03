@@ -27,7 +27,8 @@
       "expo-font",
       "expo-asset",
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "./plugins/withNotifeeMavenRepo"
     ]
   }
 }
