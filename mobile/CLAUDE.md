@@ -52,5 +52,6 @@ Swipeable bottom-tab navigator (`src/navigation/RootNavigator.tsx`) — a materi
 ## Conventions
 
 - Tests live in `src/__tests__/` (jest-expo + @testing-library/react-native). I18nManager RTL is asserted via spies, since the jest mock doesn't flip synchronously.
+- Test assertions against user-facing text use `i18n.t("key")` (import `i18n` from `../i18n`) or the mock/fixture's own data, never a hardcoded Persian literal — a literal silently drifts from `src/i18n/fa.json` when copy changes. See `RootNavigator.test.tsx`, `SignupScreen.test.tsx`, `TasksScreen.test.tsx`.
 - Async submit handlers use a `useRef` in-flight guard to block duplicate requests before state re-renders.
 - Errors thrown in stores and services use i18n translation keys (e.g. `"pets.error.name_required"`) — screens surface them via `t(err.message)`.
