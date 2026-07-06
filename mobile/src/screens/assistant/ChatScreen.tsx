@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -57,6 +58,26 @@ export default function ChatScreen() {
   );
   // Synchronous in-flight guard (repo convention) on top of `streaming` state.
   const inFlightRef = useRef(false);
+
+  // KeyboardAvoidingView (iOS) / adjustPan (Android) both butt the composer
+  // right up against the keyboard — track visibility to add a small gap.
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent =
+      Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, () =>
+      setKeyboardVisible(true),
+    );
+    const hideSub = Keyboard.addListener(hideEvent, () =>
+      setKeyboardVisible(false),
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Screen owns loading its own conversation instead of trusting the caller
   // to have primed the store — no-ops when the caller already did.
@@ -239,7 +260,7 @@ export default function ChatScreen() {
           />
         ) : null}
 
-        <View style={styles.composer}>
+        <View style={[styles.composer, keyboardVisible && styles.composerGap]}>
           <TextInput
             testID="chat-input"
             style={styles.input}
@@ -339,8 +360,8 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     gap: spacing.sm,
     padding: spacing.lg,
-    marginBottom: spacing.sm,
   },
+  composerGap: { marginBottom: spacing.sm },
   input: {
     flex: 1,
     minHeight: 44,
