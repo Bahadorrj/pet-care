@@ -41,7 +41,7 @@ Swipeable bottom-tab navigator (`src/navigation/RootNavigator.tsx`) — a materi
 
 **UI primitives** — `src/components/ui/` (`Button`, `TextField`). Reuse these rather than raw RN components.
 
-**Native UI patterns** — before building or restyling a screen, consult `expo:building-native-ui` (and `expo:expo-ui` for native components). They carry the SDK-56-correct idioms; pair them with `docs/DESIGN.md` for the visual system. Impeccable (`/impeccable`) is for design *judgment* (critique, copy, empty states) — translate its output to `StyleSheet`, not CSS.
+**Native UI patterns** — before building or restyling a screen, consult `expo:building-native-ui` (and `expo:expo-ui` for native components). They carry the SDK-56-correct idioms; pair them with `docs/DESIGN.md` for the visual system.
 
 **Pets** — `src/store/petsStore.ts` is a Zustand store backed by SQLite (`src/db/pets.ts`). `listPets()` is synchronous (expo-sqlite sync API), so `pets` is populated at module load with no async hydration step. Photo files are copied into app storage by `src/lib/petPhoto.ts`; the stored path is what goes in `photoUri`.
 
