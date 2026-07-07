@@ -162,6 +162,22 @@ export default function TaskFormScreen() {
   const [intervalUnit, setIntervalUnit] =
     useState<IntervalUnit>(initIntervalUnit);
 
+  // ── interval start (anchor) — Jalali date + Tehran wall-clock time ─────────
+  const initIntervalStartDate =
+    existing?.schedule.kind === "interval"
+      ? utcIsoToTehranJalali(existing.schedule.anchor)
+      : tehranTodayJalali();
+  const initIntervalStartTime =
+    existing?.schedule.kind === "interval"
+      ? utcIsoToTehranTime(existing.schedule.anchor)
+      : "09:00";
+  const [intervalStartDate, setIntervalStartDate] = useState(
+    initIntervalStartDate,
+  );
+  const [intervalStartTime, setIntervalStartTime] = useState(
+    initIntervalStartTime,
+  );
+
   // ── one_off — Jalali date yyyy/MM/dd (Tehran wall-clock) + time HH:MM ────────
   // DatePickerField emits Jalali; on submit jalaliToGregorian converts before toUtcIso.
   const initOneOffDate =
@@ -226,12 +242,13 @@ export default function TaskFormScreen() {
 
       case "interval": {
         const n = parseInt(intervalN, 10);
-        const anchor = new Date().toISOString(); // anchor = now (creation time)
+        const greg = jalaliToGregorian(intervalStartDate);
+        if (!greg) throw new Error("tasks.error.invalid_date");
         return {
           kind: "interval",
           n: isNaN(n) ? 1 : n,
           unit: intervalUnit,
-          anchor,
+          anchor: toUtcIso(intervalStartTime, greg),
         };
       }
 
@@ -278,6 +295,16 @@ export default function TaskFormScreen() {
         return;
       }
       if (!isValidTime(oneOffTime)) {
+        setScheduleError(t("tasks.error.invalid_time"));
+        return;
+      }
+    }
+    if (scheduleKind === "interval") {
+      if (!jalaliToGregorian(intervalStartDate)) {
+        setScheduleError(t("tasks.error.invalid_date"));
+        return;
+      }
+      if (!isValidTime(intervalStartTime)) {
         setScheduleError(t("tasks.error.invalid_time"));
         return;
       }
@@ -634,6 +661,27 @@ export default function TaskFormScreen() {
                   ))}
                 </View>
               </View>
+              <Text style={[styles.label, { marginTop: spacing.md }]}>
+                {t("tasks.schedule.start")}
+              </Text>
+              <DatePickerField
+                testID="taskform-interval-start-date"
+                value={intervalStartDate}
+                onChange={(v) => {
+                  setIntervalStartDate(v);
+                  if (scheduleError) setScheduleError("");
+                }}
+                accessibilityLabel={t("tasks.schedule.start")}
+              />
+              <TimePickerField
+                testID="taskform-interval-start-time"
+                value={intervalStartTime}
+                onChange={(v) => {
+                  setIntervalStartTime(v);
+                  if (scheduleError) setScheduleError("");
+                }}
+                accessibilityLabel={t("tasks.schedule.time")}
+              />
               {scheduleError !== "" && (
                 <Text style={styles.errorText}>{scheduleError}</Text>
               )}

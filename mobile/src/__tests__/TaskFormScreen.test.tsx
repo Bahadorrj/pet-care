@@ -284,6 +284,59 @@ describe("TaskFormScreen – Add – interval", () => {
   });
 });
 
+// ── 3b. Interval – user-picked start anchor ──────────────────────────────────
+
+describe("TaskFormScreen – interval anchor", () => {
+  test("preserves an interval task's anchor when editing an unrelated field", async () => {
+    const anchor = "2026-07-01T05:30:00.000Z";
+    mockRouteParams = { petId: "pet-1", taskId: "task-1" };
+    mockGetTask.mockReturnValue({
+      id: "task-1",
+      petId: "pet-1",
+      type: "meds",
+      title: "قطره",
+      schedule: { kind: "interval", n: 2, unit: "days", anchor },
+      endKind: "never",
+      endUntil: null,
+      endCount: null,
+      active: true,
+      createdAt: "2026-06-01T00:00:00.000Z",
+      updatedAt: "2026-06-01T00:00:00.000Z",
+    });
+    mockUpdateTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
+
+    await changeText(getByTestId("taskform-title"), "قطره چشم");
+    await press(getByTestId("taskform-submit"));
+
+    await waitFor(() => expect(mockUpdateTask).toHaveBeenCalled());
+    const [, data] = mockUpdateTask.mock.calls[0];
+    expect(data.schedule).toEqual({
+      kind: "interval",
+      n: 2,
+      unit: "days",
+      anchor,
+    });
+  });
+
+  test("uses the picked start date+time as the interval anchor in add mode", async () => {
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<TaskFormScreen />);
+
+    await press(getByTestId("taskform-type-meds"));
+    await press(getByTestId("taskform-schedule-interval"));
+
+    await changeText(getByTestId("taskform-interval-start-date"), "1405/04/10");
+    await pickTime(getByTestId, "taskform-interval-start-time", "09:00");
+    await press(getByTestId("taskform-submit"));
+
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalled());
+    expect(mockAddTask.mock.calls[0][0].schedule.anchor).toBe(
+      "2026-07-01T05:30:00.000Z",
+    );
+  });
+});
+
 // ── 4. Add – one_off (Jalali input) ──────────────────────────────────────────
 
 describe("TaskFormScreen – Add – one_off", () => {

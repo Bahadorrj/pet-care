@@ -90,6 +90,7 @@
   "tasks.schedule.weekdays": "روزهای هفته",
   "tasks.schedule.interval": "هر چند وقت یک‌بار",
   "tasks.schedule.one_off": "یک‌بار",
+  "tasks.schedule.start": "شروع از",
   "tasks.schedule.times": "ساعت‌ها",
   "tasks.schedule.time": "ساعت",
   "tasks.schedule.days": "روزها",
