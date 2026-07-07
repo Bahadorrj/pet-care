@@ -15,6 +15,7 @@ import { StyleSheet } from "react-native";
 // ── i18n ──────────────────────────────────────────────────────────────────────
 import i18n from "../i18n";
 import TasksScreen from "../screens/tasks/TasksScreen";
+import { tomorrowSameTime } from "../screens/tasks/todayBuckets";
 import { toPersianDigits } from "../lib/jalali";
 import { colors } from "../theme/theme";
 import type { Occurrence } from "../db/types";
@@ -27,6 +28,7 @@ const mockMarkOccurrence = jest.fn().mockResolvedValue(undefined);
 const mockUnmarkOccurrence = jest.fn().mockResolvedValue(undefined);
 const mockDeleteTask = jest.fn().mockResolvedValue(undefined);
 const mockToggleActive = jest.fn().mockResolvedValue(undefined);
+const mockUpdateTask = jest.fn().mockResolvedValue(undefined);
 let mockWindowOccurrences: unknown[] = [];
 
 jest.mock("../store/tasksStore", () => ({
@@ -38,6 +40,7 @@ jest.mock("../store/tasksStore", () => ({
       unmarkOccurrence: typeof mockUnmarkOccurrence;
       deleteTask: typeof mockDeleteTask;
       toggleActive: typeof mockToggleActive;
+      updateTask: typeof mockUpdateTask;
     }) => unknown,
   ) =>
     selector({
@@ -47,6 +50,7 @@ jest.mock("../store/tasksStore", () => ({
       unmarkOccurrence: mockUnmarkOccurrence,
       deleteTask: mockDeleteTask,
       toggleActive: mockToggleActive,
+      updateTask: mockUpdateTask,
     }),
 }));
 
@@ -137,6 +141,7 @@ beforeEach(() => {
   mockUnmarkOccurrence.mockClear();
   mockDeleteTask.mockClear();
   mockToggleActive.mockClear();
+  mockUpdateTask.mockClear();
   mockNavigate.mockClear();
   mockParentNavigate.mockClear();
   (Toast.show as jest.Mock).mockClear();
@@ -406,7 +411,7 @@ describe("TasksScreen – action sheet", () => {
     fireEvent.press(getByTestId("tasks-more-task-oneoff"));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    expect(opts.options[3]).toBe(i18n.t("tasks.action.delete_one_off"));
+    expect(opts.options).toContain(i18n.t("tasks.action.delete_one_off"));
   });
 
   test("destructiveButtonIndex is 3, cancelButtonIndex is 4", async () => {
@@ -435,6 +440,104 @@ describe("TasksScreen – action sheet", () => {
 
     cb(2); // pause
     expect(mockToggleActive).toHaveBeenCalledWith("t1");
+  });
+});
+
+// ── 4b. Postpone «به فردا» ─────────────────────────────────────────────────────
+describe("TasksScreen – postpone", () => {
+  test("overdue one-off offers postpone; choosing it updates the schedule to tomorrow same Tehran time", async () => {
+    const occ = makeOcc("t-oneoff-overdue", DUE_OVERDUE, "pending", "one_off");
+    mockWindowOccurrences = [occ];
+    const { getByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-more-t-oneoff-overdue"));
+
+    const [opts, callback] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    const postponeIndex = opts.options.indexOf(i18n.t("tasks.action.postpone"));
+    expect(postponeIndex).toBeGreaterThanOrEqual(0);
+
+    const expectedAt = tomorrowSameTime(DUE_OVERDUE, new Date());
+    callback(postponeIndex);
+
+    expect(mockUpdateTask).toHaveBeenCalledWith("t-oneoff-overdue", {
+      type: occ.task.type,
+      title: occ.task.title,
+      schedule: { kind: "one_off", at: expectedAt },
+      endKind: occ.task.endKind,
+      endUntil: occ.task.endUntil,
+      endCount: occ.task.endCount,
+      active: occ.task.active,
+    });
+  });
+
+  test("postpone is absent for recurring tasks and for future one-off tasks", async () => {
+    const upcomingOneOff = makeOcc(
+      "t-oneoff-upcoming",
+      DUE_UPCOMING,
+      "pending",
+      "one_off",
+    );
+    mockWindowOccurrences = [OCC_TODAY, upcomingOneOff]; // OCC_TODAY = recurring
+    const { getByTestId } = await render(<TasksScreen />);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-more-task-today"));
+    });
+    let [opts] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    expect(opts.options).not.toContain(i18n.t("tasks.action.postpone"));
+
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-more-t-oneoff-upcoming"));
+    });
+    [opts] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    expect(opts.options).not.toContain(i18n.t("tasks.action.postpone"));
+  });
+
+  test("delete stays the destructive index and cancel stays last, with or without postpone", async () => {
+    const oneOffOverdue = makeOcc(
+      "t-oneoff-overdue2",
+      DUE_OVERDUE,
+      "pending",
+      "one_off",
+    );
+    mockWindowOccurrences = [OCC_TODAY, oneOffOverdue];
+    const { getByTestId } = await render(<TasksScreen />);
+
+    // Without postpone (recurring row)
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-more-task-today"));
+    });
+    let [opts] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    expect(opts.options[opts.destructiveButtonIndex]).toBe(
+      i18n.t("tasks.action.delete_recurring"),
+    );
+    expect(opts.options[opts.cancelButtonIndex]).toBe(
+      i18n.t("tasks.action.cancel"),
+    );
+    expect(opts.cancelButtonIndex).toBe(opts.options.length - 1);
+
+    // With postpone (overdue one-off)
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-more-t-oneoff-overdue2"));
+    });
+    [opts] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    expect(opts.options[opts.destructiveButtonIndex]).toBe(
+      i18n.t("tasks.action.delete_one_off"),
+    );
+    expect(opts.options[opts.cancelButtonIndex]).toBe(
+      i18n.t("tasks.action.cancel"),
+    );
+    expect(opts.cancelButtonIndex).toBe(opts.options.length - 1);
   });
 });
 

@@ -152,6 +152,7 @@
   "tasks.undo.done": "انجام شد",
   "tasks.undo.action": "لغو",
   "tasks.done.confirm": "کار {{name}} انجام شد",
+  "tasks.action.postpone": "به فردا",
   "tasks.action.edit": "ویرایش",
   "tasks.action.pause": "توقف یادآوری",
   "tasks.action.delete_recurring": "حذف این کار و همه تکرارهای آن",

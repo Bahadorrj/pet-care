@@ -55,6 +55,17 @@ export function sortOccurrences(occs: Occurrence[], now: Date): Occurrence[] {
   });
 }
 
+/**
+ * UTC ISO for "tomorrow" (the Tehran calendar day after `now`'s) at `atUtcIso`'s
+ * own Tehran wall-clock time.
+ */
+export function tomorrowSameTime(atUtcIso: string, now: Date): string {
+  const tomorrowTehranMidnightUtcMs = tehranStartOfDay(now).getTime() + DAY_MS;
+  const atTehranShiftedMs = new Date(atUtcIso).getTime() + TEHRAN_OFFSET_MS;
+  const wallClockMs = ((atTehranShiftedMs % DAY_MS) + DAY_MS) % DAY_MS;
+  return new Date(tomorrowTehranMidnightUtcMs + wallClockMs).toISOString();
+}
+
 export interface BucketResult {
   overdue: Occurrence[];
   today: Occurrence[];

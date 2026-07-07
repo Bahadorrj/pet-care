@@ -27,7 +27,8 @@ import {
 } from "../../theme/theme";
 import { TASK_TYPE_ICON } from "../../theme/icons";
 import { utcIsoToTehranJalali, toPersianDigits } from "../../lib/jalali";
-import { bucketOccurrences } from "./todayBuckets";
+import { tehranDayOffset } from "../../lib/taskSchedule";
+import { bucketOccurrences, tomorrowSameTime } from "./todayBuckets";
 import type { Occurrence, TaskType } from "../../db/types";
 import type { TasksNavigationProp } from "../../navigation/TasksStack";
 
@@ -292,6 +293,7 @@ export default function TasksScreen() {
   const unmarkOccurrence = useTasksStore((s) => s.unmarkOccurrence);
   const deleteTask = useTasksStore((s) => s.deleteTask);
   const toggleActive = useTasksStore((s) => s.toggleActive);
+  const updateTask = useTasksStore((s) => s.updateTask);
 
   const pets = usePetsStore(useShallow((s) => s.pets));
 
@@ -387,32 +389,70 @@ export default function TasksScreen() {
 
   const handleMore = React.useCallback(
     (occ: Occurrence) => {
-      const { task, dueAt } = occ;
+      const { task, dueAt, status } = occ;
       const deleteLabel =
         task.schedule.kind === "one_off"
           ? t("tasks.action.delete_one_off")
           : t("tasks.action.delete_recurring");
 
-      const options = [
-        t("tasks.action.skip"),
-        t("tasks.action.edit"),
-        t("tasks.action.pause"),
-        deleteLabel,
-        t("tasks.action.cancel"),
-      ];
+      const oneOffSchedule =
+        task.schedule.kind === "one_off" ? task.schedule : null;
+      const canPostpone =
+        oneOffSchedule !== null &&
+        status !== "done" &&
+        status !== "skipped" &&
+        tehranDayOffset(dueAt) <= 0;
+
+      const entries: {
+        label: string;
+        onPress?: () => void;
+        destructive?: true;
+      }[] = [];
+      if (canPostpone && oneOffSchedule) {
+        entries.push({
+          label: t("tasks.action.postpone"),
+          onPress: () =>
+            updateTask(task.id, {
+              type: task.type,
+              title: task.title,
+              schedule: {
+                kind: "one_off",
+                at: tomorrowSameTime(oneOffSchedule.at, new Date()),
+              },
+              endKind: task.endKind,
+              endUntil: task.endUntil,
+              endCount: task.endCount,
+              active: task.active,
+            }),
+        });
+      }
+      entries.push(
+        {
+          label: t("tasks.action.skip"),
+          onPress: () => markOccurrence(task.id, dueAt, "skipped"),
+        },
+        { label: t("tasks.action.edit"), onPress: () => handleEdit(occ) },
+        {
+          label: t("tasks.action.pause"),
+          onPress: () => toggleActive(task.id),
+        },
+        {
+          label: deleteLabel,
+          onPress: () => deleteTask(task.id),
+          destructive: true,
+        },
+        { label: t("tasks.action.cancel") },
+      );
+
+      const options = entries.map((e) => e.label);
+      const destructiveButtonIndex = entries.findIndex((e) => e.destructive);
+      const cancelButtonIndex = entries.length - 1;
 
       showActionSheetWithOptions(
-        { options, destructiveButtonIndex: 3, cancelButtonIndex: 4 },
+        { options, destructiveButtonIndex, cancelButtonIndex },
         (index?: number) => {
-          if (index === 0) {
-            markOccurrence(task.id, dueAt, "skipped");
-          } else if (index === 1) {
-            handleEdit(occ);
-          } else if (index === 2) {
-            toggleActive(task.id);
-          } else if (index === 3) {
-            deleteTask(task.id);
-          }
+          if (index === undefined) return;
+          entries[index]?.onPress?.();
         },
       );
     },
@@ -420,6 +460,7 @@ export default function TasksScreen() {
       showActionSheetWithOptions,
       deleteTask,
       toggleActive,
+      updateTask,
       markOccurrence,
       t,
       handleEdit,

@@ -14,7 +14,10 @@
  * 6. sort: overdue-first ordering within the overdue+today mix
  */
 
-import { bucketOccurrences } from "../screens/tasks/todayBuckets";
+import {
+  bucketOccurrences,
+  tomorrowSameTime,
+} from "../screens/tasks/todayBuckets";
 import type { Task, Occurrence } from "../db/types";
 
 // ── Fixed clock ───────────────────────────────────────────────────────────────
@@ -225,5 +228,23 @@ describe("bucketOccurrences", () => {
     expect(today).toHaveLength(1);
     expect(upcoming).toHaveLength(0);
     expect(completed).toHaveLength(0);
+  });
+});
+
+// ── Task 5: tomorrowSameTime ───────────────────────────────────────────────────
+describe("tomorrowSameTime", () => {
+  test("an overdue at (3 days ago) at Tehran 09:00 → tomorrow (relative to now) 09:00 Tehran", () => {
+    const at = "2026-06-21T05:30:00Z"; // Tehran 09:00
+    expect(tomorrowSameTime(at, NOW)).toBe("2026-06-25T05:30:00.000Z");
+  });
+
+  test("a today at → tomorrow same Tehran wall-clock time", () => {
+    const at = "2026-06-24T05:30:00Z"; // Tehran 09:00, today
+    expect(tomorrowSameTime(at, NOW)).toBe("2026-06-25T05:30:00.000Z");
+  });
+
+  test("whole-minute fixture (Tehran 14:45)", () => {
+    const at = "2026-06-20T11:15:00Z"; // Tehran 14:45
+    expect(tomorrowSameTime(at, NOW)).toBe("2026-06-25T11:15:00.000Z");
   });
 });
