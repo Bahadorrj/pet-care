@@ -74,6 +74,7 @@
   "tasks.edit": "ویرایش کار",
   "tasks.delete": "حذف کار",
   "tasks.delete_confirm": "مطمئنی می‌خواهی این کار را حذف کنی؟",
+  "tasks.delete_confirm_recurring": "مطمئنی می‌خواهی این کار و همه تکرارهای آن را حذف کنی؟",
   "tasks.section_title": "کارها",
   "tasks.type.feeding": "غذا و خوراکی",
   "tasks.type.water": "آب",

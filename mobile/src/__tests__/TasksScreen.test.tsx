@@ -378,7 +378,7 @@ describe("TasksScreen – action sheet", () => {
     });
   });
 
-  test("action-sheet index 3 (delete) → deleteTask(id)", async () => {
+  test("action-sheet index 3 (delete) → opens the confirm dialog, not an immediate delete", async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
@@ -389,7 +389,10 @@ describe("TasksScreen – action sheet", () => {
       .calls[0];
     callback(3);
 
-    expect(mockDeleteTask).toHaveBeenCalledWith("task-today");
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(getByTestId("tasks-delete-confirm")).toBeTruthy(),
+    );
   });
 
   test("delete label is the recurring-delete translation for recurring task", async () => {
@@ -1058,6 +1061,97 @@ describe("TasksScreen – filter-empty (no-match)", () => {
     const { getByTestId, queryByTestId } = await render(<TasksScreen />);
     expect(getByTestId("tasks-empty")).toBeTruthy();
     expect(queryByTestId("tasks-no-match")).toBeNull();
+  });
+});
+
+// ── 13c. Delete confirmation ──────────────────────────────────────────────────
+describe("TasksScreen – delete confirmation", () => {
+  test("choosing delete in the sheet shows the confirm dialog instead of deleting immediately", async () => {
+    mockWindowOccurrences = [OCC_TODAY]; // recurring
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-more-task-today"));
+    const [opts, callback] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    callback(opts.destructiveButtonIndex);
+
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(getByTestId("tasks-delete-confirm")).toBeTruthy(),
+    );
+    expect(queryByTestId("tasks-no-match")).toBeNull(); // sanity: not confusing dialogs
+  });
+
+  test("confirming the dialog calls deleteTask(id)", async () => {
+    mockWindowOccurrences = [OCC_TODAY];
+    const { getByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-more-task-today"));
+    const [opts, callback] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    callback(opts.destructiveButtonIndex);
+    await waitFor(() =>
+      expect(getByTestId("tasks-delete-confirm")).toBeTruthy(),
+    );
+
+    fireEvent.press(getByTestId("tasks-delete-confirm-confirm"));
+    expect(mockDeleteTask).toHaveBeenCalledWith("task-today");
+  });
+
+  test("cancelling the dialog never deletes and closes it", async () => {
+    mockWindowOccurrences = [OCC_TODAY];
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-more-task-today"));
+    const [opts, callback] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    callback(opts.destructiveButtonIndex);
+    await waitFor(() =>
+      expect(getByTestId("tasks-delete-confirm")).toBeTruthy(),
+    );
+
+    fireEvent.press(getByTestId("tasks-delete-confirm-cancel"));
+    expect(mockDeleteTask).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(queryByTestId("tasks-delete-confirm")).toBeNull(),
+    );
+  });
+
+  test("recurring task shows the recurring-aware confirm message", async () => {
+    mockWindowOccurrences = [OCC_TODAY]; // daily_times
+    const { getByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-more-task-today"));
+    const [opts, callback] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    callback(opts.destructiveButtonIndex);
+
+    await waitFor(() =>
+      expect(getByTestId("tasks-delete-confirm")).toHaveTextContent(
+        new RegExp(i18n.t("tasks.delete_confirm_recurring")),
+      ),
+    );
+  });
+
+  test("one-off task shows the one-off confirm message", async () => {
+    mockWindowOccurrences = [OCC_ONE_OFF];
+    const { getByTestId } = await render(<TasksScreen />);
+
+    fireEvent.press(getByTestId("tasks-more-task-oneoff"));
+    const [opts, callback] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    callback(opts.destructiveButtonIndex);
+
+    await waitFor(() =>
+      expect(getByTestId("tasks-delete-confirm")).toHaveTextContent(
+        new RegExp(i18n.t("tasks.delete_confirm")),
+      ),
+    );
   });
 });
 

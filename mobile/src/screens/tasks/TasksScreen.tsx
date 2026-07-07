@@ -29,7 +29,8 @@ import { TASK_TYPE_ICON } from "../../theme/icons";
 import { utcIsoToTehranJalali, toPersianDigits } from "../../lib/jalali";
 import { tehranDayOffset } from "../../lib/taskSchedule";
 import { bucketOccurrences, tomorrowSameTime } from "./todayBuckets";
-import type { Occurrence, TaskType } from "../../db/types";
+import ConfirmDialog from "../../components/ui/ConfirmDialog";
+import type { Occurrence, Task, TaskType } from "../../db/types";
 import type { TasksNavigationProp } from "../../navigation/TasksStack";
 
 // ── Tehran time helper ─────────────────────────────────────────────────────────
@@ -301,6 +302,7 @@ export default function TasksScreen() {
   const [petFilter, setPetFilter] = React.useState<string | null>(null);
   const [typeFilter, setTypeFilter] = React.useState<Set<TaskType>>(new Set());
   const [typeModalVisible, setTypeModalVisible] = React.useState(false);
+  const [pendingDelete, setPendingDelete] = React.useState<Task | null>(null);
 
   // ── Collapsible sections — in-memory only, default expanded ──────────────────
   const [collapsed, setCollapsed] = React.useState<
@@ -438,7 +440,7 @@ export default function TasksScreen() {
         },
         {
           label: deleteLabel,
-          onPress: () => deleteTask(task.id),
+          onPress: () => setPendingDelete(task),
           destructive: true,
         },
         { label: t("tasks.action.cancel") },
@@ -458,7 +460,6 @@ export default function TasksScreen() {
     },
     [
       showActionSheetWithOptions,
-      deleteTask,
       toggleActive,
       updateTask,
       markOccurrence,
@@ -709,6 +710,24 @@ export default function TasksScreen() {
           setTypeModalVisible(false);
         }}
         onClose={() => setTypeModalVisible(false)}
+      />
+      <ConfirmDialog
+        testID="tasks-delete-confirm"
+        visible={pendingDelete !== null}
+        title={t("tasks.delete")}
+        message={
+          pendingDelete?.schedule.kind === "one_off"
+            ? t("tasks.delete_confirm")
+            : t("tasks.delete_confirm_recurring")
+        }
+        confirmLabel={t("tasks.action.delete")}
+        cancelLabel={t("common.cancel")}
+        destructive
+        onConfirm={() => {
+          if (pendingDelete) deleteTask(pendingDelete.id);
+          setPendingDelete(null);
+        }}
+        onCancel={() => setPendingDelete(null)}
       />
       <Pressable
         testID="tasks-fab"
