@@ -299,6 +299,18 @@ export default function TasksScreen() {
   const [typeFilter, setTypeFilter] = React.useState<Set<TaskType>>(new Set());
   const [typeModalVisible, setTypeModalVisible] = React.useState(false);
 
+  // ── Collapsible sections — in-memory only, default expanded ──────────────────
+  const [collapsed, setCollapsed] = React.useState<
+    Record<SectionKind, boolean>
+  >({
+    overdue: false,
+    today: false,
+    upcoming: false,
+  });
+  const toggleSection = React.useCallback((key: SectionKind) => {
+    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
   // Reload on focus, but defer the recompute + list re-render past the
   // tab-transition animation so entering the Tasks tab doesn't stutter.
   useFocusEffect(
@@ -437,15 +449,20 @@ export default function TasksScreen() {
     if (overdue.length > 0)
       sections.push({
         sectionKey: "overdue",
-        data: overdue.map((occ) => ({ kind: "occ", occ })),
+        data: collapsed.overdue
+          ? []
+          : overdue.map((occ) => ({ kind: "occ", occ })),
       });
     if (today.length > 0)
       sections.push({
         sectionKey: "today",
-        data: today.map((occ) => ({ kind: "occ", occ })),
+        data: collapsed.today ? [] : today.map((occ) => ({ kind: "occ", occ })),
       });
     if (upcoming.length > 0)
-      sections.push({ sectionKey: "upcoming", data: upcomingItems });
+      sections.push({
+        sectionKey: "upcoming",
+        data: collapsed.upcoming ? [] : upcomingItems,
+      });
 
     const counts: Record<SectionKind, number> = {
       overdue: overdue.length,
@@ -454,7 +471,7 @@ export default function TasksScreen() {
     };
 
     return { sections, counts };
-  }, [overdue, today, upcoming]);
+  }, [overdue, today, upcoming, collapsed]);
 
   const allBucketsEmpty =
     overdue.length === 0 && today.length === 0 && upcoming.length === 0;
@@ -635,15 +652,24 @@ export default function TasksScreen() {
         renderSectionHeader={({ section }) => {
           const sec = section as Section;
           const count = counts[sec.sectionKey];
+          const expanded = !collapsed[sec.sectionKey];
           return (
-            <View
+            <Pressable
               style={styles.sectionHeader}
               testID={`tasks-section-${sec.sectionKey}`}
+              onPress={() => toggleSection(sec.sectionKey)}
+              accessibilityRole="button"
+              accessibilityState={{ expanded }}
             >
               <Text style={styles.sectionTitle}>
                 {`${t(`tasks.section.${sec.sectionKey}`)} · ${toPersianDigits(count)}`}
               </Text>
-            </View>
+              <MaterialCommunityIcons
+                name={expanded ? "chevron-up" : "chevron-down"}
+                size={20}
+                color={colors.inkMuted}
+              />
+            </Pressable>
           );
         }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -688,8 +714,12 @@ const styles = StyleSheet.create({
   },
   // Section header
   sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingTop: spacing.lg,
     paddingBottom: spacing.xs,
+    minHeight: 44,
   },
   sectionTitle: {
     fontSize: typography.label.fontSize,

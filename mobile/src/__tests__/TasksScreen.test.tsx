@@ -806,6 +806,52 @@ describe("TasksScreen – FAB", () => {
   });
 });
 
+// ── 13b. Collapsible sections ─────────────────────────────────────────────────
+describe("TasksScreen – collapse", () => {
+  test("pressing a section header hides its rows, other sections stay", async () => {
+    mockWindowOccurrences = [OCC_OVERDUE, OCC_TODAY, OCC_UPCOMING];
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+
+    expect(getByTestId("tasks-row-task-today")).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-section-today"));
+    });
+
+    expect(queryByTestId("tasks-row-task-today")).toBeNull();
+    expect(getByTestId("tasks-row-task-overdue")).toBeTruthy();
+    expect(getByTestId("tasks-row-task-upcoming")).toBeTruthy();
+  });
+
+  test("pressing again restores the section's rows", async () => {
+    mockWindowOccurrences = [OCC_TODAY];
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-section-today"));
+    });
+    expect(queryByTestId("tasks-row-task-today")).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-section-today"));
+    });
+    expect(getByTestId("tasks-row-task-today")).toBeTruthy();
+  });
+
+  test("header accessibilityState.expanded flips on press", async () => {
+    mockWindowOccurrences = [OCC_TODAY];
+    const { getByTestId } = await render(<TasksScreen />);
+
+    const header = getByTestId("tasks-section-today");
+    expect(header.props.accessibilityState.expanded).toBe(true);
+
+    await act(async () => {
+      fireEvent.press(header);
+    });
+    expect(header.props.accessibilityState.expanded).toBe(false);
+  });
+});
+
 // ── 13. Filter-empty state (no-match) ────────────────────────────────────────
 describe("TasksScreen – filter-empty (no-match)", () => {
   test("filters that match nothing show today-no-match (not today-empty)", async () => {
