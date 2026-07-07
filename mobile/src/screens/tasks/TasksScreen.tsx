@@ -77,7 +77,6 @@ interface Section {
 type RowProps = {
   occ: Occurrence;
   petName: string;
-  overdue: boolean;
   future: boolean;
   onCheck: (occ: Occurrence) => void;
   onEdit: (occ: Occurrence) => void;
@@ -87,7 +86,6 @@ type RowProps = {
 const OccurrenceRow = React.memo(function OccurrenceRow({
   occ,
   petName,
-  overdue,
   future,
   onCheck,
   onEdit,
@@ -159,9 +157,7 @@ const OccurrenceRow = React.memo(function OccurrenceRow({
           {task.title ?? t(`tasks.type.${task.type}`)}
         </Text>
         <View style={styles.metaRow}>
-          <Text
-            style={[styles.time, overdue && !isFinal && styles.timeOverdue]}
-          >
+          <Text style={styles.time}>
             {toPersianDigits(toTehranTime(dueAt))}
           </Text>
           {status === "skipped" && (
@@ -691,7 +687,6 @@ export default function TasksScreen() {
             <OccurrenceRow
               occ={occ}
               petName={petNameById[occ.task.petId] ?? ""}
-              overdue={(section as Section).sectionKey === "overdue"}
               future={(section as Section).sectionKey === "upcoming"}
               onCheck={handleCheck}
               onEdit={handleEdit}
@@ -803,9 +798,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.inkMuted,
     fontVariant: ["tabular-nums"],
-  },
-  timeOverdue: {
-    color: colors.danger,
   },
   skippedTag: {
     fontSize: typography.caption.fontSize,

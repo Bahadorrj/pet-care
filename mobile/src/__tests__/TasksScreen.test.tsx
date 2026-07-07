@@ -10,11 +10,13 @@
 
 import React from "react";
 import { render, fireEvent, waitFor, act } from "@testing-library/react-native";
+import { StyleSheet } from "react-native";
 
 // ── i18n ──────────────────────────────────────────────────────────────────────
 import i18n from "../i18n";
 import TasksScreen from "../screens/tasks/TasksScreen";
 import { toPersianDigits } from "../lib/jalali";
+import { colors } from "../theme/theme";
 import type { Occurrence } from "../db/types";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import Toast from "react-native-toast-message";
@@ -385,6 +387,14 @@ describe("TasksScreen – action sheet", () => {
   });
 });
 
+// Tehran wall-clock HH:MM for a UTC ISO (fixed +03:30) — mirrors the screen's formatter
+const tehranHHMM = (iso: string) => {
+  const d = new Date(new Date(iso).getTime() + 210 * 60 * 1000);
+  const hh = String(d.getUTCHours()).padStart(2, "0");
+  const mm = String(d.getUTCMinutes()).padStart(2, "0");
+  return `${hh}:${mm}`;
+};
+
 // ── 5. Tehran time display ────────────────────────────────────────────────────
 describe("TasksScreen – Tehran time display", () => {
   test("shows Tehran wall-clock time HH:MM (not UTC)", async () => {
@@ -401,6 +411,14 @@ describe("TasksScreen – Tehran time display", () => {
     mockWindowOccurrences = [makeOcc("task-time", DUE_TODAY)];
     const { getByText } = await render(<TasksScreen />);
     expect(getByText(expectedTehran)).toBeTruthy();
+  });
+
+  it("renders overdue times without alert color", async () => {
+    mockWindowOccurrences = [makeOcc("late", DUE_OVERDUE)];
+    const screen = await render(<TasksScreen />);
+    const time = screen.getByText(toPersianDigits(tehranHHMM(DUE_OVERDUE)));
+    const flat = StyleSheet.flatten(time.props.style);
+    expect(flat.color).not.toBe(colors.danger);
   });
 });
 
