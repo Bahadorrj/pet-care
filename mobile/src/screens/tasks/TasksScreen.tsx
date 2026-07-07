@@ -62,10 +62,9 @@ const TASK_TYPES: TaskType[] = [
 // ── Section list item types ────────────────────────────────────────────────────
 type SectionKind = "overdue" | "today" | "upcoming";
 
-// Items can be real occurrences, per-section empty placeholders, or day sub-headers
+// Items can be real occurrences or day sub-headers
 type ListItem =
   | { kind: "occ"; occ: Occurrence }
-  | { kind: "empty"; sectionKey: SectionKind }
   | { kind: "day"; label: string };
 
 interface Section {
@@ -424,37 +423,29 @@ export default function TasksScreen() {
   // render (filter chips / modal). Includes the upcoming day sub-headers.
   const { sections, counts } = React.useMemo(() => {
     const upcomingItems: ListItem[] = [];
-    if (upcoming.length === 0) {
-      upcomingItems.push({ kind: "empty", sectionKey: "upcoming" });
-    } else {
-      let lastDay = "";
-      for (const occ of upcoming) {
-        const day = utcIsoToTehranJalali(occ.dueAt);
-        if (day !== lastDay) {
-          upcomingItems.push({ kind: "day", label: day });
-          lastDay = day;
-        }
-        upcomingItems.push({ kind: "occ", occ });
+    let lastDay = "";
+    for (const occ of upcoming) {
+      const day = utcIsoToTehranJalali(occ.dueAt);
+      if (day !== lastDay) {
+        upcomingItems.push({ kind: "day", label: day });
+        lastDay = day;
       }
+      upcomingItems.push({ kind: "occ", occ });
     }
 
-    const sections: Section[] = [
-      {
+    const sections: Section[] = [];
+    if (overdue.length > 0)
+      sections.push({
         sectionKey: "overdue",
-        data:
-          overdue.length === 0
-            ? [{ kind: "empty", sectionKey: "overdue" }]
-            : overdue.map((occ) => ({ kind: "occ", occ })),
-      },
-      {
+        data: overdue.map((occ) => ({ kind: "occ", occ })),
+      });
+    if (today.length > 0)
+      sections.push({
         sectionKey: "today",
-        data:
-          today.length === 0
-            ? [{ kind: "empty", sectionKey: "today" }]
-            : today.map((occ) => ({ kind: "occ", occ })),
-      },
-      { sectionKey: "upcoming", data: upcomingItems },
-    ];
+        data: today.map((occ) => ({ kind: "occ", occ })),
+      });
+    if (upcoming.length > 0)
+      sections.push({ sectionKey: "upcoming", data: upcomingItems });
 
     const counts: Record<SectionKind, number> = {
       overdue: overdue.length,
@@ -469,10 +460,8 @@ export default function TasksScreen() {
     overdue.length === 0 && today.length === 0 && upcoming.length === 0;
   const hasFilters = petFilter !== null || typeFilter.size > 0;
 
-  // Whole-screen genuine empty (no data at all)
-  const windowIsEmpty = windowOccurrences.length === 0;
-
-  if (windowIsEmpty) {
+  // Genuine empty: nothing actionable anywhere (and not a filter artifact)
+  if (allBucketsEmpty && !hasFilters) {
     return (
       <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
         <View style={styles.emptyContainer} testID="tasks-empty">
@@ -638,8 +627,7 @@ export default function TasksScreen() {
         keyExtractor={(item, index) => {
           if (item.kind === "occ")
             return `${item.occ.task.id}-${item.occ.dueAt}`;
-          if (item.kind === "day") return `day-${item.label}-${index}`;
-          return `empty-${item.sectionKey}`;
+          return `day-${item.label}-${index}`;
         }}
         contentContainerStyle={styles.list}
         stickySectionHeadersEnabled={false}
@@ -660,18 +648,6 @@ export default function TasksScreen() {
         }}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         renderItem={({ item, section }) => {
-          if (item.kind === "empty") {
-            return (
-              <View
-                style={styles.sectionEmptyRow}
-                testID={`tasks-empty-${item.sectionKey}`}
-              >
-                <Text style={styles.sectionEmptyText}>
-                  {t(`tasks.empty.${item.sectionKey}`)}
-                </Text>
-              </View>
-            );
-          }
           if (item.kind === "day") {
             return (
               <View style={styles.dayHeader}>
@@ -725,15 +701,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: colors.border,
     marginHorizontal: spacing.xs,
-  },
-  // Per-section empty row
-  sectionEmptyRow: {
-    paddingVertical: spacing.md,
-  },
-  sectionEmptyText: {
-    fontSize: typography.body.fontSize,
-    fontFamily: fonts.regular,
-    color: colors.inkMuted,
   },
   // Day sub-header (upcoming)
   dayHeader: {

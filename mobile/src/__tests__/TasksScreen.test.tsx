@@ -192,6 +192,12 @@ describe("TasksScreen – empty state", () => {
     const { queryByTestId } = await render(<TasksScreen />);
     expect(queryByTestId("tasks-empty")).toBeNull();
   });
+
+  it("shows the genuine empty state when everything in the window is already done", async () => {
+    mockWindowOccurrences = [makeOcc("t1", DUE_OVERDUE, "done")];
+    const screen = await render(<TasksScreen />);
+    expect(screen.getByTestId("tasks-empty")).toBeTruthy();
+  });
 });
 
 // ── 2. Section headers + count badges ────────────────────────────────────────
@@ -217,14 +223,13 @@ describe("TasksScreen – section headers", () => {
     expect(getByTestId("tasks-section-today")).toBeTruthy();
   });
 
-  test("per-section empty rows render when bucket is empty", async () => {
-    // Only today item — overdue and upcoming buckets empty
-    mockWindowOccurrences = [OCC_TODAY];
-    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
-    expect(getByTestId("tasks-empty-overdue")).toBeTruthy();
-    expect(getByTestId("tasks-empty-upcoming")).toBeTruthy();
-    // today bucket has an item — no per-section empty for it
-    expect(queryByTestId("tasks-empty-today")).toBeNull();
+  it("renders no section header or placeholder for empty sections", async () => {
+    mockWindowOccurrences = [makeOcc("t1", DUE_TODAY)]; // today only
+    const screen = await render(<TasksScreen />);
+    expect(screen.queryByTestId("tasks-section-overdue")).toBeNull();
+    expect(screen.queryByTestId("tasks-section-upcoming")).toBeNull();
+    expect(screen.queryByTestId("tasks-empty-overdue")).toBeNull();
+    expect(screen.getByTestId("tasks-section-today")).toBeTruthy();
   });
 });
 
