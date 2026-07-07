@@ -3,6 +3,8 @@
 **Status:** Approved design (brainstorm output) · 2026-06-22
 **Supersedes:** the read-only Today view shipped with `06-chores-spec.md`
 
+> Tone and empty-section behavior revised per ADR-0020.
+
 ## Goal
 
 Turn the Today tab from a flat, read-only list of *today's* chore occurrences
@@ -32,7 +34,7 @@ materialised.
 | Time horizon | Three sections: **Overdue / Today / Next 7 days** |
 | Overdue look-back | Capped at **7 days** (bounded; recurring missed beyond that drop off) |
 | Quick add | Lightweight quick-add sheet (title + pet + when), "More options →" full form |
-| Row action | **Checkbox** to complete (with undo); **tap row / ⋯** → sheet (Skip / Edit / Delete) |
+| Row action | **Checkbox** to complete (with undo); **tap row / ⋯** → sheet (Skip / Edit / Pause / Delete — pause added per ADR-0020) |
 | Top chrome | Today progress counter + filter by pet + filter by type (no streak) |
 
 ## Architecture
@@ -116,9 +118,21 @@ Add `TodayStackParamList` typed contract mirroring `PetsStack`.
 
 `SectionList` with three sections (overdue / today / upcoming). Upcoming day
 labels render as inline sub-headers within the section. Collapse state is
-in-memory (default expanded). Each section shows a per-section empty row when its
-filtered set is empty (e.g. "Nothing overdue 🎉"). The whole-screen empty state
-(existing `today-empty`) shows when the entire window has zero items.
+in-memory (default expanded).
+
+**Empty-section behavior (revised per ADR-0020):** a section does not render
+at all when its underlying bucket is genuinely empty (zero occurrences) — no
+per-section empty row, and no "🎉"-style copy. This gate is bucket-based, not
+filter-based: a section narrowed to zero by active pet/type filters still
+renders, with a "no match" affordance, so filter state stays legible (see
+Edge cases). The whole-screen empty state (existing `today-empty`) shows when
+the entire window has zero items.
+
+**Overdue styling (revised per ADR-0020):** overdue times render in neutral
+ink, never Alert Brick — DESIGN.md reserves Alert Brick for errors and
+destructive-action labels. The Overdue section title and status wording are
+calm and non-alarmed («مانده از قبل» / «انجام نشده»); the section keeps its
+position and count, it is not hidden or demoted.
 
 ### Row
 
@@ -126,12 +140,20 @@ Reuse the current row internals (type icon, pet name, chore title, Tehran time,
 status badge). Changes:
 
 - **Checkbox** (leading): tap → `markOccurrence(choreId, dueAt, 'done')`. Row
-  animates to checked, dimmed/strikethrough, and a **"Done · Undo"** toast shows
-  (~4s). Undo → `unmarkOccurrence(choreId, dueAt)`. Checked rows stay in place
-  until next reload (focus/refresh re-buckets).
+  animates to checked, dimmed/strikethrough, and a neutral **done** toast shows
+  (~4s) — see `docs/specs/10-lively-task-done-toast.md` / ADR-0020. Undo →
+  `unmarkOccurrence(choreId, dueAt)`. Checked rows stay in place until next
+  reload (focus/refresh re-buckets). **Upcoming (future-day) rows are not
+  completable**: the checkbox is disabled/inert for occurrences whose `dueAt`
+  is beyond today, so a task can't be marked done ahead of its date; those
+  rows remain **pre-skippable** via the ⋯ sheet.
 - **⋯ button / tap on row body** → action sheet:
-  - **Skip** → `markOccurrence(..., 'skipped')`
+  - **Skip** → `markOccurrence(..., 'skipped')` (available on any row,
+    including Upcoming/future-day rows)
   - **Edit** → navigate to `ChoreFormScreen` for that chore
+  - **Pause** (added per ADR-0020) → stop generating/notifying future
+    occurrences for the task; it disappears from the hub and shows a
+    «متوقف» tag on PetDetail until resumed from the edit form
   - **Delete** → `deleteChore(choreId)`. For recurring chores the sheet copy
     reads "Delete this task and all its occurrences"; for one_off it reads
     "Delete this task".

@@ -1,7 +1,7 @@
 # ADR-0017: Task-done toast — a sanctioned side-stripe success accent
 
 ## Status
-Accepted
+Superseded by ADR-0020 (cheer rotation replaced with a neutral confirmation; the toast component and emerald start-stripe survive)
 
 ## Date
 2026-06-28

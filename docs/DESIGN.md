@@ -156,6 +156,9 @@ A warm-neutral body with a single confident emerald. The palette is Restrained b
 
 **The One Voice Rule.** Garden Confident appears on ≤10% of any given screen. Primary button fill, active tab icon, focused input border: that is the complete list. A section header, a card highlight, or a decorative list accent in Garden Confident breaks the rule. Its rarity is the signal.
 
+One scoped exception: **completion state** in the Tasks tab — the done
+checkbox and the today-progress dots render in Garden Confident (ADR-0020).
+
 **The Tonal Depth Rule.** Depth is expressed through surface steps (Sunken Well → Warm Paper → White Surface), not shadows. Shadows are atmospheric additions, not structural separators. If you're tempted to add a shadow to distinguish two surfaces, use a background step first.
 
 ## 3. Typography: Vazirmatn, One Voice

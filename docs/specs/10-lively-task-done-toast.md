@@ -6,6 +6,10 @@
 > button were dropped during review. The toast is now a passive, on-brand success
 > cue — pet-aware copy on a Garden Soft surface with an emerald start-side accent
 > stripe. Undo is the row checkbox, not a toast button.
+>
+> Superseded in part by ADR-0020 — the randomized cheer copy was replaced with
+> a neutral `tasks.done.confirm`; component structure, `taskDone` type, and
+> success stripe unchanged.
 
 ## Problem
 
