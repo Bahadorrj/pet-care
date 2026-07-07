@@ -697,3 +697,25 @@ describe("TaskFormScreen – Edit mode", () => {
     });
   });
 });
+
+// ── 12. Title validation – other type requires title ────────────────────────────
+
+describe("TaskFormScreen – title validation", () => {
+  test("requires a title when type is 'other'", async () => {
+    mockAddTask.mockResolvedValue(undefined);
+    const { getByTestId, getByText } = await render(<TaskFormScreen />);
+
+    // Pet is auto-selected (single pet); don't press the chip or it toggles off
+    await press(getByTestId("taskform-type-other"));
+    await press(getByTestId("taskform-submit"));
+
+    await waitFor(() =>
+      expect(getByText(i18n.t("tasks.error.title_required"))).toBeTruthy(),
+    );
+    expect(mockAddTask).not.toHaveBeenCalled();
+
+    await changeText(getByTestId("taskform-title"), "تمیز کردن قفس");
+    await press(getByTestId("taskform-submit"));
+    await waitFor(() => expect(mockAddTask).toHaveBeenCalled());
+  });
+});

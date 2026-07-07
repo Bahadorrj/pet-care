@@ -206,6 +206,7 @@ export default function TaskFormScreen() {
   const [typeError, setTypeError] = useState("");
   const [scheduleError, setScheduleError] = useState("");
   const [endError, setEndError] = useState("");
+  const [titleError, setTitleError] = useState("");
 
   // ── Submission state ─────────────────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -277,6 +278,13 @@ export default function TaskFormScreen() {
       return;
     }
     setTypeError("");
+
+    // 'other' is meaningless without a name; typed care falls back to its label
+    if (taskType === "other" && title.trim() === "") {
+      setTitleError(t("tasks.error.title_required"));
+      return;
+    }
+    setTitleError("");
 
     // ── Field-format validation (engine assumes valid HH:MM + Jalali dates) ──
     const needsTimes =
@@ -458,16 +466,26 @@ export default function TaskFormScreen() {
 
           {/* ── Optional title ─────────────────────────────────────────────── */}
           <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("tasks.field.title")}</Text>
+            <Text style={styles.label}>
+              {taskType === "other"
+                ? t("tasks.field.title_required")
+                : t("tasks.field.title")}
+            </Text>
             <TextField
               testID="taskform-title"
               placeholder={
                 taskType ? t(`tasks.type.${taskType}`) : t("tasks.field.title")
               }
               value={title}
-              onChangeText={setTitle}
+              onChangeText={(v) => {
+                setTitle(v);
+                if (titleError) setTitleError("");
+              }}
               accessibilityLabel={t("tasks.field.title")}
             />
+            {titleError !== "" && (
+              <Text style={styles.errorText}>{titleError}</Text>
+            )}
           </View>
 
           {/* ── Schedule kind selector ─────────────────────────────────────── */}
