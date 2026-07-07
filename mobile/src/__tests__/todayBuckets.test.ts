@@ -14,11 +14,11 @@
  * 6. sort: overdue-first ordering within the overdue+today mix
  */
 
-import { bucketOccurrences } from '../screens/tasks/todayBuckets';
-import type { Task, Occurrence } from '../db/types';
+import { bucketOccurrences } from "../screens/tasks/todayBuckets";
+import type { Task, Occurrence } from "../db/types";
 
 // ── Fixed clock ───────────────────────────────────────────────────────────────
-const NOW = new Date('2026-06-24T12:00:00Z');
+const NOW = new Date("2026-06-24T12:00:00Z");
 
 // Tehran = UTC+03:30 (fixed, no DST).
 // Tehran midnight = 2026-06-23T20:30:00Z (UTC).
@@ -28,19 +28,23 @@ const NOW = new Date('2026-06-24T12:00:00Z');
 const stubTask = (id: string): Task =>
   ({
     id,
-    petId: 'pet-1',
-    type: 'feeding',
+    petId: "pet-1",
+    type: "feeding",
     title: null,
-    schedule: { kind: 'daily_times', times: ['09:00'] },
-    endKind: 'never',
+    schedule: { kind: "daily_times", times: ["09:00"] },
+    endKind: "never",
     endUntil: null,
     endCount: null,
     active: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-01-01T00:00:00Z',
-  } as Task);
+    createdAt: "2024-01-01T00:00:00Z",
+    updatedAt: "2024-01-01T00:00:00Z",
+  }) as Task;
 
-const occ = (id: string, dueAt: string, status: Occurrence['status']): Occurrence => ({
+const occ = (
+  id: string,
+  dueAt: string,
+  status: Occurrence["status"],
+): Occurrence => ({
   task: stubTask(id),
   dueAt,
   status,
@@ -48,91 +52,158 @@ const occ = (id: string, dueAt: string, status: Occurrence['status']): Occurrenc
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 // Yesterday: 2026-06-23T06:00:00Z (well inside Tehran's previous day, before Tehran midnight)
-const YESTERDAY = occ('c-yesterday', '2026-06-23T06:00:00Z', 'pending');
+const YESTERDAY = occ("c-yesterday", "2026-06-23T06:00:00Z", "pending");
 
 // Today: 2026-06-24T06:00:00Z (inside Tehran today window 20:30 UTC prev day → 20:30 UTC today)
-const TODAY = occ('c-today', '2026-06-24T06:00:00Z', 'pending');
+const TODAY = occ("c-today", "2026-06-24T06:00:00Z", "pending");
 
 // Upcoming: +3 days
-const UPCOMING = occ('c-upcoming', '2026-06-27T06:00:00Z', 'pending');
+const UPCOMING = occ("c-upcoming", "2026-06-27T06:00:00Z", "pending");
 
 // Past but done → should NOT appear in overdue
-const PAST_DONE = occ('c-past-done', '2026-06-23T06:00:00Z', 'done');
+const PAST_DONE = occ("c-past-done", "2026-06-23T06:00:00Z", "done");
 
 // Past but skipped → should NOT appear in overdue
-const PAST_SKIPPED = occ('c-past-skipped', '2026-06-23T06:00:00Z', 'skipped');
+const PAST_SKIPPED = occ("c-past-skipped", "2026-06-23T06:00:00Z", "skipped");
 
 // Older than 7 days → should be excluded by look-back cap
 // 7 days before now = 2026-06-17T12:00:00Z; use 2026-06-17T11:00:00Z (just outside)
-const TOO_OLD = occ('c-too-old', '2026-06-17T11:00:00Z', 'pending');
+const TOO_OLD = occ("c-too-old", "2026-06-17T11:00:00Z", "pending");
 
 // Two items for sort test: one missed in today's window (overdue-flagged),
 // one future-pending (also today, but NOT overdue-flagged) with an earlier dueAt.
 // The missed one should sort first despite having a later dueAt.
-const SORT_OVERDUE = occ('c-sort-overdue', '2026-06-24T15:00:00Z', 'missed'); // missed → overdue-flagged, later dueAt
-const SORT_TODAY_PENDING = occ('c-sort-today', '2026-06-24T14:00:00Z', 'pending'); // future-pending, earlier dueAt
+const SORT_OVERDUE = occ("c-sort-overdue", "2026-06-24T15:00:00Z", "missed"); // missed → overdue-flagged, later dueAt
+const SORT_TODAY_PENDING = occ(
+  "c-sort-today",
+  "2026-06-24T14:00:00Z",
+  "pending",
+); // future-pending, earlier dueAt
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
-describe('bucketOccurrences', () => {
-  test('yesterday pending → overdue bucket', () => {
+describe("bucketOccurrences", () => {
+  test("yesterday pending → overdue bucket", () => {
     const { overdue, today, upcoming } = bucketOccurrences([YESTERDAY], NOW);
     expect(overdue).toHaveLength(1);
-    expect(overdue[0].task.id).toBe('c-yesterday');
+    expect(overdue[0].task.id).toBe("c-yesterday");
     expect(today).toHaveLength(0);
     expect(upcoming).toHaveLength(0);
   });
 
-  test('today occurrence → today bucket', () => {
+  test("today occurrence → today bucket", () => {
     const { overdue, today, upcoming } = bucketOccurrences([TODAY], NOW);
     expect(today).toHaveLength(1);
-    expect(today[0].task.id).toBe('c-today');
+    expect(today[0].task.id).toBe("c-today");
     expect(overdue).toHaveLength(0);
     expect(upcoming).toHaveLength(0);
   });
 
-  test('+3 days → upcoming bucket', () => {
+  test("+3 days → upcoming bucket", () => {
     const { overdue, today, upcoming } = bucketOccurrences([UPCOMING], NOW);
     expect(upcoming).toHaveLength(1);
-    expect(upcoming[0].task.id).toBe('c-upcoming');
+    expect(upcoming[0].task.id).toBe("c-upcoming");
     expect(overdue).toHaveLength(0);
     expect(today).toHaveLength(0);
   });
 
-  test('done in the past → excluded from overdue', () => {
+  test("done in the past → excluded from overdue", () => {
     const { overdue } = bucketOccurrences([PAST_DONE], NOW);
     expect(overdue).toHaveLength(0);
   });
 
-  test('skipped in the past → excluded from overdue', () => {
+  test("skipped in the past → excluded from overdue", () => {
     const { overdue } = bucketOccurrences([PAST_SKIPPED], NOW);
     expect(overdue).toHaveLength(0);
   });
 
-  test('pending overdue older than 7 days → excluded by look-back cap', () => {
+  test("pending overdue older than 7 days → excluded by look-back cap", () => {
     const { overdue } = bucketOccurrences([TOO_OLD], NOW);
     expect(overdue).toHaveLength(0);
   });
 
-  test('sort: missed (overdue-flagged) sorts before earlier pending today', () => {
+  test("sort: missed (overdue-flagged) sorts before earlier pending today", () => {
     // SORT_OVERDUE = missed at 06:00, SORT_TODAY_PENDING = pending at 05:00 (earlier dueAt)
     // After combined sort: overdue-flagged (missed) should appear first
-    const { overdue, today } = bucketOccurrences([SORT_TODAY_PENDING, SORT_OVERDUE], NOW);
+    const { overdue, today } = bucketOccurrences(
+      [SORT_TODAY_PENDING, SORT_OVERDUE],
+      NOW,
+    );
     // Both fall in the today window; SORT_OVERDUE is missed so isOverdue=true
     // The combined overdue+today sort puts overdue-flagged first
     // overdue bucket: items with dueAt < startOfToday → neither of these qualify
     // Both are in today's window → both in today[]
     // But sort should put missed (overdue-flagged) first despite later dueAt
     expect(today).toHaveLength(2);
-    expect(today[0].task.id).toBe('c-sort-overdue');   // missed → sorts first
-    expect(today[1].task.id).toBe('c-sort-today');     // pending → sorts after
+    expect(today[0].task.id).toBe("c-sort-overdue"); // missed → sorts first
+    expect(today[1].task.id).toBe("c-sort-today"); // pending → sorts after
     expect(overdue).toHaveLength(0);
   });
 
-  test('upcoming sorts chronologically', () => {
-    const early = occ('c-up-early', '2026-06-27T04:00:00Z', 'pending');
-    const late = occ('c-up-late', '2026-06-27T10:00:00Z', 'pending');
+  test("upcoming sorts chronologically", () => {
+    const early = occ("c-up-early", "2026-06-27T04:00:00Z", "pending");
+    const late = occ("c-up-late", "2026-06-27T10:00:00Z", "pending");
     const { upcoming } = bucketOccurrences([late, early], NOW);
-    expect(upcoming[0].task.id).toBe('c-up-early');
-    expect(upcoming[1].task.id).toBe('c-up-late');
+    expect(upcoming[0].task.id).toBe("c-up-early");
+    expect(upcoming[1].task.id).toBe("c-up-late");
+  });
+
+  // ── Task 1: completed bucket + progress ──────────────────────────────────────
+  test("past done → completed bucket, not dropped", () => {
+    const { completed } = bucketOccurrences([PAST_DONE], NOW);
+    expect(completed).toHaveLength(1);
+    expect(completed[0].task.id).toBe("c-past-done");
+  });
+
+  test("past skipped → completed bucket", () => {
+    const { completed } = bucketOccurrences([PAST_SKIPPED], NOW);
+    expect(completed).toHaveLength(1);
+    expect(completed[0].task.id).toBe("c-past-skipped");
+  });
+
+  test("completed older than 7-day look-back → dropped", () => {
+    const tooOldDone = occ("c-too-old-done", "2026-06-17T11:00:00Z", "done");
+    const { completed } = bucketOccurrences([tooOldDone], NOW);
+    expect(completed).toHaveLength(0);
+  });
+
+  test("completed sorted by dueAt descending", () => {
+    const older = occ("c-older", "2026-06-22T06:00:00Z", "done");
+    const newer = occ("c-newer", "2026-06-23T06:00:00Z", "skipped");
+    const { completed } = bucketOccurrences([older, newer], NOW);
+    expect(completed[0].task.id).toBe("c-newer");
+    expect(completed[1].task.id).toBe("c-older");
+  });
+
+  test("today done → still in today bucket (this task)", () => {
+    const todayDone = occ("c-today-done", "2026-06-24T06:00:00Z", "done");
+    const { today, completed } = bucketOccurrences([todayDone], NOW);
+    expect(today).toHaveLength(1);
+    expect(today[0].task.id).toBe("c-today-done");
+    expect(completed).toHaveLength(0);
+  });
+
+  test("progress matches hand-computed done/total for a mixed today fixture", () => {
+    const pending = occ("c-p", "2026-06-24T05:00:00Z", "pending");
+    const done = occ("c-d", "2026-06-24T06:00:00Z", "done");
+    const skipped = occ("c-s", "2026-06-24T07:00:00Z", "skipped");
+    const missed = occ("c-m", "2026-06-24T08:00:00Z", "missed");
+    const { progress } = bucketOccurrences(
+      [pending, done, skipped, missed],
+      NOW,
+    );
+    // total = count(status !== skipped) = pending, done, missed = 3
+    // done = count(status === done) = 1
+    expect(progress).toEqual({ done: 1, total: 3 });
+  });
+
+  test("existing bucket cases unchanged with completed field present", () => {
+    const { overdue, today, upcoming, completed } = bucketOccurrences(
+      [YESTERDAY, TODAY],
+      NOW,
+    );
+    expect(overdue).toHaveLength(1);
+    expect(today).toHaveLength(1);
+    expect(upcoming).toHaveLength(0);
+    expect(completed).toHaveLength(0);
   });
 });

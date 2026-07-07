@@ -5,7 +5,7 @@
  * Tehran = fixed UTC+03:30 (no DST, per ADR).
  */
 
-import type { Occurrence } from '../../db/types';
+import type { Occurrence } from "../../db/types";
 
 const TEHRAN_OFFSET_MS = (3 * 60 + 30) * 60 * 1000; // 210 min in ms
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -37,8 +37,8 @@ function tehranStartOfDay(now: Date): Date {
  */
 export function isOverdue(occ: Occurrence, now: Date): boolean {
   return (
-    occ.status === 'missed' ||
-    (occ.status === 'pending' && occ.dueAt < now.toISOString())
+    occ.status === "missed" ||
+    (occ.status === "pending" && occ.dueAt < now.toISOString())
   );
 }
 
@@ -59,6 +59,8 @@ export interface BucketResult {
   overdue: Occurrence[];
   today: Occurrence[];
   upcoming: Occurrence[];
+  completed: Occurrence[];
+  progress: { done: number; total: number };
 }
 
 /**
@@ -84,6 +86,7 @@ export function bucketOccurrences(occs: Occurrence[], now: Date): BucketResult {
   const overdue: Occurrence[] = [];
   const today: Occurrence[] = [];
   const upcoming: Occurrence[] = [];
+  const completed: Occurrence[] = [];
 
   for (const occ of occs) {
     const { dueAt, status } = occ;
@@ -93,8 +96,11 @@ export function bucketOccurrences(occs: Occurrence[], now: Date): BucketResult {
     } else if (dueAt >= startISO) {
       today.push(occ);
     } else {
-      // dueAt < startOfToday — candidate for overdue
-      if (status === 'done' || status === 'skipped') continue;
+      // dueAt < startOfToday — candidate for overdue/completed
+      if (status === "done" || status === "skipped") {
+        if (dueAt >= lookBackISO) completed.push(occ); // older than look-back → dropped
+        continue;
+      }
       if (dueAt < lookBackISO) continue; // older than 7-day look-back cap
       overdue.push(occ);
     }
@@ -109,5 +115,23 @@ export function bucketOccurrences(occs: Occurrence[], now: Date): BucketResult {
     a.dueAt < b.dueAt ? -1 : a.dueAt > b.dueAt ? 1 : 0,
   );
 
-  return { overdue: sortedOverdue, today: sortedToday, upcoming: sortedUpcoming };
+  // Sort completed reverse-chronologically (most recent first)
+  const sortedCompleted = [...completed].sort((a, b) =>
+    a.dueAt > b.dueAt ? -1 : a.dueAt < b.dueAt ? 1 : 0,
+  );
+
+  // Progress: today-dueAt occurrences, excluding skipped, done vs total
+  const todayForProgress = today.filter((o) => o.status !== "skipped");
+  const progress = {
+    done: todayForProgress.filter((o) => o.status === "done").length,
+    total: todayForProgress.length,
+  };
+
+  return {
+    overdue: sortedOverdue,
+    today: sortedToday,
+    upcoming: sortedUpcoming,
+    completed: sortedCompleted,
+    progress,
+  };
 }
