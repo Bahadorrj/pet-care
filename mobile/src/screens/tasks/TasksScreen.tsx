@@ -898,6 +898,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     borderTopLeftRadius: radius.lg,
     borderTopRightRadius: radius.lg,
+    borderCurve: "continuous",
     padding: spacing.lg,
     gap: spacing.lg,
   },
