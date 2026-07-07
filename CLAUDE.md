@@ -15,9 +15,10 @@ Quick setup: `docs/running-the-app.md` covers the full local stack (all dependen
 - Plans live in `docs/plans/`.
 - Architecture decisions live in `docs/adrs/` (ADRs); reconcile the spec when changing a decision; When changing a decision, add a new ADR and reconcile the spec — don't silently diverge. Keep `docs/adrs/README.md` synced.
 - User-defined issues live in `docs/issues/`.
-- User-defined ideas live in `docs/issues/`.
+- User-defined ideas live in `docs/ideas/`.
 
 ## Graphify
+
 - Codebase questions: use `graphify query "<question>"` (scoped subgraph) or `graphify path "A" "B"` for relationships instead of grep/raw browsing
 
 ## Sub-Guides

@@ -1,7 +1,5 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
 This is the **mobile** app (Expo / React Native). The FastAPI backend lives in the sibling `../backend` dir; `../docs/running-the-app.md` covers the full local stack.
 
 ## Expo has changed
@@ -12,11 +10,10 @@ Expo SDK 56 differs significantly from older versions. **Read the exact versione
 
 ```bash
 npm install
-npx expo run:android         # build + launch on emulator/device (first build is slow)
-npm start                    # Metro dev server
-npm test                     # jest --passWithNoTests
+npx expo run:android                       # build + launch on emulator/device (first build is slow)
+npm test                                   # jest --passWithNoTests
 npx jest src/__tests__/authStore.test.ts   # single test file
-npx tsc --noEmit             # typecheck (must be 0 errors)
+npx tsc --noEmit                           # typecheck (must be 0 errors)
 ```
 
 Requires `EXPO_PUBLIC_API_BASE_URL` in `.env` (default `http://10.0.2.2:8000`, the Android emulator's alias for the host). Use the machine's LAN IP for a physical device.
@@ -29,25 +26,29 @@ Read before any creative work.
 
 ## Architecture
 
-Swipeable bottom-tab navigator (`src/navigation/RootNavigator.tsx`) — a material top-tab navigator pinned to the bottom (`tabBarPosition="bottom"`) with a custom flat tab bar (`src/navigation/BottomTabBar.tsx`), so a horizontal swipe switches tabs (ADR-0018). Three tabs: `Pets` (PetsStack), `Tasks` (TasksStack), and `Profile` (ProfileStack). `RootTabParamList` is the root typed contract. `TasksStack` is a native stack inside the Tasks tab hosting `TasksScreen` (tasks hub) and `TaskForm`; `TasksStackParamList` / `TasksNavigationProp` are the typed contracts for that stack. `ProfileStack` is a native stack inside the Profile tab hosting `ProfileMain`, `Signin`, and `Signup` screens; `ProfileStackParamList` / `ProfileNavigationProp` are the typed contracts for that stack.
+Swipeable bottom tabs (`src/navigation/RootNavigator.tsx`) — a material top-tab navigator pinned to the bottom with a custom flat tab bar (`src/navigation/BottomTabBar.tsx`), so horizontal swipes switch tabs (ADR-0018). Four tabs, each a native stack: `Pets` (PetsStack), `Tasks` (TasksStack: TasksScreen + TaskForm), `Assistant` (AssistantStack: ConversationList + Chat), `Profile` (ProfileStack: ProfileMain, Signin, Signup, ChangeUsername). Each stack exports its `*ParamList` / `*NavigationProp` typed contracts.
 
-**Auth & session** — `src/store/authStore.ts` is a Zustand store holding the JWT + email, persisted to `expo-secure-store`. It hydrates **asynchronously** at module load; `App.tsx` gates first render on `hasHydrated` (and `fontsLoaded`) so guest UI never flashes. `login`/`logout` write SecureStore *before* mutating in-memory state so the two never disagree.
+**Auth & session** — `src/store/authStore.ts` (Zustand) holds JWT + email + username, persisted to `expo-secure-store` (ADR-0012). It hydrates **asynchronously** at module load; `App.tsx` gates first render on `hasHydrated` + `fontsLoaded` so guest UI never flashes. Mutations write SecureStore *before* in-memory state so the two never disagree.
 
-**API** — `src/api/client.ts` is the shared axios instance; a request interceptor injects `Bearer <token>` from the auth store. `src/api/*.ts` are thin per-domain wrappers (e.g. `auth.ts`). Screens catch `axios.isAxiosError` and map status codes (e.g. 401) to translated error keys.
+**API** — `src/api/client.ts` is the shared axios instance; a request interceptor injects `Bearer <token>`. `src/api/*.ts` are thin per-domain wrappers. Exception: chat streaming (`src/api/chat.ts`) uses `expo/fetch`, because axios can't stream response bodies in RN, feeding `src/lib/sse.ts` (pure SSE parser, no I/O).
 
-**i18n & RTL** — `src/i18n/index.ts` initialises i18next (`fa` only) and forces RTL via `I18nManager` at import. `App.tsx` imports `./src/i18n` first, for side effects. Keys are **flat** (`keySeparator`/`nsSeparator` disabled), so `"auth.error.network"` is a literal key, not a nested path. All user-facing strings live in `src/i18n/fa.json`.
+**Assistant (AI chat)** — server-side history, client-supplied pet context (ADR-0019, spec 13). `src/store/chatStore.ts` holds conversations + the active conversation's messages (server is source of truth) and applies streamed deltas. `src/lib/petContext.ts` builds the per-message pet-context bundle (pure; shapes mirror `backend/app/schemas/chat.py` exactly). `src/db/kv.ts` is a tiny SQLite key/value store (first use: chat disclaimer dismissal).
 
-**Theme** — `src/theme/theme.ts` is the single source of truth for colors, spacing, radius, typography, shadow. Import tokens instead of hard-coding. Custom font weights are selected by **family name** (`fonts.regular`/`medium`/…), not `fontWeight` — those families must match the keys registered in `useFonts` in `App.tsx`.
+**i18n & RTL** — `src/i18n/index.ts` initialises i18next (`fa` only) and forces RTL via `I18nManager` at import; `App.tsx` imports it first for side effects. Keys are **flat** (`keySeparator`/`nsSeparator` disabled): `"auth.error.network"` is a literal key. All user-facing strings live in `src/i18n/fa.json`.
 
-**UI primitives** — `src/components/ui/` (`Button`, `TextField`). Reuse these rather than raw RN components.
+**Theme** — `src/theme/theme.ts` is the single source of truth (colors, spacing, radius, typography, shadow); import tokens, don't hard-code. Font weights are selected by **family name** (`fonts.regular`/…) matching the `useFonts` keys in `App.tsx`, not `fontWeight`. `src/theme/icons.ts` maps species and task types to monochrome MaterialCommunityIcons glyphs — render from these maps, not ad-hoc emoji.
 
-**Native UI patterns** — before building or restyling a screen, consult `expo:building-native-ui` (and `expo:expo-ui` for native components). They carry the SDK-56-correct idioms; pair them with `docs/DESIGN.md` for the visual system.
+**UI primitives** — `src/components/ui/` (`Button`, `TextField`, `ConfirmDialog`, `DatePickerField`, `TimePickerField`) and `src/components/toastConfig.tsx`. Reuse these over raw RN components.
 
-**Pets** — `src/store/petsStore.ts` is a Zustand store backed by SQLite (`src/db/pets.ts`). `listPets()` is synchronous (expo-sqlite sync API), so `pets` is populated at module load with no async hydration step. Photo files are copied into app storage by `src/lib/petPhoto.ts`; the stored path is what goes in `photoUri`.
+**Pets** — `src/store/petsStore.ts` (Zustand) backed by on-device SQLite (`src/db/pets.ts`, ADR-0015). The sync expo-sqlite API means `pets` is populated at module load, no async hydration. `src/db/index.ts` opens the DB; `App.tsx` imports it for side effects. Photos are copied into app storage by `src/lib/petPhoto.ts`.
 
-**Tasks** — offline-first task reminders (ADR-0016). Storage: `tasks` table (rule as `schedule_json` TEXT discriminated union) + `task_logs` table (done/skipped actions). Types live in `src/db/types.ts`. Occurrences, today's agenda, missed status, streak, and adherence are **always derived** from rule + logs at query time — never materialised to storage (approach B). `src/lib/taskSchedule.ts` is the pure schedule engine (no I/O). `src/screens/tasks/todayBuckets.ts` groups occurrences into `overdue / morning / afternoon / evening / night` buckets for the Tasks tab. Local notifications via `@notifee/react-native` (ADR-0008); `src/lib/taskNotifications.ts` owns the channel, 60-day trigger window (cap 200), snooze (15 min), and tap-to-navigate. The notification sync function is injected into the tasks store via `setTasksSyncNotifications` seam so the store stays I/O-free. Tehran time = fixed **+03:30** offset throughout.
+**Tasks** — offline-first reminders, rule + completion log (ADR-0016). Storage: `tasks` (rule as `schedule_json` discriminated union) + `task_logs`; types in `src/db/types.ts`. Occurrences, agenda, missed status, streak, and adherence are **always derived** at query time — never materialised. `src/lib/taskSchedule.ts` is the pure schedule engine (no I/O); `src/screens/tasks/todayBuckets.ts` groups occurrences into overdue/morning/afternoon/evening/night. Local notifications via `@notifee/react-native` (ADR-0008): `src/lib/taskNotifications.ts` owns the channel, 60-day trigger window (cap 200), snooze, tap-to-navigate, and injects its sync fn into the tasks store via `setTasksSyncNotifications` so the store stays I/O-free.
 
-**Haptics & Toast** — `expo-haptics` is used in `TasksScreen` for mark-done/skip feedback (failures swallowed — never load-bearing). `react-native-toast-message` surfaces undo prompts after log actions.
+**Dates** — Jalali (Shamsi) UI, UTC storage (ADR-0010). `src/lib/jalali.ts` holds the shared helpers; Tehran time is a fixed **+03:30** offset (no DST).
+
+**Haptics & Toast** — `expo-haptics` for mark-done/skip feedback (failures swallowed — never load-bearing); `react-native-toast-message` for undo prompts.
+
+**Native UI patterns** — before building or restyling a screen, consult `expo:building-native-ui` (and `expo:expo-ui` for native components); pair them with `docs/DESIGN.md` for the visual system.
 
 ## Conventions
 
