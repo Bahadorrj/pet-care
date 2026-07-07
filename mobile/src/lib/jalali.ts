@@ -95,3 +95,8 @@ export function formatJalaliParts(y: number, m: number, d: number): string {
 export function toPersianDigits(input: string | number): string {
   return String(input).replace(/[0-9]/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[+d]);
 }
+
+/** Persian digits → Latin digits, for controlled numeric inputs that display via toPersianDigits. */
+export function toLatinDigits(input: string): string {
+  return input.replace(/[۰-۹]/g, (d) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(d)));
+}

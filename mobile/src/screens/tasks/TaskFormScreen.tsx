@@ -25,6 +25,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -41,6 +42,8 @@ import DatePickerField from "../../components/ui/DatePickerField";
 import {
   jalaliToGregorian,
   tehranTodayJalali,
+  toLatinDigits,
+  toPersianDigits,
   utcIsoToTehranJalali,
 } from "../../lib/jalali";
 import { useShallow } from "zustand/react/shallow";
@@ -161,6 +164,7 @@ export default function TaskFormScreen() {
   const [intervalN, setIntervalN] = useState(initIntervalN);
   const [intervalUnit, setIntervalUnit] =
     useState<IntervalUnit>(initIntervalUnit);
+  const intervalNRef = useRef<TextInput>(null);
 
   // ── interval start (anchor) — Jalali date + Tehran wall-clock time ─────────
   const initIntervalStartDate =
@@ -201,6 +205,7 @@ export default function TaskFormScreen() {
   const [endCount, setEndCount] = useState(
     existing?.endCount != null ? String(existing.endCount) : "",
   );
+  const endCountRef = useRef<TextInput>(null);
 
   // ── Active / paused status (edit-mode only chip pair) ────────────────────────
   const [active, setActive] = useState(existing?.active ?? true);
@@ -646,11 +651,19 @@ export default function TaskFormScreen() {
               <View style={styles.intervalRow}>
                 <View style={styles.intervalNWrap}>
                   <TextField
+                    ref={intervalNRef}
                     testID="taskform-interval-n"
-                    placeholder="1"
-                    value={intervalN}
+                    placeholder="۱"
+                    value={toPersianDigits(intervalN)}
                     onChangeText={(v) => {
-                      setIntervalN(v);
+                      const latin = toLatinDigits(v);
+                      // Push the Persian display back into the native view in
+                      // this same tick, so the just-typed Latin digit never
+                      // paints before React's re-render replaces it.
+                      intervalNRef.current?.setNativeProps({
+                        text: toPersianDigits(latin),
+                      });
+                      setIntervalN(latin);
                       if (scheduleError) setScheduleError("");
                     }}
                     keyboardType="numeric"
@@ -794,11 +807,16 @@ export default function TaskFormScreen() {
                 {endKind === "after_n" && (
                   <View style={{ marginTop: spacing.sm }}>
                     <TextField
+                      ref={endCountRef}
                       testID="taskform-end-count"
-                      placeholder="10"
-                      value={endCount}
+                      placeholder="۱۰"
+                      value={toPersianDigits(endCount)}
                       onChangeText={(v) => {
-                        setEndCount(v);
+                        const latin = toLatinDigits(v);
+                        endCountRef.current?.setNativeProps({
+                          text: toPersianDigits(latin),
+                        });
+                        setEndCount(latin);
                         if (endError) setEndError("");
                       }}
                       keyboardType="numeric"
