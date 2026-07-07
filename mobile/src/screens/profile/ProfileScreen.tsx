@@ -4,10 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 
-import Button from '../components/ui/Button';
-import { useAuthStore } from '../store/authStore';
-import { colors, fonts, spacing, typography } from '../theme/theme';
-import type { ProfileNavigationProp } from '../navigation/ProfileStack';
+import Button from '../../components/ui/Button';
+import { useAuthStore } from '../../store/authStore';
+import { colors, fonts, spacing, typography } from '../../theme/theme';
+import type { ProfileNavigationProp } from '../../navigation/ProfileStack';
 
 // Left-to-Right Mark — keeps '@handle' from bidi-reordering in forced-RTL layouts.
 const LRM = '‎';

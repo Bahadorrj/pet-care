@@ -34,7 +34,7 @@ jest.mock("@react-navigation/native", () => ({
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
 import i18n from "../i18n";
 import { useAuthStore } from "../store/authStore";
-import ProfileScreen from "../screens/ProfileScreen";
+import ProfileScreen from "../screens/profile/ProfileScreen";
 
 beforeEach(() => {
   mockNavigate.mockClear();

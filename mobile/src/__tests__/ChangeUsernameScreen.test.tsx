@@ -37,7 +37,7 @@ jest.mock("../api/auth");
 import i18n from "../i18n";
 import * as authApi from "../api/auth";
 import { useAuthStore } from "../store/authStore";
-import ChangeUsernameScreen from "../screens/ChangeUsernameScreen";
+import ChangeUsernameScreen from "../screens/profile/ChangeUsernameScreen";
 
 const mockAuthApi = authApi as jest.Mocked<typeof authApi>;
 const mockSetUsername = jest.fn().mockResolvedValue(undefined);

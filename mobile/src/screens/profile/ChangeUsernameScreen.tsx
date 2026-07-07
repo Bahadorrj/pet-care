@@ -11,12 +11,12 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import axios from 'axios';
 
-import Button from '../components/ui/Button';
-import TextField from '../components/ui/TextField';
-import { changeUsername as apiChangeUsername } from '../api/auth';
-import { useAuthStore } from '../store/authStore';
-import { colors, fonts, radius, spacing, typography } from '../theme/theme';
-import type { ProfileNavigationProp } from '../navigation/ProfileStack';
+import Button from '../../components/ui/Button';
+import TextField from '../../components/ui/TextField';
+import { changeUsername as apiChangeUsername } from '../../api/auth';
+import { useAuthStore } from '../../store/authStore';
+import { colors, fonts, radius, spacing, typography } from '../../theme/theme';
+import type { ProfileNavigationProp } from '../../navigation/ProfileStack';
 
 export default function ChangeUsernameScreen() {
   const { t } = useTranslation();
