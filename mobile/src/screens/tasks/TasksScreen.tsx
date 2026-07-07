@@ -51,6 +51,7 @@ const hapticLight = () =>
 
 const TASK_TYPES: TaskType[] = [
   "feeding",
+  "water",
   "meds",
   "play",
   "grooming",

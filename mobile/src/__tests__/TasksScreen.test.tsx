@@ -617,6 +617,25 @@ describe("TasksScreen – type filter", () => {
     expect(getByTestId("tasks-row-task-f2")).toBeTruthy();
     expect(getByTestId("tasks-row-task-m2")).toBeTruthy();
   });
+
+  test("offers every task type in the filter modal, including water", async () => {
+    mockWindowOccurrences = [makeOcc("t1", DUE_TODAY)];
+    const screen = await render(<TasksScreen />);
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("tasks-type-filter"));
+    });
+    for (const ct of [
+      "feeding",
+      "water",
+      "meds",
+      "play",
+      "grooming",
+      "vet",
+      "other",
+    ]) {
+      expect(screen.getByTestId(`type-chip-${ct}`)).toBeTruthy();
+    }
+  });
 });
 
 // ── 11. Combined AND filter ───────────────────────────────────────────────────
