@@ -164,6 +164,7 @@
   "tasks.filter.apply": "اعمال",
   "tasks.filter.clear": "پاک کردن",
   "tasks.no_match": "هیچ کاری با این فیلتر یافت نشد",
+  "tasks.no_match_section": "موردی مطابق فیلترها نیست",
   "pets.list.tasks": "{{count}} کار",
   "pets.active_tasks": "{{count}} کار فعال",
   "pets.next_task_today": "امروز {{time}}",

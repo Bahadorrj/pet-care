@@ -957,3 +957,54 @@ describe("TasksScreen – filter-empty (no-match)", () => {
     expect(queryByTestId("tasks-no-match")).toBeNull();
   });
 });
+
+// ── 14. Per-section no-match ──────────────────────────────────────────────────
+describe("TasksScreen – per-section no-match", () => {
+  test("filtering out one section's only pet keeps its header with a quiet no-match row, other sections unaffected", async () => {
+    mockPets = [
+      { id: "pet-1", name: "رکسی" },
+      { id: "pet-2", name: "گربه" },
+    ];
+    const occOverdueA = makeOcc(
+      "t-overdue-a",
+      DUE_OVERDUE,
+      "pending",
+      "daily_times",
+      "pet-1",
+    );
+    const occTodayA = makeOcc(
+      "t-today-a",
+      DUE_TODAY,
+      "pending",
+      "daily_times",
+      "pet-1",
+    );
+    const occTodayB = makeOcc(
+      "t-today-b",
+      DUE_TODAY_LATE,
+      "pending",
+      "daily_times",
+      "pet-2",
+    );
+    mockWindowOccurrences = [occOverdueA, occTodayA, occTodayB];
+
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-filter-pet-pet-2"));
+    });
+
+    // Overdue's only data belonged to pet-1 — header stays, count drops to 0,
+    // a quiet no-match row appears in its place.
+    const overdueHeader = getByTestId("tasks-section-overdue");
+    expect(overdueHeader).toHaveTextContent(new RegExp(toPersianDigits(0)));
+    expect(getByTestId("tasks-no-match-row")).toBeTruthy();
+
+    // Today still has pet-2 data — renders normally, pet-1's row is gone.
+    expect(getByTestId("tasks-row-t-today-b")).toBeTruthy();
+    expect(queryByTestId("tasks-row-t-today-a")).toBeNull();
+
+    // Whole-list no-match block is a different, unrelated affordance — absent here.
+    expect(queryByTestId("tasks-no-match")).toBeNull();
+  });
+});

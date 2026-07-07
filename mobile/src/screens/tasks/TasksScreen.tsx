@@ -62,10 +62,11 @@ const TASK_TYPES: TaskType[] = [
 // ── Section list item types ────────────────────────────────────────────────────
 type SectionKind = "overdue" | "today" | "upcoming" | "completed";
 
-// Items can be real occurrences or day sub-headers
+// Items can be real occurrences, day sub-headers, or a filter no-match row
 type ListItem =
   | { kind: "occ"; occ: Occurrence }
-  | { kind: "day"; label: string };
+  | { kind: "day"; label: string }
+  | { kind: "nomatch"; sectionKey: SectionKind };
 
 interface Section {
   sectionKey: SectionKind;
@@ -327,6 +328,8 @@ export default function TasksScreen() {
     return map;
   }, [pets]);
 
+  const hasFilters = petFilter !== null || typeFilter.size > 0;
+
   // Apply filters before bucketing
   const filtered = React.useMemo(
     () =>
@@ -338,9 +341,17 @@ export default function TasksScreen() {
     [windowOccurrences, petFilter, typeFilter],
   );
 
+  // Genuine = bucketed straight from the window (pre-filter) — decides whether
+  // a section's header renders at all (ADR-0020 gate). Shown = what's actually
+  // rendered; when filters narrow it to nothing the section keeps its header
+  // with a quiet no-match row instead of disappearing.
+  const genuine = React.useMemo(
+    () => bucketOccurrences(windowOccurrences, new Date()),
+    [windowOccurrences],
+  );
   const { overdue, today, upcoming, completed, progress } = React.useMemo(
-    () => bucketOccurrences(filtered, new Date()),
-    [filtered],
+    () => (hasFilters ? bucketOccurrences(filtered, new Date()) : genuine),
+    [hasFilters, filtered, genuine],
   );
 
   // Stable row handlers — keep memoized rows from re-rendering on unrelated
@@ -432,6 +443,17 @@ export default function TasksScreen() {
     navigation.navigate("TaskForm", {});
   }, [pets.length, navigation, t]);
 
+  const shownTotal =
+    overdue.length + today.length + upcoming.length + completed.length;
+  const genuineTotal =
+    genuine.overdue.length +
+    genuine.today.length +
+    genuine.upcoming.length +
+    genuine.completed.length;
+  // Filters wiped every section that had data — one whole-list message beats
+  // a no-match row under every header.
+  const fullWipe = hasFilters && genuineTotal > 0 && shownTotal === 0;
+
   // Section list data — rebuilt only when the buckets change, not on every
   // render (filter chips / modal). Includes the upcoming day sub-headers.
   const { sections, counts } = React.useMemo(() => {
@@ -447,30 +469,44 @@ export default function TasksScreen() {
     }
 
     const sections: Section[] = [];
-    if (overdue.length > 0)
-      sections.push({
-        sectionKey: "overdue",
-        data: collapsed.overdue
-          ? []
-          : overdue.map((occ) => ({ kind: "occ", occ })),
-      });
-    if (today.length > 0)
-      sections.push({
-        sectionKey: "today",
-        data: collapsed.today ? [] : today.map((occ) => ({ kind: "occ", occ })),
-      });
-    if (upcoming.length > 0)
-      sections.push({
-        sectionKey: "upcoming",
-        data: collapsed.upcoming ? [] : upcomingItems,
-      });
-    if (completed.length > 0)
-      sections.push({
-        sectionKey: "completed",
-        data: collapsed.completed
-          ? []
-          : completed.map((occ) => ({ kind: "occ", occ })),
-      });
+    if (!fullWipe) {
+      if (genuine.overdue.length > 0)
+        sections.push({
+          sectionKey: "overdue",
+          data: collapsed.overdue
+            ? []
+            : overdue.length === 0
+              ? [{ kind: "nomatch", sectionKey: "overdue" }]
+              : overdue.map((occ) => ({ kind: "occ", occ })),
+        });
+      if (genuine.today.length > 0)
+        sections.push({
+          sectionKey: "today",
+          data: collapsed.today
+            ? []
+            : today.length === 0
+              ? [{ kind: "nomatch", sectionKey: "today" }]
+              : today.map((occ) => ({ kind: "occ", occ })),
+        });
+      if (genuine.upcoming.length > 0)
+        sections.push({
+          sectionKey: "upcoming",
+          data: collapsed.upcoming
+            ? []
+            : upcoming.length === 0
+              ? [{ kind: "nomatch", sectionKey: "upcoming" }]
+              : upcomingItems,
+        });
+      if (genuine.completed.length > 0)
+        sections.push({
+          sectionKey: "completed",
+          data: collapsed.completed
+            ? []
+            : completed.length === 0
+              ? [{ kind: "nomatch", sectionKey: "completed" }]
+              : completed.map((occ) => ({ kind: "occ", occ })),
+        });
+    }
 
     const counts: Record<SectionKind, number> = {
       overdue: overdue.length,
@@ -480,17 +516,10 @@ export default function TasksScreen() {
     };
 
     return { sections, counts };
-  }, [overdue, today, upcoming, completed, collapsed]);
-
-  const allBucketsEmpty =
-    overdue.length === 0 &&
-    today.length === 0 &&
-    upcoming.length === 0 &&
-    completed.length === 0;
-  const hasFilters = petFilter !== null || typeFilter.size > 0;
+  }, [overdue, today, upcoming, completed, genuine, collapsed, fullWipe]);
 
   // Genuine empty: nothing actionable anywhere (and not a filter artifact)
-  if (allBucketsEmpty && !hasFilters) {
+  if (genuineTotal === 0 && !hasFilters) {
     return (
       <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
         <View style={styles.emptyContainer} testID="tasks-empty">
@@ -611,7 +640,7 @@ export default function TasksScreen() {
       </View>
 
       {/* No-match state when filters empty everything but window has data */}
-      {allBucketsEmpty && hasFilters && (
+      {fullWipe && (
         <View style={styles.noMatchContainer} testID="tasks-no-match">
           <Text style={styles.noMatchText}>{t("tasks.no_match")}</Text>
           <Pressable
@@ -654,6 +683,7 @@ export default function TasksScreen() {
         keyExtractor={(item, index) => {
           if (item.kind === "occ")
             return `${item.occ.task.id}-${item.occ.dueAt}`;
+          if (item.kind === "nomatch") return `nomatch-${item.sectionKey}`;
           return `day-${item.label}-${index}`;
         }}
         contentContainerStyle={styles.list}
@@ -691,6 +721,16 @@ export default function TasksScreen() {
                   {toPersianDigits(item.label)}
                 </Text>
               </View>
+            );
+          }
+          if (item.kind === "nomatch") {
+            return (
+              <Text
+                style={styles.noMatchSectionText}
+                testID="tasks-no-match-row"
+              >
+                {t("tasks.no_match_section")}
+              </Text>
             );
           }
           // kind === 'occ'
@@ -751,6 +791,13 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     fontFamily: fonts.medium,
     color: colors.inkMuted,
+  },
+  // Per-section no-match (filters emptied this section, but not the window)
+  noMatchSectionText: {
+    fontSize: typography.caption.fontSize,
+    fontFamily: fonts.regular,
+    color: colors.inkMuted,
+    paddingVertical: spacing.md,
   },
   // Row
   row: {
