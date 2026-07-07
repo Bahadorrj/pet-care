@@ -295,6 +295,7 @@ export default function TasksScreen() {
   const markOccurrence = useTasksStore((s) => s.markOccurrence);
   const unmarkOccurrence = useTasksStore((s) => s.unmarkOccurrence);
   const deleteTask = useTasksStore((s) => s.deleteTask);
+  const toggleActive = useTasksStore((s) => s.toggleActive);
 
   const pets = usePetsStore(useShallow((s) => s.pets));
 
@@ -376,24 +377,34 @@ export default function TasksScreen() {
       const options = [
         t("tasks.action.skip"),
         t("tasks.action.edit"),
+        t("tasks.action.pause"),
         deleteLabel,
         t("tasks.action.cancel"),
       ];
 
       showActionSheetWithOptions(
-        { options, destructiveButtonIndex: 2, cancelButtonIndex: 3 },
+        { options, destructiveButtonIndex: 3, cancelButtonIndex: 4 },
         (index?: number) => {
           if (index === 0) {
             markOccurrence(task.id, dueAt, "skipped");
           } else if (index === 1) {
             handleEdit(occ);
           } else if (index === 2) {
+            toggleActive(task.id);
+          } else if (index === 3) {
             deleteTask(task.id);
           }
         },
       );
     },
-    [showActionSheetWithOptions, deleteTask, markOccurrence, t, handleEdit],
+    [
+      showActionSheetWithOptions,
+      deleteTask,
+      toggleActive,
+      markOccurrence,
+      t,
+      handleEdit,
+    ],
   );
 
   // Adding a task needs a pet. With none, hint instead of dead-ending in an

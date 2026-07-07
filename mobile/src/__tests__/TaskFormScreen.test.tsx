@@ -698,6 +698,41 @@ describe("TaskFormScreen – Edit mode", () => {
   });
 });
 
+// ── 13. Pause / resume ────────────────────────────────────────────────────────
+
+describe("TaskFormScreen – pause/resume", () => {
+  beforeEach(() => {
+    mockRouteParams = { petId: "pet-1", taskId: "task-1" };
+  });
+
+  it("keeps a paused task paused when edited without touching status", async () => {
+    mockGetTask.mockReturnValue({
+      ...EXISTING_TASK,
+      id: "task-1",
+      active: false,
+    });
+    mockUpdateTask.mockResolvedValue(undefined);
+    const screen = await render(<TaskFormScreen />); // route params: { taskId: "task-1" }
+    await press(screen.getByTestId("taskform-submit"));
+    await waitFor(() => expect(mockUpdateTask).toHaveBeenCalled());
+    expect(mockUpdateTask.mock.calls[0][1].active).toBe(false);
+  });
+
+  it("resumes a paused task via the status chips", async () => {
+    mockGetTask.mockReturnValue({
+      ...EXISTING_TASK,
+      id: "task-1",
+      active: false,
+    });
+    mockUpdateTask.mockResolvedValue(undefined);
+    const screen = await render(<TaskFormScreen />);
+    await press(screen.getByTestId("taskform-active-on"));
+    await press(screen.getByTestId("taskform-submit"));
+    await waitFor(() => expect(mockUpdateTask).toHaveBeenCalled());
+    expect(mockUpdateTask.mock.calls[0][1].active).toBe(true);
+  });
+});
+
 // ── 12. Title validation – other type requires title ────────────────────────────
 
 describe("TaskFormScreen – title validation", () => {

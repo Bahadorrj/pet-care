@@ -202,6 +202,9 @@ export default function TaskFormScreen() {
     existing?.endCount != null ? String(existing.endCount) : "",
   );
 
+  // ── Active / paused status (edit-mode only chip pair) ────────────────────────
+  const [active, setActive] = useState(existing?.active ?? true);
+
   // ── Errors ───────────────────────────────────────────────────────────────────
   const [typeError, setTypeError] = useState("");
   const [scheduleError, setScheduleError] = useState("");
@@ -356,7 +359,7 @@ export default function TaskFormScreen() {
         endKind: resolvedEndKind,
         endUntil: resolvedEndUntil,
         endCount: resolvedEndCount,
-        active: true,
+        active,
       };
 
       if (isEdit && taskId) {
@@ -809,6 +812,44 @@ export default function TaskFormScreen() {
                 )}
               </View>
             </>
+          )}
+
+          {/* ── Status (edit-mode only): active / paused ─────────────────── */}
+          {isEdit && (
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t("tasks.field.status")}</Text>
+              <View style={styles.chipRow}>
+                <Pressable
+                  testID="taskform-active-on"
+                  onPress={() => setActive(true)}
+                  style={[styles.chip, active && styles.chipSelected]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text
+                    style={[styles.chipText, active && styles.chipTextSelected]}
+                  >
+                    {t("tasks.active.on")}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  testID="taskform-active-off"
+                  onPress={() => setActive(false)}
+                  style={[styles.chip, !active && styles.chipSelected]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: !active }}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      !active && styles.chipTextSelected,
+                    ]}
+                  >
+                    {t("tasks.active.off")}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
           )}
 
           {/* ── Submit ─────────────────────────────────────────────────────── */}

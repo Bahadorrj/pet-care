@@ -199,6 +199,12 @@ describe("PetDetailScreen – tasks section (useShallow selector stability)", ()
       taskId: TASK_FIXTURE.id,
     });
   });
+
+  it("tags paused tasks on the pet's task list", async () => {
+    mockTasks = [{ ...TASK_FIXTURE, active: false }];
+    const screen = await render(<PetDetailScreen />);
+    expect(screen.getByText(i18n.t("tasks.status.paused"))).toBeTruthy();
+  });
 });
 
 describe("PetDetailScreen – delete", () => {

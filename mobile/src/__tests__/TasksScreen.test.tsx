@@ -24,6 +24,7 @@ const mockLoad = jest.fn().mockResolvedValue(undefined);
 const mockMarkOccurrence = jest.fn().mockResolvedValue(undefined);
 const mockUnmarkOccurrence = jest.fn().mockResolvedValue(undefined);
 const mockDeleteTask = jest.fn().mockResolvedValue(undefined);
+const mockToggleActive = jest.fn().mockResolvedValue(undefined);
 let mockWindowOccurrences: unknown[] = [];
 
 jest.mock("../store/tasksStore", () => ({
@@ -34,6 +35,7 @@ jest.mock("../store/tasksStore", () => ({
       markOccurrence: typeof mockMarkOccurrence;
       unmarkOccurrence: typeof mockUnmarkOccurrence;
       deleteTask: typeof mockDeleteTask;
+      toggleActive: typeof mockToggleActive;
     }) => unknown,
   ) =>
     selector({
@@ -42,6 +44,7 @@ jest.mock("../store/tasksStore", () => ({
       markOccurrence: mockMarkOccurrence,
       unmarkOccurrence: mockUnmarkOccurrence,
       deleteTask: mockDeleteTask,
+      toggleActive: mockToggleActive,
     }),
 }));
 
@@ -131,6 +134,7 @@ beforeEach(() => {
   mockMarkOccurrence.mockClear();
   mockUnmarkOccurrence.mockClear();
   mockDeleteTask.mockClear();
+  mockToggleActive.mockClear();
   mockNavigate.mockClear();
   mockParentNavigate.mockClear();
   (Toast.show as jest.Mock).mockClear();
@@ -316,7 +320,7 @@ describe("TasksScreen – action sheet", () => {
     });
   });
 
-  test("action-sheet index 2 (delete) → deleteTask(id)", async () => {
+  test("action-sheet index 3 (delete) → deleteTask(id)", async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
@@ -325,7 +329,7 @@ describe("TasksScreen – action sheet", () => {
 
     const [, callback] = (showActionSheetWithOptions as jest.Mock).mock
       .calls[0];
-    callback(2);
+    callback(3);
 
     expect(mockDeleteTask).toHaveBeenCalledWith("task-today");
   });
@@ -338,7 +342,7 @@ describe("TasksScreen – action sheet", () => {
     fireEvent.press(getByTestId("tasks-more-task-today"));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    expect(opts.options[2]).toBe(i18n.t("tasks.action.delete_recurring"));
+    expect(opts.options[3]).toBe(i18n.t("tasks.action.delete_recurring"));
   });
 
   test("delete label is the one-off-delete translation for one-off task", async () => {
@@ -349,10 +353,10 @@ describe("TasksScreen – action sheet", () => {
     fireEvent.press(getByTestId("tasks-more-task-oneoff"));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    expect(opts.options[2]).toBe(i18n.t("tasks.action.delete_one_off"));
+    expect(opts.options[3]).toBe(i18n.t("tasks.action.delete_one_off"));
   });
 
-  test("destructiveButtonIndex is 2, cancelButtonIndex is 3", async () => {
+  test("destructiveButtonIndex is 3, cancelButtonIndex is 4", async () => {
     mockWindowOccurrences = [OCC_TODAY];
     const { showActionSheetWithOptions } = useActionSheet();
     const { getByTestId } = await render(<TasksScreen />);
@@ -360,8 +364,24 @@ describe("TasksScreen – action sheet", () => {
     fireEvent.press(getByTestId("tasks-more-task-today"));
 
     const [opts] = (showActionSheetWithOptions as jest.Mock).mock.calls[0];
-    expect(opts.destructiveButtonIndex).toBe(2);
-    expect(opts.cancelButtonIndex).toBe(3);
+    expect(opts.destructiveButtonIndex).toBe(3);
+    expect(opts.cancelButtonIndex).toBe(4);
+  });
+
+  it("offers pause in the row menu and calls toggleActive", async () => {
+    mockWindowOccurrences = [makeOcc("t1", DUE_TODAY)];
+    const screen = await render(<TasksScreen />);
+    fireEvent.press(screen.getByTestId("tasks-more-t1"));
+
+    const [opts, cb] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    expect(opts.options).toContain(i18n.t("tasks.action.pause"));
+    expect(opts.destructiveButtonIndex).toBe(3);
+    expect(opts.cancelButtonIndex).toBe(4);
+
+    cb(2); // pause
+    expect(mockToggleActive).toHaveBeenCalledWith("t1");
   });
 });
 

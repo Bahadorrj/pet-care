@@ -267,6 +267,11 @@ export default function PetDetailScreen() {
                       </Text>
                     </View>
                   )}
+                  {!task.active && (
+                    <Text style={styles.taskPausedTag}>
+                      {t("tasks.status.paused")}
+                    </Text>
+                  )}
                 </Pressable>
               );
             })
@@ -495,6 +500,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.regular,
     color: colors.inkFaint,
     paddingVertical: spacing.sm,
+  },
+  taskPausedTag: {
+    fontSize: typography.caption.fontSize,
+    lineHeight: typography.caption.lineHeight,
+    fontFamily: fonts.medium,
+    color: colors.inkMuted,
   },
   // ────────────────────────────────────────────────────────────────────────────
   actions: {
