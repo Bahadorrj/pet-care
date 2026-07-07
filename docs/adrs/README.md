@@ -49,3 +49,4 @@ relevant ADR. Every ADR ends with an explicit **Guardrails** section
 | [0018](0018-swipeable-bottom-tabs.md) | Swipeable bottom tabs via material-top-tabs pinned to the bottom | Accepted | — |
 | [0019](0019-ai-chat-backend-llm-proxy.md) | AI chat via backend LLM proxy; client-supplied pet context; server-side history | Accepted | — |
 | [0020](0020-quiet-tasks-tone.md) | Quiet Tasks tone — تو voice, calm overdue, neutral done toast, completion-state accent exception | Accepted | — |
+| [0021](0021-tasks-hub-completed-section-and-row-actions.md) | Tasks hub — Completed section, row-tap→edit, per-section no-match, quick postpone, delete confirmation | Accepted | Yes — spec 07 (row action, checked-row placement, empty-section gate) |

@@ -4,6 +4,7 @@
 **Supersedes:** the read-only Today view shipped with `06-chores-spec.md`
 
 > Tone and empty-section behavior revised per ADR-0020.
+> Row actions, checked-row placement, and filter no-match revised per ADR-0021 / spec 15.
 
 ## Goal
 
@@ -34,7 +35,7 @@ materialised.
 | Time horizon | Three sections: **Overdue / Today / Next 7 days** |
 | Overdue look-back | Capped at **7 days** (bounded; recurring missed beyond that drop off) |
 | Quick add | Lightweight quick-add sheet (title + pet + when), "More options →" full form |
-| Row action | **Checkbox** to complete (with undo); **tap row / ⋯** → sheet (Skip / Edit / Pause / Delete — pause added per ADR-0020) |
+| Row action | **Checkbox** to complete (with undo); **⋯** → sheet (Postpone (one-off only) / Skip / Edit / Pause / Delete — pause added per ADR-0020, postpone + delete confirmation added per ADR-0021); **tap row body** → edit directly, superseding the tap→sheet description below (ADR-0021) |
 | Top chrome | Today progress counter + filter by pet + filter by type (no streak) |
 
 ## Architecture
@@ -120,13 +121,16 @@ Add `TodayStackParamList` typed contract mirroring `PetsStack`.
 labels render as inline sub-headers within the section. Collapse state is
 in-memory (default expanded).
 
-**Empty-section behavior (revised per ADR-0020):** a section does not render
-at all when its underlying bucket is genuinely empty (zero occurrences) — no
-per-section empty row, and no "🎉"-style copy. This gate is bucket-based, not
-filter-based: a section narrowed to zero by active pet/type filters still
-renders, with a "no match" affordance, so filter state stays legible (see
-Edge cases). The whole-screen empty state (existing `today-empty`) shows when
-the entire window has zero items.
+**Empty-section behavior (revised per ADR-0020, clarified per ADR-0021):** a
+section does not render at all when its underlying **genuine** (pre-filter)
+bucket is genuinely empty (zero occurrences) — no per-section empty row, and
+no "🎉"-style copy. This gate is judged against the **unfiltered** window, not
+the filtered one: a section narrowed to zero by active pet/type filters still
+renders, keeping its header (count `۰`) with a quiet "no match" row, so filter
+state stays legible per section (see Edge cases). The whole-screen empty state
+(existing `today-empty`) shows only when the entire window has zero items;
+the separate whole-list "no tasks match" block shows when filters wipe out
+every section at once.
 
 **Overdue styling (revised per ADR-0020):** overdue times render in neutral
 ink, never Alert Brick — DESIGN.md reserves Alert Brick for errors and
@@ -142,21 +146,29 @@ status badge). Changes:
 - **Checkbox** (leading): tap → `markOccurrence(choreId, dueAt, 'done')`. Row
   animates to checked, dimmed/strikethrough, and a neutral **done** toast shows
   (~4s) — see `docs/specs/10-lively-task-done-toast.md` / ADR-0020. Undo →
-  `unmarkOccurrence(choreId, dueAt)`. Checked rows stay in place until next
-  reload (focus/refresh re-buckets). **Upcoming (future-day) rows are not
-  completable**: the checkbox is disabled/inert for occurrences whose `dueAt`
-  is beyond today, so a task can't be marked done ahead of its date; those
-  rows remain **pre-skippable** via the ⋯ sheet.
-- **⋯ button / tap on row body** → action sheet:
+  `unmarkOccurrence(choreId, dueAt)`. ~~Checked rows stay in place until next
+  reload (focus/refresh re-buckets).~~ **Superseded by ADR-0021 / spec 15:**
+  finalized (done/skipped) rows move into a fourth **Completed** section
+  (collapsed by default, sorted newest-first) instead of staying in place;
+  the checkbox there still calls `unmarkOccurrence`. **Upcoming (future-day)
+  rows are not completable**: the checkbox is disabled/inert for occurrences
+  whose `dueAt` is beyond today, so a task can't be marked done ahead of its
+  date; those rows remain **pre-skippable** via the ⋯ sheet.
+- **⋯ button** → action sheet (row-body tap navigates straight to edit
+  instead, per ADR-0021):
+  - **Postpone «به فردا»** (added per ADR-0021) → one-off, non-final,
+    non-future occurrences only; reschedules `at` to tomorrow at the same
+    Tehran wall-clock time
   - **Skip** → `markOccurrence(..., 'skipped')` (available on any row,
     including Upcoming/future-day rows)
   - **Edit** → navigate to `ChoreFormScreen` for that chore
   - **Pause** (added per ADR-0020) → stop generating/notifying future
     occurrences for the task; it disappears from the hub and shows a
     «متوقف» tag on PetDetail until resumed from the edit form
-  - **Delete** → `deleteChore(choreId)`. For recurring chores the sheet copy
-    reads "Delete this task and all its occurrences"; for one_off it reads
-    "Delete this task".
+  - **Delete** → opens a `ConfirmDialog` (added per ADR-0021; was an instant
+    `deleteChore(choreId)` call) — confirming calls `deleteChore(choreId)`.
+    For recurring chores the dialog message reads "Delete this task and all
+    its occurrences"; for one_off it reads "Delete this task".
 - The standalone Done/Skip buttons from the current row are removed (checkbox +
   sheet replace them).
 
