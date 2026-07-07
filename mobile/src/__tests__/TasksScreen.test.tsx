@@ -405,6 +405,30 @@ describe("TasksScreen – skipped row", () => {
   });
 });
 
+// ── 6b. Future upcoming rows: done checkbox locked, skip-undo stays tappable ──
+describe("TasksScreen – upcoming rows", () => {
+  test("disables the done checkbox on upcoming rows but keeps skipped-undo tappable", async () => {
+    mockWindowOccurrences = [
+      makeOcc("fut-pending", DUE_UPCOMING),
+      makeOcc("fut-skipped", DUE_UPCOMING, "skipped"),
+    ];
+    const screen = await render(<TasksScreen />);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("tasks-check-fut-pending"));
+    });
+    expect(mockMarkOccurrence).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("tasks-check-fut-skipped"));
+    });
+    expect(mockUnmarkOccurrence).toHaveBeenCalledWith(
+      "fut-skipped",
+      DUE_UPCOMING,
+    );
+  });
+});
+
 // ── 7. Row body tap → edit ───────────────────────────────────────────────────
 describe("TasksScreen – row body tap", () => {
   test("tapping row body navigates to edit (not the action sheet)", async () => {

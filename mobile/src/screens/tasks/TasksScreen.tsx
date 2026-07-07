@@ -78,6 +78,7 @@ type RowProps = {
   occ: Occurrence;
   petName: string;
   overdue: boolean;
+  future: boolean;
   onCheck: (occ: Occurrence) => void;
   onEdit: (occ: Occurrence) => void;
   onMore: (occ: Occurrence) => void;
@@ -87,6 +88,7 @@ const OccurrenceRow = React.memo(function OccurrenceRow({
   occ,
   petName,
   overdue,
+  future,
   onCheck,
   onEdit,
   onMore,
@@ -95,6 +97,7 @@ const OccurrenceRow = React.memo(function OccurrenceRow({
   const { task, dueAt, status } = occ;
   const isFinal = status === "done" || status === "skipped";
   const isDone = status === "done";
+  const lockDone = future && !isFinal;
 
   return (
     <Pressable
@@ -108,9 +111,10 @@ const OccurrenceRow = React.memo(function OccurrenceRow({
       <Pressable
         testID={`tasks-check-${task.id}`}
         onPress={() => onCheck(occ)}
+        disabled={lockDone}
         style={styles.checkbox}
         accessibilityRole="checkbox"
-        accessibilityState={{ checked: isFinal }}
+        accessibilityState={{ checked: isFinal, disabled: lockDone }}
         accessibilityLabel={
           isFinal ? t("tasks.undo.action") : t("tasks.action.mark_done")
         }
@@ -124,7 +128,13 @@ const OccurrenceRow = React.memo(function OccurrenceRow({
                 : "checkbox-blank-circle-outline"
           }
           size={24}
-          color={isDone ? colors.primary : colors.inkMuted}
+          color={
+            isDone
+              ? colors.primary
+              : lockDone
+                ? colors.inkFaint
+                : colors.inkMuted
+          }
         />
       </Pressable>
 
@@ -671,6 +681,7 @@ export default function TasksScreen() {
               occ={occ}
               petName={petNameById[occ.task.petId] ?? ""}
               overdue={(section as Section).sectionKey === "overdue"}
+              future={(section as Section).sectionKey === "upcoming"}
               onCheck={handleCheck}
               onEdit={handleEdit}
               onMore={handleMore}

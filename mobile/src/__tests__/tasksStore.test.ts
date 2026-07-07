@@ -524,6 +524,39 @@ describe("tasksStore – notification re-sync seam", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 5c. Future-day completion guard
+// ---------------------------------------------------------------------------
+
+describe("tasksStore – future-day completion guard", () => {
+  it("refuses to log 'done' for a future-day occurrence but allows 'skipped'", async () => {
+    const { useTasksStore } = loadFreshTasksStore();
+    const futureIso = new Date(
+      Date.now() + 2 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const schedule: Schedule = { kind: "one_off", at: futureIso };
+    await useTasksStore.getState().addTask({
+      petId: "p1",
+      type: "feeding",
+      title: null,
+      schedule,
+      endKind: "never",
+      endUntil: null,
+      endCount: null,
+      active: true,
+    });
+    const task = useTasksStore.getState().tasks[0];
+
+    await useTasksStore.getState().markOccurrence(task.id, futureIso, "done");
+    expect(mockStore.task_logs).toHaveLength(0);
+
+    await useTasksStore
+      .getState()
+      .markOccurrence(task.id, futureIso, "skipped");
+    expect(mockStore.task_logs).toHaveLength(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 6. Pet-delete cascade
 // ---------------------------------------------------------------------------
 

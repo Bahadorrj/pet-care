@@ -10,7 +10,11 @@ import {
   removeLog,
   getLogsForTask as dbGetLogsForTask,
 } from "../db/tasks";
-import { occurrencesForDay, toUtcIso } from "../lib/taskSchedule";
+import {
+  occurrencesForDay,
+  toUtcIso,
+  tehranDayOffset,
+} from "../lib/taskSchedule";
 import type { Task, TaskLog, Occurrence, Schedule } from "../db/types";
 
 // ---------------------------------------------------------------------------
@@ -185,6 +189,9 @@ export const useTasksStore = create<TasksState>((set, get) => {
     // scheduled, so it must not trigger a notification re-sync (cancel +
     // reschedule of up to 200 triggers) — this is the highest-frequency action.
     markOccurrence: async (taskId, dueAt, status) => {
+      // Completing the future is a lie — 'done' only for today/past (Tehran
+      // day). Pre-skipping a future day ("I'm away Friday") stays allowed.
+      if (status === "done" && tehranDayOffset(dueAt) > 0) return;
       logOccurrence(taskId, dueAt, status);
       const tasks = get().tasks;
       const occurrences = computeTodayOccurrences(tasks);
