@@ -8,14 +8,11 @@ import type {
 } from "react-native-toast-message";
 import { colors, radius, shadow, spacing, typography } from "../theme/theme";
 
-const CHEER_COUNT = 3;
-
-// Pick a random cheer phrase naming the pet; fall back to the bare «انجام شد»
-// when no pet name is available. Pure (t injected) so it's unit-testable.
-export function cheerPhrase(t: TFunction, petName?: string): string {
+// Neutral confirmation naming the pet; bare «انجام شد» without one.
+// Deliberately not a cheer — warmth lives in calm, not praise (ADR-0020).
+export function donePhrase(t: TFunction, petName?: string): string {
   if (!petName) return t("tasks.undo.done");
-  const i = Math.floor(Math.random() * CHEER_COUNT);
-  return t(`tasks.done.cheer.${i}`, { name: petName });
+  return t("tasks.done.confirm", { name: petName });
 }
 
 type TaskDoneProps = { petName?: string };
@@ -25,7 +22,7 @@ function TaskDoneToast({ props }: ToastConfigParams<TaskDoneProps>) {
   // The library reuses one mounted toast instance across shows, swapping props —
   // so key the phrase on petName, else it freezes to the first pet shown.
   const phrase = React.useMemo(
-    () => cheerPhrase(t, props.petName),
+    () => donePhrase(t, props.petName),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.petName],
   );
