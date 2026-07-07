@@ -60,7 +60,7 @@ const TASK_TYPES: TaskType[] = [
 ];
 
 // ── Section list item types ────────────────────────────────────────────────────
-type SectionKind = "overdue" | "today" | "upcoming";
+type SectionKind = "overdue" | "today" | "upcoming" | "completed";
 
 // Items can be real occurrences or day sub-headers
 type ListItem =
@@ -306,6 +306,7 @@ export default function TasksScreen() {
     overdue: false,
     today: false,
     upcoming: false,
+    completed: true,
   });
   const toggleSection = React.useCallback((key: SectionKind) => {
     setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -337,7 +338,7 @@ export default function TasksScreen() {
     [windowOccurrences, petFilter, typeFilter],
   );
 
-  const { overdue, today, upcoming } = React.useMemo(
+  const { overdue, today, upcoming, completed, progress } = React.useMemo(
     () => bucketOccurrences(filtered, new Date()),
     [filtered],
   );
@@ -463,18 +464,29 @@ export default function TasksScreen() {
         sectionKey: "upcoming",
         data: collapsed.upcoming ? [] : upcomingItems,
       });
+    if (completed.length > 0)
+      sections.push({
+        sectionKey: "completed",
+        data: collapsed.completed
+          ? []
+          : completed.map((occ) => ({ kind: "occ", occ })),
+      });
 
     const counts: Record<SectionKind, number> = {
       overdue: overdue.length,
       today: today.length,
       upcoming: upcoming.length,
+      completed: completed.length,
     };
 
     return { sections, counts };
-  }, [overdue, today, upcoming, collapsed]);
+  }, [overdue, today, upcoming, completed, collapsed]);
 
   const allBucketsEmpty =
-    overdue.length === 0 && today.length === 0 && upcoming.length === 0;
+    overdue.length === 0 &&
+    today.length === 0 &&
+    upcoming.length === 0 &&
+    completed.length === 0;
   const hasFilters = petFilter !== null || typeFilter.size > 0;
 
   // Genuine empty: nothing actionable anywhere (and not a filter artifact)
@@ -503,31 +515,29 @@ export default function TasksScreen() {
     );
   }
 
-  // Progress: tasks-bucket items excluding skipped
-  const todayForProgress = today.filter((o) => o.status !== "skipped");
-  const todayDone = todayForProgress.filter((o) => o.status === "done").length;
-  const todayTotal = todayForProgress.length;
-
   // ── List header: progress + filter bar ───────────────────────────────────────
   const ListHeader = (
     <View>
       {/* Progress indicator (today only, hidden when denominator is 0) */}
-      {todayTotal > 0 && (
+      {progress.total > 0 && (
         <View style={styles.progressContainer} testID="tasks-progress">
           <View style={styles.progressDotsRow}>
-            {todayForProgress.map((o, i) => (
+            {Array.from({ length: progress.total }, (_, i) => (
               <View
-                key={`${o.task.id}-${i}`}
+                key={i}
                 testID="progress-dot"
                 style={[
                   styles.progressDot,
-                  o.status === "done" && styles.progressDotDone,
+                  i < progress.done && styles.progressDotDone,
                 ]}
               />
             ))}
           </View>
           <Text style={styles.progressText}>
-            {t("tasks.progress", { done: todayDone, total: todayTotal })}
+            {t("tasks.progress", {
+              done: progress.done,
+              total: progress.total,
+            })}
           </Text>
         </View>
       )}

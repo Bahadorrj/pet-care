@@ -88,16 +88,27 @@ export function bucketOccurrences(occs: Occurrence[], now: Date): BucketResult {
   const upcoming: Occurrence[] = [];
   const completed: Occurrence[] = [];
 
+  // Today-dueAt occurrences pre-split (finals + non-final) — progress is
+  // derived from this full set so moving finals into `completed` can't
+  // change the numbers.
+  const todayAll: Occurrence[] = [];
+
   for (const occ of occs) {
     const { dueAt, status } = occ;
+    const isFinal = status === "done" || status === "skipped";
 
     if (dueAt >= endISO) {
       upcoming.push(occ);
     } else if (dueAt >= startISO) {
-      today.push(occ);
+      todayAll.push(occ);
+      if (isFinal) {
+        if (dueAt >= lookBackISO) completed.push(occ);
+      } else {
+        today.push(occ);
+      }
     } else {
       // dueAt < startOfToday — candidate for overdue/completed
-      if (status === "done" || status === "skipped") {
+      if (isFinal) {
         if (dueAt >= lookBackISO) completed.push(occ); // older than look-back → dropped
         continue;
       }
@@ -121,7 +132,7 @@ export function bucketOccurrences(occs: Occurrence[], now: Date): BucketResult {
   );
 
   // Progress: today-dueAt occurrences, excluding skipped, done vs total
-  const todayForProgress = today.filter((o) => o.status !== "skipped");
+  const todayForProgress = todayAll.filter((o) => o.status !== "skipped");
   const progress = {
     done: todayForProgress.filter((o) => o.status === "done").length,
     total: todayForProgress.length,

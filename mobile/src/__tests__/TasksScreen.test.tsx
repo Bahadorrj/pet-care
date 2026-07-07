@@ -193,10 +193,11 @@ describe("TasksScreen – empty state", () => {
     expect(queryByTestId("tasks-empty")).toBeNull();
   });
 
-  it("shows the genuine empty state when everything in the window is already done", async () => {
+  it("does NOT show whole-screen empty when everything in the window is already done — it moves to Completed", async () => {
     mockWindowOccurrences = [makeOcc("t1", DUE_OVERDUE, "done")];
     const screen = await render(<TasksScreen />);
-    expect(screen.getByTestId("tasks-empty")).toBeTruthy();
+    expect(screen.queryByTestId("tasks-empty")).toBeNull();
+    expect(screen.getByTestId("tasks-section-completed")).toBeTruthy();
   });
 });
 
@@ -233,6 +234,45 @@ describe("TasksScreen – section headers", () => {
   });
 });
 
+// ── 2b. Completed section ─────────────────────────────────────────────────────
+describe("TasksScreen – completed section", () => {
+  test("a done today occurrence renders under Completed, not Today", async () => {
+    mockWindowOccurrences = [OCC_DONE];
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+
+    expect(queryByTestId("tasks-section-today")).toBeNull();
+    expect(getByTestId("tasks-section-completed")).toBeTruthy();
+    expect(queryByTestId("tasks-row-task-done")).toBeNull(); // collapsed by default
+
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-section-completed"));
+    });
+    expect(getByTestId("tasks-row-task-done")).toBeTruthy();
+  });
+
+  test("Completed header shows count in Persian digits", async () => {
+    mockWindowOccurrences = [OCC_DONE, OCC_SKIPPED];
+    const { getByTestId } = await render(<TasksScreen />);
+    const header = getByTestId("tasks-section-completed");
+    expect(header).toHaveTextContent(new RegExp(toPersianDigits(2)));
+  });
+
+  test("Completed section starts collapsed (accessibilityState.expanded === false)", async () => {
+    mockWindowOccurrences = [OCC_DONE];
+    const { getByTestId } = await render(<TasksScreen />);
+    const header = getByTestId("tasks-section-completed");
+    expect(header.props.accessibilityState.expanded).toBe(false);
+  });
+
+  test("a skipped upcoming occurrence still renders under upcoming, not Completed", async () => {
+    const futSkipped = makeOcc("fut-skip", DUE_UPCOMING, "skipped");
+    mockWindowOccurrences = [futSkipped];
+    const { getByTestId, queryByTestId } = await render(<TasksScreen />);
+    expect(getByTestId("tasks-row-fut-skip")).toBeTruthy();
+    expect(queryByTestId("tasks-section-completed")).toBeNull();
+  });
+});
+
 // ── 3. Checkbox → markOccurrence + Toast ─────────────────────────────────────
 describe("TasksScreen – checkbox", () => {
   test('pressing checkbox calls markOccurrence(id, dueAt, "done") and shows toast', async () => {
@@ -257,9 +297,12 @@ describe("TasksScreen – checkbox", () => {
     expect(toastArgs.props.petName).toBe("رکسی");
   });
 
-  test("pressing checkbox on done row reverts it (unmarkOccurrence, no mark)", async () => {
+  test("pressing checkbox on done row (in Completed) reverts it (unmarkOccurrence, no mark)", async () => {
     mockWindowOccurrences = [OCC_DONE];
     const { getByTestId } = await render(<TasksScreen />);
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-section-completed")); // expand — collapsed by default
+    });
 
     fireEvent.press(getByTestId("tasks-check-task-done"));
     expect(mockUnmarkOccurrence).toHaveBeenCalledWith(
@@ -269,9 +312,12 @@ describe("TasksScreen – checkbox", () => {
     expect(mockMarkOccurrence).not.toHaveBeenCalled();
   });
 
-  test("done row renders dimmed (opacity 0.5)", async () => {
+  test("done row (in Completed) renders dimmed (opacity 0.5)", async () => {
     mockWindowOccurrences = [OCC_DONE];
     const { getByTestId } = await render(<TasksScreen />);
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-section-completed"));
+    });
     const row = getByTestId("tasks-row-task-done");
     const flatStyle = Array.isArray(row.props.style)
       ? Object.assign({}, ...row.props.style.filter(Boolean))
@@ -429,9 +475,12 @@ describe("TasksScreen – Tehran time display", () => {
 
 // ── 6. Skipped row is dimmed, no action on checkbox ──────────────────────────
 describe("TasksScreen – skipped row", () => {
-  test("skipped row renders dimmed and checkbox reverts it", async () => {
+  test("skipped row (in Completed) renders dimmed and checkbox reverts it", async () => {
     mockWindowOccurrences = [OCC_SKIPPED];
     const { getByTestId } = await render(<TasksScreen />);
+    await act(async () => {
+      fireEvent.press(getByTestId("tasks-section-completed")); // expand — collapsed by default
+    });
 
     const row = getByTestId("tasks-row-task-skipped");
     const flatStyle = Array.isArray(row.props.style)

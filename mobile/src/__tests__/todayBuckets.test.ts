@@ -174,12 +174,32 @@ describe("bucketOccurrences", () => {
     expect(completed[1].task.id).toBe("c-older");
   });
 
-  test("today done → still in today bucket (this task)", () => {
+  test("today done → completed bucket, not today (Task 3)", () => {
     const todayDone = occ("c-today-done", "2026-06-24T06:00:00Z", "done");
     const { today, completed } = bucketOccurrences([todayDone], NOW);
-    expect(today).toHaveLength(1);
-    expect(today[0].task.id).toBe("c-today-done");
-    expect(completed).toHaveLength(0);
+    expect(today).toHaveLength(0);
+    expect(completed).toHaveLength(1);
+    expect(completed[0].task.id).toBe("c-today-done");
+  });
+
+  test("today skipped → completed bucket, not today (Task 3)", () => {
+    const todaySkipped = occ(
+      "c-today-skipped",
+      "2026-06-24T06:00:00Z",
+      "skipped",
+    );
+    const { today, completed } = bucketOccurrences([todaySkipped], NOW);
+    expect(today).toHaveLength(0);
+    expect(completed).toHaveLength(1);
+    expect(completed[0].task.id).toBe("c-today-skipped");
+  });
+
+  test("today's finals and past finals interleave by dueAt in completed", () => {
+    const pastDone = occ("c-past", "2026-06-23T06:00:00Z", "done");
+    const todayDone = occ("c-today-done2", "2026-06-24T06:00:00Z", "done");
+    const { completed } = bucketOccurrences([pastDone, todayDone], NOW);
+    expect(completed[0].task.id).toBe("c-today-done2"); // most recent first
+    expect(completed[1].task.id).toBe("c-past");
   });
 
   test("progress matches hand-computed done/total for a mixed today fixture", () => {
