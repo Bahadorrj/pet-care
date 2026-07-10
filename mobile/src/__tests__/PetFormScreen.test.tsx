@@ -129,15 +129,19 @@ describe("PetFormScreen – basic-information card", () => {
 // ── Required-field markers ────────────────────────────────────────────────────
 
 describe("PetFormScreen – required-field asterisks", () => {
+  // Assert the full rendered text, not `props.children`. Two earlier versions
+  // of these tests were vacuous: `[text, expect.anything()]` also matches the
+  // literal `false` that `required && <Text/>` yields when the marker is
+  // absent, and `not.toHaveTextContent("*")` passes on "اسم *" because
+  // toHaveTextContent matches strings exactly, not as substrings. Exact
+  // whole-label matching is what actually pins the marker down.
   test("name and species labels are marked required", async () => {
     const { getByTestId } = await render(<PetFormScreen />);
 
     for (const field of ["name", "species"]) {
-      const label = getByTestId(`petform-label-${field}`);
-      expect(label.props.children).toEqual([
-        i18n.t(`pets.field.${field}`),
-        expect.anything(),
-      ]);
+      expect(getByTestId(`petform-label-${field}`)).toHaveTextContent(
+        `${i18n.t(`pets.field.${field}`)} *`,
+      );
     }
   });
 
@@ -145,11 +149,9 @@ describe("PetFormScreen – required-field asterisks", () => {
     const { getByTestId } = await render(<PetFormScreen />);
 
     for (const field of ["breed", "gender", "weight", "notes"]) {
-      const label = getByTestId(`petform-label-${field}`);
-      expect(label.props.children).toEqual([
+      expect(getByTestId(`petform-label-${field}`)).toHaveTextContent(
         i18n.t(`pets.field.${field}`),
-        false,
-      ]);
+      );
     }
   });
 
@@ -160,10 +162,9 @@ describe("PetFormScreen – required-field asterisks", () => {
 
     await fireEvent.press(getByTestId("petform-species-other"));
 
-    expect(getByTestId("petform-label-species_other").props.children).toEqual([
-      i18n.t("pets.field.species_other"),
-      expect.anything(),
-    ]);
+    expect(getByTestId("petform-label-species_other")).toHaveTextContent(
+      `${i18n.t("pets.field.species_other")} *`,
+    );
   });
 
   test("the marker is not announced to screen readers as part of the field name", async () => {
