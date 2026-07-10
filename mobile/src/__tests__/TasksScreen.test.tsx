@@ -21,6 +21,16 @@ import { colors } from "../theme/theme";
 import type { Occurrence } from "../db/types";
 import { useActionSheet } from "@expo/react-native-action-sheet";
 import Toast from "react-native-toast-message";
+import * as Haptics from "expo-haptics";
+
+// Haptics are fire-and-forget promises in the screen; the automock returns
+// undefined, so give every call a real resolved promise to `.catch()` on.
+jest.mock("expo-haptics", () => ({
+  impactAsync: jest.fn().mockResolvedValue(undefined),
+  notificationAsync: jest.fn().mockResolvedValue(undefined),
+  ImpactFeedbackStyle: { Light: "light" },
+  NotificationFeedbackType: { Success: "success" },
+}));
 
 // ── Store mock ────────────────────────────────────────────────────────────────
 const mockLoad = jest.fn().mockResolvedValue(undefined);
@@ -473,6 +483,27 @@ describe("TasksScreen – postpone", () => {
       endCount: occ.task.endCount,
       active: occ.task.active,
     });
+  });
+
+  test("postpone fires a Light impact, and a rejected haptic never throws", async () => {
+    const impactAsync = Haptics.impactAsync as jest.Mock;
+    impactAsync.mockClear();
+    // A device with no actuator rejects — postpone must still go through.
+    impactAsync.mockRejectedValueOnce(new Error("no actuator"));
+
+    mockWindowOccurrences = [
+      makeOcc("t-oneoff-overdue", DUE_OVERDUE, "pending", "one_off"),
+    ];
+    const { getByTestId } = await render(<TasksScreen />);
+    fireEvent.press(getByTestId("tasks-more-t-oneoff-overdue"));
+
+    const [opts, callback] = (
+      useActionSheet().showActionSheetWithOptions as jest.Mock
+    ).mock.calls.at(-1)!;
+    callback(opts.options.indexOf(i18n.t("tasks.action.postpone")));
+
+    expect(impactAsync).toHaveBeenCalledWith(Haptics.ImpactFeedbackStyle.Light);
+    expect(mockUpdateTask).toHaveBeenCalled();
   });
 
   test("postpone is absent for recurring tasks and for future one-off tasks", async () => {

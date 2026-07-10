@@ -413,7 +413,8 @@ export default function TasksScreen() {
       if (canPostpone && oneOffSchedule) {
         entries.push({
           label: t("tasks.action.postpone"),
-          onPress: () =>
+          onPress: () => {
+            hapticLight();
             updateTask(task.id, {
               type: task.type,
               title: task.title,
@@ -425,7 +426,8 @@ export default function TasksScreen() {
               endUntil: task.endUntil,
               endCount: task.endCount,
               active: task.active,
-            }),
+            });
+          },
         });
       }
       entries.push(
