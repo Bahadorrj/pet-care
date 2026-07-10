@@ -26,6 +26,7 @@
   "tab.pets": "پت های من",
   "tab.profile": "پروفایل",
   "profile.signin_prompt": "برای ذخیره و همگام‌سازی وارد شوید",
+  "profile.pet_count": "مراقب {{count}} پت هستی",
   "profile.logout": "خروج",
   "profile.change_username": "تغییر نام کاربری",
   "profile.change_username_subtitle": "این نام برای نمایش عمومی شماست؛ هر زمان می‌توانید تغییرش دهید.",

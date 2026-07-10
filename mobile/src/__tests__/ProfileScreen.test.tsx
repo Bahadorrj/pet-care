@@ -31,8 +31,16 @@ jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ navigate: mockNavigate, goBack: mockGoBack }),
 }));
 
+// petsStore is SQLite-backed and populates at module load — stub it out.
+let mockPets: { id: string }[] = [];
+jest.mock("../store/petsStore", () => ({
+  usePetsStore: (selector: (s: { pets: { id: string }[] }) => unknown) =>
+    selector({ pets: mockPets }),
+}));
+
 // Initialise i18n so t() returns real Farsi strings in the rendered component.
 import i18n from "../i18n";
+import { toPersianDigits } from "../lib/jalali";
 import { useAuthStore } from "../store/authStore";
 import ProfileScreen from "../screens/profile/ProfileScreen";
 
@@ -64,6 +72,37 @@ describe("ProfileScreen – logged out", () => {
     fireEvent.press(screen.getByText(i18n.t("home.signin_signup")));
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith("Signin");
+  });
+});
+
+describe("ProfileScreen – pet count line", () => {
+  beforeEach(() => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      token: "tok",
+      email: "user@example.com",
+      username: "johndoe",
+    });
+  });
+
+  afterEach(() => {
+    mockPets = [];
+  });
+
+  test("hidden at zero pets", async () => {
+    mockPets = [];
+    await render(<ProfileScreen />);
+    expect(screen.queryByTestId("profile-pet-count")).toBeNull();
+  });
+
+  test("names the count in Persian digits when the user has pets", async () => {
+    mockPets = [{ id: "p1" }, { id: "p2" }];
+    await render(<ProfileScreen />);
+    expect(
+      screen.getByText(
+        i18n.t("profile.pet_count", { count: toPersianDigits(2) }),
+      ),
+    ).toBeTruthy();
   });
 });
 
