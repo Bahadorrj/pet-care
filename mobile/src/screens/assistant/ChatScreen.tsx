@@ -50,7 +50,8 @@ export default function ChatScreen() {
   const tasks = useTasksStore((s) => s.tasks);
   const getLogsForTask = useTasksStore((s) => s.getLogsForTask);
 
-  const [draft, setDraft] = useState("");
+  // A starter chip hands over its question pre-filled — the user still sends it.
+  const [draft, setDraft] = useState(route.params.draft ?? "");
   const [selectedPetIds, setSelectedPetIds] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [showDisclaimer, setShowDisclaimer] = useState(

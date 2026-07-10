@@ -8,7 +8,21 @@ import {
 import { NavigationContainer } from "@react-navigation/native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
-import "../i18n";
+const mockNavigate = jest.fn();
+jest.mock("@react-navigation/native", () => ({
+  ...jest.requireActual("@react-navigation/native"),
+  useNavigation: () => ({ navigate: mockNavigate, getParent: () => undefined }),
+}));
+
+// petsStore is SQLite-backed and populates at module load — stub it out.
+let mockPets: { id: string; name: string }[] = [];
+jest.mock("../store/petsStore", () => ({
+  usePetsStore: (
+    selector: (s: { pets: { id: string; name: string }[] }) => unknown,
+  ) => selector({ pets: mockPets }),
+}));
+
+import i18n from "../i18n";
 import ConversationListScreen from "../screens/assistant/ConversationListScreen";
 import { useAuthStore } from "../store/authStore";
 import { useChatStore } from "../store/chatStore";
@@ -39,12 +53,76 @@ const renderScreen = () =>
   );
 
 beforeEach(() => {
+  mockNavigate.mockClear();
+  mockPets = [];
   api.listConversations.mockResolvedValue([]);
   useChatStore.setState({
     conversations: [],
     activeConversationId: null,
     messages: [],
     streaming: false,
+  });
+});
+
+describe("ConversationListScreen – starter question chips", () => {
+  const STARTER_KEYS = [
+    "chat.starter.water",
+    "chat.starter.food",
+    "chat.starter.vet",
+    "chat.starter.grooming",
+  ];
+
+  it("shows no chips when the user has no pets", async () => {
+    useAuthStore.setState({ token: "jwt" });
+    renderScreen();
+    await waitFor(() =>
+      expect(screen.getByText(i18n.t("chat.list.empty_title"))).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("chat-starter-water")).toBeNull();
+  });
+
+  it("builds a chip per starter question from the user's pets", async () => {
+    mockPets = [{ id: "p1", name: "رکسی" }];
+    useAuthStore.setState({ token: "jwt" });
+    renderScreen();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-starter-water")).toBeTruthy(),
+    );
+    for (const key of STARTER_KEYS) {
+      expect(screen.getByText(i18n.t(key, { name: "رکسی" }))).toBeTruthy();
+    }
+  });
+
+  it("tapping a chip starts a conversation and opens Chat with that draft", async () => {
+    mockPets = [{ id: "p1", name: "رکسی" }];
+    useAuthStore.setState({ token: "jwt" });
+    api.createConversation.mockResolvedValue({ id: "conv-9" });
+    renderScreen();
+
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-starter-water")).toBeTruthy(),
+    );
+    fireEvent.press(screen.getByTestId("chat-starter-water"));
+
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("Chat", {
+        conversationId: "conv-9",
+        draft: i18n.t("chat.starter.water", { name: "رکسی" }),
+      }),
+    );
+  });
+
+  it("chips disappear once a conversation exists", async () => {
+    mockPets = [{ id: "p1", name: "رکسی" }];
+    useAuthStore.setState({ token: "jwt" });
+    api.listConversations.mockResolvedValue([
+      { id: "c1", title: "سلام", updated_at: "2026-07-01T00:00:00Z" },
+    ]);
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByTestId("conv-row-c1")).toBeTruthy());
+    expect(screen.queryByTestId("chat-starter-water")).toBeNull();
   });
 });
 

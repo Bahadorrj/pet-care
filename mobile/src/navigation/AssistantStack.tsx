@@ -8,7 +8,7 @@ import { colors } from "../theme/theme";
 
 export type AssistantStackParamList = {
   ConversationList: undefined;
-  Chat: { conversationId: string };
+  Chat: { conversationId: string; draft?: string };
 };
 
 export type AssistantNavigationProp =

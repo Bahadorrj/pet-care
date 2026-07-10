@@ -19,10 +19,20 @@ import Button from "../../components/ui/Button";
 import ConfirmDialog from "../../components/ui/ConfirmDialog";
 import { useAuthStore } from "../../store/authStore";
 import { useChatStore } from "../../store/chatStore";
+import { usePetsStore } from "../../store/petsStore";
 import { toPersianDigits, utcIsoToTehranShortJalali } from "../../lib/jalali";
 import { colors, radius, shadow, spacing, typography } from "../../theme/theme";
 import type { AssistantNavigationProp } from "../../navigation/AssistantStack";
 import type { RootTabNavigationProp } from "../../navigation/RootNavigator";
+
+// Guided first asks. Each cycles onto a different pet when the user has several,
+// so the chips read as being about *their* animals, not a generic pet.
+const STARTER_KEYS = [
+  "chat.starter.water",
+  "chat.starter.food",
+  "chat.starter.vet",
+  "chat.starter.grooming",
+] as const;
 
 export default function ConversationListScreen() {
   const { t } = useTranslation();
@@ -33,6 +43,7 @@ export default function ConversationListScreen() {
   const startNewConversation = useChatStore((s) => s.startNewConversation);
   const removeConversation = useChatStore((s) => s.removeConversation);
   const openConversation = useChatStore((s) => s.openConversation);
+  const pets = usePetsStore((s) => s.pets);
 
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -108,14 +119,21 @@ export default function ConversationListScreen() {
     if (token) void load();
   }, [token, load]);
 
-  const handleNew = async () => {
+  const handleNew = async (draft?: string) => {
     try {
       const id = await startNewConversation();
-      navigation.navigate("Chat", { conversationId: id });
+      navigation.navigate("Chat", { conversationId: id, draft });
     } catch {
       Toast.show({ type: "hint", text1: t("chat.error.network") });
     }
   };
+
+  const starters = pets.length
+    ? STARTER_KEYS.map((key, i) => ({
+        key,
+        question: t(key, { name: pets[i % pets.length].name }),
+      }))
+    : [];
 
   const handleOpen = (id: string) => {
     void openConversation(id);
@@ -176,6 +194,21 @@ export default function ConversationListScreen() {
             <Text style={styles.emptySubtitle}>
               {t("chat.list.empty_subtitle")}
             </Text>
+            {starters.length > 0 && (
+              <View style={styles.starterRow}>
+                {starters.map(({ key, question }) => (
+                  <Pressable
+                    key={key}
+                    testID={`chat-starter-${key.split(".").pop()}`}
+                    style={styles.starterChip}
+                    onPress={() => void handleNew(question)}
+                    accessibilityRole="button"
+                  >
+                    <Text style={styles.starterChipText}>{question}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </View>
         }
         extraData={selectedIds}
@@ -281,7 +314,7 @@ export default function ConversationListScreen() {
       ) : (
         <Pressable
           testID="conv-new"
-          onPress={handleNew}
+          onPress={() => void handleNew()}
           accessibilityRole="button"
           accessibilityLabel={t("chat.list.new")}
           style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
@@ -357,6 +390,23 @@ const styles = StyleSheet.create({
     color: colors.inkMuted,
     textAlign: "center",
   },
+  starterRow: {
+    alignSelf: "stretch",
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  // Neutral surface, never the Garden Confident selected fill (One Voice Rule).
+  starterChip: {
+    minHeight: 44,
+    justifyContent: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  starterChipText: { ...typography.body, color: colors.inkMuted },
   fab: {
     position: "absolute",
     bottom: spacing.xl,
