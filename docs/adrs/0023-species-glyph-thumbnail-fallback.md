@@ -1,7 +1,7 @@
 # ADR-0023: Species-glyph thumbnail fallback for photo-less pets
 
 ## Status
-Proposed — **blocked on the evidence question below. Do not implement until Accepted.**
+Rejected — the omission stands. Spec 16 item 13 is dropped.
 
 ## Date
 2026-07-10
@@ -40,17 +40,24 @@ that explicit rather than let the change slip in under the cover of a spec item.
 
 ## Decision
 
-**Deferred.** One of:
+**Rejected.** The thumbnail stays omitted for photo-less pets. DESIGN.md's Pet
+List Row section is unchanged. Spec 16 item 13 is dropped, which its Success
+Criteria explicitly permit ("ADR-gated items either have an accepted ADR or are
+explicitly dropped").
 
-**(a) Accept** — photo-less rows render the `SPECIES_ICON` glyph
+The reasoning: a written design decision should not be reversed on a hunch. The
+argument *for* the glyph was aesthetic (a consistent left edge in mixed lists);
+the argument *against* is a rule someone wrote deliberately, for a stated reason,
+and no evidence was produced that the rule is hurting anyone. Absent data, the
+existing decision wins. If photo-less rows later prove to be a real irritation in
+daily use, that is new information and this ADR can be superseded — with the
+observation named.
+
+The considered alternative had been:
+
+**Accept** — photo-less rows render the `SPECIES_ICON` glyph
 (`src/theme/icons.ts`), Ink Muted, centred in a `colors.surfaceSunken` 48×48
-circle. Pets with photos are untouched. DESIGN.md's Pet List Row bullet is
-rewritten in the same commit to describe the fallback, and this ADR is listed
-there as the reason. No new icon set, no emoji, no colour.
-
-**(b) Reject** — the current omission stands, spec 16 item 13 is dropped, and
-DESIGN.md is left alone. Spec 16's Success Criteria explicitly permit this
-("ADR-gated items either have an accepted ADR or are explicitly dropped").
+circle, with DESIGN.md's Pet List Row bullet rewritten in the same commit.
 
 ## Alternatives Considered
 
@@ -78,12 +85,13 @@ photos, some without) is the only real complaint, and it is aesthetic.
   shows the generic paw. That is a factual statement about what the user told
   us, which is the entire argument for the change.
 
-**If rejected:**
+**Rejected, so in effect:**
 - Nothing changes; the cost is one unshipped spec item.
 - The next person who proposes this finds this ADR and the reasoning, rather
-  than re-litigating it from scratch.
+  than re-litigating it from scratch. Reopen it with an observation, not a
+  preference.
 
-## Guardrails (binding only if Accepted)
+## Guardrails (would have applied had this been Accepted)
 
 - **Never** colour the glyph or its well with Garden Confident, or any accent.
   Ink Muted on Sunken Well, and nothing else.

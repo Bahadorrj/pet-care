@@ -1,5 +1,12 @@
 # Plan 16 — Quiet Playfulness
 
+> **Outcome (2026-07-10):** Tasks 1–8 shipped. Task 9 produced ADR-0023, which
+> was **Rejected** — no evidence exists (the app carries no telemetry by design),
+> so DESIGN.md's no-fallback rule stands and Task 10 was dropped with it.
+> Spec items 6, 7, 11, 14 were `[ignore]`d out of scope and remain unbuilt.
+> Device verification (notification channel name, pulse cadence, chip tap) is
+> the one thing left, and it needs a real Android device.
+
 Implements `docs/specs/16-quiet-playfulness.md`, **excluding** the items marked
 `[ignore]` in the spec (6, 7, 11, 14). In scope: **1, 2, 3, 4, 5, 8, 9, 10, 12, 13**.
 

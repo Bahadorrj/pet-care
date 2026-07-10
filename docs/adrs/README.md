@@ -51,4 +51,4 @@ relevant ADR. Every ADR ends with an explicit **Guardrails** section
 | [0020](0020-quiet-tasks-tone.md) | Quiet Tasks tone — تو voice, calm overdue, neutral done toast, completion-state accent exception | Accepted | — |
 | [0021](0021-tasks-hub-completed-section-and-row-actions.md) | Tasks hub — Completed section, row-tap→edit, per-section no-match, quick postpone, delete confirmation | Accepted | Yes — spec 07 (row action, checked-row placement, empty-section gate) |
 | [0022](0022-assistant-thinking-indicator.md) | Assistant "thinking" indicator — a scoped, opacity-only ambient pulse | Accepted | — |
-| [0023](0023-species-glyph-thumbnail-fallback.md) | Species-glyph thumbnail fallback for photo-less pets | Proposed | Would reverse DESIGN.md's Pet List Row "no blank avatar fallback" |
+| [0023](0023-species-glyph-thumbnail-fallback.md) | Species-glyph thumbnail fallback for photo-less pets | Rejected | No — DESIGN.md's Pet List Row stands unchanged |
