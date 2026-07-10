@@ -1,12 +1,12 @@
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React from "react";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import PetsListScreen from '../screens/pets/PetsListScreen';
-import PetDetailScreen from '../screens/pets/PetDetailScreen';
-import PetFormScreen from '../screens/pets/PetFormScreen';
-import TaskFormScreen from '../screens/tasks/TaskFormScreen';
-import { colors } from '../theme/theme';
+import PetsListScreen from "../screens/pets/PetsListScreen";
+import PetDetailScreen from "../screens/pets/PetDetailScreen";
+import PetFormScreen from "../screens/pets/PetFormScreen";
+import TaskFormScreen from "../screens/tasks/TaskFormScreen";
+import { colors } from "../theme/theme";
 
 export type PetsStackParamList = {
   PetsList: undefined;
@@ -26,14 +26,22 @@ export default function PetsStack() {
         headerShadowVisible: false,
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.ink,
-        headerTitle: '',
-        headerBackButtonDisplayMode: 'minimal',
+        headerTitle: "",
+        headerBackButtonDisplayMode: "minimal",
         contentStyle: { backgroundColor: colors.bg },
       }}
     >
-      <Stack.Screen name="PetsList" component={PetsListScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="PetsList"
+        component={PetsListScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="PetDetail" component={PetDetailScreen} />
-      <Stack.Screen name="PetForm" component={PetFormScreen} />
+      <Stack.Screen
+        name="PetForm"
+        component={PetFormScreen}
+        options={{ headerShown: false }}
+      />
       <Stack.Screen name="TaskForm" component={TaskFormScreen} />
     </Stack.Navigator>
   );

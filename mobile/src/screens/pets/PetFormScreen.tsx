@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import type { TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   useNavigation,
@@ -16,13 +17,22 @@ import {
   type RouteProp,
 } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import Button from "../../components/ui/Button";
 import TextField from "../../components/ui/TextField";
 import { usePetsStore } from "../../store/petsStore";
 import { getPet } from "../../db/pets";
 import { pickPhoto } from "../../lib/petPhoto";
-import { colors, fonts, radius, spacing, typography } from "../../theme/theme";
+import { toLatinDigits, toPersianDigits } from "../../lib/jalali";
+import {
+  colors,
+  fonts,
+  radius,
+  shadow,
+  spacing,
+  typography,
+} from "../../theme/theme";
 import type {
   PetsStackParamList,
   PetsNavigationProp,
@@ -30,6 +40,8 @@ import type {
 import type { Species, Gender, WeightUnit } from "../../db/types";
 
 type PetFormRouteProp = RouteProp<PetsStackParamList, "PetForm">;
+
+const AVATAR_SIZE = 96;
 
 const SPECIES: Species[] = ["dog", "cat", "bird", "rabbit", "other"];
 const GENDERS: Gender[] = ["male", "female"];
@@ -41,6 +53,32 @@ const DEFAULT_WEIGHT_UNIT: Record<Species, WeightUnit> = {
   rabbit: "g",
   other: "kg",
 };
+
+/**
+ * Field label with an optional required marker. The `*` is a nested Text so it
+ * can carry the danger colour on its own; `accessibilityLabel` keeps it out of
+ * the screen-reader announcement, which says «اسم», not «اسم ستاره».
+ */
+function Label({
+  field,
+  text,
+  required = false,
+}: {
+  field: string;
+  text: string;
+  required?: boolean;
+}) {
+  return (
+    <Text
+      testID={`petform-label-${field}`}
+      style={styles.label}
+      accessibilityLabel={text}
+    >
+      {text}
+      {required && <Text style={styles.requiredMark}> *</Text>}
+    </Text>
+  );
+}
 
 export default function PetFormScreen() {
   const { t } = useTranslation();
@@ -83,6 +121,7 @@ export default function PetFormScreen() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inFlightRef = useRef(false);
+  const weightRef = useRef<TextInput>(null);
 
   const add = usePetsStore((s) => s.add);
   const update = usePetsStore((s) => s.update);
@@ -171,7 +210,68 @@ export default function PetFormScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={["bottom"]}>
+    <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      <View style={styles.appBar}>
+        <Pressable
+          testID="petform-back"
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t("pets.form.back")}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={28}
+            color={colors.ink}
+          />
+        </Pressable>
+        <Text testID="petform-title" style={styles.appBarTitle}>
+          {isEdit ? t("pets.form.title_edit") : t("pets.form.title_add")}
+        </Text>
+      </View>
+
+      <View style={styles.avatarSection}>
+        <View style={styles.avatarWrap}>
+          <Pressable
+            testID="petform-avatar"
+            onPress={handlePickPhoto}
+            style={styles.avatar}
+            accessibilityRole="button"
+            accessibilityLabel={t("pets.form.photo_edit")}
+          >
+            {photoUri != null ? (
+              <Image
+                testID="petform-avatar-image"
+                source={{ uri: photoUri }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                testID="petform-avatar-placeholder"
+                name="camera-outline"
+                size={32}
+                color={colors.inkFaint}
+              />
+            )}
+          </Pressable>
+          <Pressable
+            testID="petform-photo"
+            onPress={handlePickPhoto}
+            style={styles.avatarEditButton}
+            accessibilityRole="button"
+            accessibilityLabel={t("pets.form.photo_edit")}
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons
+              name="pencil"
+              size={16}
+              color={colors.onPrimary}
+            />
+          </Pressable>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -180,196 +280,200 @@ export default function PetFormScreen() {
           contentContainerStyle={styles.form}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Name */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.name")}</Text>
-            <TextField
-              testID="petform-name"
-              placeholder={t("pets.field.name_placeholder")}
-              value={name}
-              onChangeText={(v) => {
-                setName(v);
-                if (nameError) setNameError("");
-              }}
-              invalid={nameError !== ""}
-              accessibilityLabel={t("pets.field.name")}
-            />
-            {nameError !== "" && (
-              <Text style={styles.errorText}>{nameError}</Text>
-            )}
-          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardHeading}>
+              {t("pets.form.section_basic")}
+            </Text>
 
-          {/* Species */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.species")}</Text>
-            <View style={styles.chipRow}>
-              {SPECIES.map((s) => (
-                <Pressable
-                  key={s}
-                  testID={`petform-species-${s}`}
-                  onPress={() => {
-                    setSpecies(s);
-                    if (speciesError) setSpeciesError("");
-                    if (!weightUnitManual)
-                      setWeightUnit(DEFAULT_WEIGHT_UNIT[s]);
-                  }}
-                  style={[styles.chip, species === s && styles.chipSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: species === s }}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      species === s && styles.chipTextSelected,
-                    ]}
-                  >
-                    {t(`pets.species.${s}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {speciesError !== "" && (
-              <Text style={styles.errorText}>{speciesError}</Text>
-            )}
-            {species === "other" && (
+            {/* Name */}
+            <View style={styles.fieldGroup}>
+              <Label field="name" text={t("pets.field.name")} required />
               <TextField
-                testID="petform-species-other-input"
-                placeholder={t("pets.field.species_other_placeholder")}
-                value={speciesOther}
+                testID="petform-name"
+                placeholder={t("pets.field.name_placeholder")}
+                value={name}
                 onChangeText={(v) => {
-                  setSpeciesOther(v);
-                  if (speciesOtherError) setSpeciesOtherError("");
+                  setName(v);
+                  if (nameError) setNameError("");
                 }}
-                invalid={speciesOtherError !== ""}
-                accessibilityLabel={t("pets.field.species_other")}
+                invalid={nameError !== ""}
+                accessibilityLabel={t("pets.field.name")}
+                aria-required
               />
-            )}
-            {speciesOtherError !== "" && (
-              <Text style={styles.errorText}>{speciesOtherError}</Text>
-            )}
-          </View>
-
-          {/* Breed */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.breed")}</Text>
-            <TextField
-              testID="petform-breed"
-              placeholder={t("pets.field.breed_placeholder")}
-              value={breed}
-              onChangeText={setBreed}
-              accessibilityLabel={t("pets.field.breed")}
-            />
-          </View>
-
-          {/* Gender */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.gender")}</Text>
-            <View style={styles.chipRow}>
-              {GENDERS.map((g) => (
-                <Pressable
-                  key={g}
-                  testID={`petform-gender-${g}`}
-                  onPress={() => setGender(gender === g ? null : g)}
-                  style={[styles.chip, gender === g && styles.chipSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: gender === g }}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      gender === g && styles.chipTextSelected,
-                    ]}
-                  >
-                    {t(`pets.gender.${g}`)}
-                  </Text>
-                </Pressable>
-              ))}
+              {nameError !== "" && (
+                <Text style={styles.errorText}>{nameError}</Text>
+              )}
             </View>
-          </View>
 
-          {/* Weight */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.weight")}</Text>
-            <View style={styles.weightRow}>
-              <View style={styles.weightInput}>
-                <TextField
-                  testID="petform-weight"
-                  placeholder={t("pets.field.weight_placeholder")}
-                  value={weightValue}
-                  onChangeText={(v) => {
-                    setWeightValue(v);
-                    if (weightError) setWeightError("");
-                  }}
-                  keyboardType="decimal-pad"
-                  invalid={weightError !== ""}
-                  accessibilityLabel={t("pets.field.weight")}
-                />
-              </View>
+            {/* Species */}
+            <View style={styles.fieldGroup}>
+              <Label field="species" text={t("pets.field.species")} required />
               <View style={styles.chipRow}>
-                {WEIGHT_UNITS.map((u) => (
+                {SPECIES.map((s) => (
                   <Pressable
-                    key={u}
-                    testID={`petform-weight-unit-${u}`}
+                    key={s}
+                    testID={`petform-species-${s}`}
                     onPress={() => {
-                      setWeightUnit(u);
-                      setWeightUnitManual(true);
+                      setSpecies(s);
+                      if (speciesError) setSpeciesError("");
+                      if (!weightUnitManual)
+                        setWeightUnit(DEFAULT_WEIGHT_UNIT[s]);
                     }}
-                    style={[
-                      styles.chip,
-                      weightUnit === u && styles.chipSelected,
-                    ]}
+                    style={[styles.chip, species === s && styles.chipSelected]}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: weightUnit === u }}
+                    accessibilityState={{ selected: species === s }}
                   >
                     <Text
                       style={[
                         styles.chipText,
-                        weightUnit === u && styles.chipTextSelected,
+                        species === s && styles.chipTextSelected,
                       ]}
                     >
-                      {t(`pets.unit.${u}`)}
+                      {t(`pets.species.${s}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {speciesError !== "" && (
+                <Text style={styles.errorText}>{speciesError}</Text>
+              )}
+              {species === "other" && (
+                <>
+                  <Label
+                    field="species_other"
+                    text={t("pets.field.species_other")}
+                    required
+                  />
+                  <TextField
+                    testID="petform-species-other-input"
+                    placeholder={t("pets.field.species_other_placeholder")}
+                    value={speciesOther}
+                    onChangeText={(v) => {
+                      setSpeciesOther(v);
+                      if (speciesOtherError) setSpeciesOtherError("");
+                    }}
+                    invalid={speciesOtherError !== ""}
+                    accessibilityLabel={t("pets.field.species_other")}
+                    aria-required
+                  />
+                </>
+              )}
+              {speciesOtherError !== "" && (
+                <Text style={styles.errorText}>{speciesOtherError}</Text>
+              )}
+            </View>
+
+            {/* Breed */}
+            <View style={styles.fieldGroup}>
+              <Label field="breed" text={t("pets.field.breed")} />
+              <TextField
+                testID="petform-breed"
+                placeholder={t("pets.field.breed_placeholder")}
+                value={breed}
+                onChangeText={setBreed}
+                accessibilityLabel={t("pets.field.breed")}
+              />
+            </View>
+
+            {/* Gender */}
+            <View style={styles.fieldGroup}>
+              <Label field="gender" text={t("pets.field.gender")} />
+              <View style={styles.chipRow}>
+                {GENDERS.map((g) => (
+                  <Pressable
+                    key={g}
+                    testID={`petform-gender-${g}`}
+                    onPress={() => setGender(gender === g ? null : g)}
+                    style={[styles.chip, gender === g && styles.chipSelected]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: gender === g }}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        gender === g && styles.chipTextSelected,
+                      ]}
+                    >
+                      {t(`pets.gender.${g}`)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
             </View>
-            {weightError !== "" && (
-              <Text style={styles.errorText}>{weightError}</Text>
-            )}
-          </View>
 
-          {/* Photo */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.photo")}</Text>
-            <Button
-              testID="petform-photo"
-              variant="secondary"
-              label={t("pets.field.photo")}
-              onPress={handlePickPhoto}
-            />
-            {photoUri != null && (
-              <Image
-                testID="petform-photo-preview"
-                source={{ uri: photoUri }}
-                style={styles.photoPreview}
-                accessibilityLabel={t("pets.field.photo")}
+            {/* Weight */}
+            <View style={styles.fieldGroup}>
+              <Label field="weight" text={t("pets.field.weight")} />
+              <View style={styles.weightRow}>
+                <View style={styles.weightInput}>
+                  <TextField
+                    ref={weightRef}
+                    testID="petform-weight"
+                    placeholder={t("pets.field.weight_placeholder")}
+                    value={toPersianDigits(weightValue)}
+                    onChangeText={(v) => {
+                      const latin = toLatinDigits(v);
+                      // Push the Persian display back into the native view in
+                      // this same tick, so the just-typed Latin digit never
+                      // paints before React's re-render replaces it.
+                      weightRef.current?.setNativeProps({
+                        text: toPersianDigits(latin),
+                      });
+                      setWeightValue(latin);
+                      if (weightError) setWeightError("");
+                    }}
+                    keyboardType="decimal-pad"
+                    invalid={weightError !== ""}
+                    accessibilityLabel={t("pets.field.weight")}
+                  />
+                </View>
+                <View style={styles.chipRow}>
+                  {WEIGHT_UNITS.map((u) => (
+                    <Pressable
+                      key={u}
+                      testID={`petform-weight-unit-${u}`}
+                      onPress={() => {
+                        setWeightUnit(u);
+                        setWeightUnitManual(true);
+                      }}
+                      style={[
+                        styles.chip,
+                        weightUnit === u && styles.chipSelected,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: weightUnit === u }}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          weightUnit === u && styles.chipTextSelected,
+                        ]}
+                      >
+                        {t(`pets.unit.${u}`)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              {weightError !== "" && (
+                <Text style={styles.errorText}>{weightError}</Text>
+              )}
+            </View>
+
+            {/* Notes */}
+            <View style={styles.fieldGroup}>
+              <Label field="notes" text={t("pets.field.notes")} />
+              <TextField
+                testID="petform-notes"
+                placeholder={t("pets.field.notes_placeholder")}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={4}
+                accessibilityLabel={t("pets.field.notes")}
+                style={styles.notesInput}
               />
-            )}
-          </View>
-
-          {/* Notes */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.notes")}</Text>
-            <TextField
-              testID="petform-notes"
-              placeholder={t("pets.field.notes_placeholder")}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={4}
-              accessibilityLabel={t("pets.field.notes")}
-              style={styles.notesInput}
-            />
+            </View>
           </View>
 
           <Button
@@ -393,11 +497,44 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
+  appBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  backButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  appBarTitle: {
+    fontSize: typography.title.fontSize,
+    lineHeight: typography.title.lineHeight,
+    fontFamily: fonts.bold,
+    color: colors.ink,
+  },
   form: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
+    padding: spacing.xl,
+    gap: spacing.lg,
+    ...shadow.card,
+  },
+  cardHeading: {
+    fontSize: typography.bodyLg.fontSize,
+    lineHeight: typography.bodyLg.lineHeight,
+    fontFamily: fonts.semibold,
+    color: colors.ink,
   },
   fieldGroup: {
     gap: spacing.sm,
@@ -446,6 +583,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     color: colors.primary,
   },
+  requiredMark: {
+    color: colors.danger,
+  },
   errorText: {
     fontSize: typography.caption.fontSize,
     lineHeight: typography.caption.lineHeight,
@@ -453,11 +593,39 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginStart: spacing.xs,
   },
-  photoPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.md,
-    marginTop: spacing.sm,
+  avatarSection: {
+    alignItems: "center",
+    paddingBottom: spacing.lg,
+  },
+  avatar: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSunken,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarWrap: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+  },
+  avatarEditButton: {
+    position: "absolute",
+    bottom: 0,
+    end: 0,
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.bg,
+    alignItems: "center",
+    justifyContent: "center",
   },
   notesInput: {
     height: 96,
