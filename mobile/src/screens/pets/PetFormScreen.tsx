@@ -16,6 +16,7 @@ import {
   type RouteProp,
 } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import Button from "../../components/ui/Button";
 import TextField from "../../components/ui/TextField";
@@ -171,7 +172,27 @@ export default function PetFormScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.root} edges={["bottom"]}>
+    <SafeAreaView style={styles.root} edges={["top", "bottom"]}>
+      <View style={styles.appBar}>
+        <Pressable
+          testID="petform-back"
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel={t("pets.form.back")}
+          hitSlop={8}
+        >
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={28}
+            color={colors.ink}
+          />
+        </Pressable>
+        <Text testID="petform-title" style={styles.appBarTitle}>
+          {isEdit ? t("pets.form.title_edit") : t("pets.form.title_add")}
+        </Text>
+      </View>
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -392,6 +413,25 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1,
+  },
+  appBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  backButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  appBarTitle: {
+    fontSize: typography.title.fontSize,
+    lineHeight: typography.title.lineHeight,
+    fontFamily: fonts.bold,
+    color: colors.ink,
   },
   form: {
     paddingHorizontal: spacing.xl,

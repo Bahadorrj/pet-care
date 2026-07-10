@@ -85,6 +85,38 @@ beforeEach(() => {
   mockRouteParams = {};
 });
 
+// ── Top app bar ───────────────────────────────────────────────────────────────
+
+describe("PetFormScreen – top app bar", () => {
+  // Asserted via testID, not getByText: `pets.form.title_add` and `pets.add`
+  // are the same string, and `pets.add` is the submit label — a text query
+  // would match the button and pass with no app bar on screen.
+  test("Add mode renders the add title", async () => {
+    const { getByTestId } = await render(<PetFormScreen />);
+    expect(getByTestId("petform-title").props.children).toBe(
+      i18n.t("pets.form.title_add"),
+    );
+  });
+
+  test("Edit mode renders the edit title", async () => {
+    mockRouteParams = { petId: EXISTING_PET.id };
+    mockGetPet.mockReturnValue(EXISTING_PET);
+
+    const { getByTestId } = await render(<PetFormScreen />);
+    expect(getByTestId("petform-title").props.children).toBe(
+      i18n.t("pets.form.title_edit"),
+    );
+  });
+
+  test("back button calls navigation.goBack", async () => {
+    const { getByTestId } = await render(<PetFormScreen />);
+
+    await fireEvent.press(getByTestId("petform-back"));
+
+    expect(mockGoBack).toHaveBeenCalledTimes(1);
+  });
+});
+
 // ── Add mode ──────────────────────────────────────────────────────────────────
 
 describe("PetFormScreen – Add mode – validation", () => {
