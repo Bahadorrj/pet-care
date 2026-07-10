@@ -46,15 +46,13 @@ jest.mock("@notifee/react-native", () => ({
 // ---------------------------------------------------------------------------
 
 const mockListTasks = jest.fn();
-const mockLogOccurrence = jest
-  .fn()
-  .mockReturnValue({
-    id: "log-1",
-    taskId: "task-1",
-    dueAt: "",
-    status: "done",
-    createdAt: "",
-  });
+const mockLogOccurrence = jest.fn().mockReturnValue({
+  id: "log-1",
+  taskId: "task-1",
+  dueAt: "",
+  status: "done",
+  createdAt: "",
+});
 
 jest.mock("../db/tasks", () => ({
   listTasks: (...args: unknown[]) => mockListTasks(...args),
@@ -80,7 +78,8 @@ jest.mock("../store/tasksStore", () => ({
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 
-import type { Task } from "../db/types";
+import i18n from "../i18n";
+import type { Task, TaskType } from "../db/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -286,6 +285,7 @@ describe("syncNotifications – payload", () => {
     expect(notif.data).toEqual({
       taskId: "task-abc",
       dueAt: soon,
+      type: "feeding",
       label: "Feed",
       petName: "Rex",
     });
@@ -514,12 +514,14 @@ describe("handleNotificationEvent – ACTION_PRESS snooze", () => {
     expect(mockLogOccurrence).not.toHaveBeenCalled();
     expect(mockCreateTriggerNotification).toHaveBeenCalledTimes(1);
     const [notif, trigger] = mockCreateTriggerNotification.mock.calls[0];
-    // label/petName were not present on the incoming notification → rebuilt empty
+    // label/petName/type were not present on the incoming notification → rebuilt
+    // empty, with the type falling back to "other"
     expect(notif.data).toEqual({
       taskId: "task-3",
       dueAt,
       label: "",
       petName: "",
+      type: "other",
     });
     // Trigger should be ~15min from now (Date.now() = NOW_UTC in fake timers)
     const expectedTimestamp = NOW_UTC.getTime() + 15 * 60 * 1000;
@@ -542,5 +544,70 @@ describe("handleNotificationEvent – PRESS (default body tap)", () => {
 
     expect(mockLogOccurrence).not.toHaveBeenCalled();
     expect(mockCreateTriggerNotification).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// notifBody — per-type, pet-first notification copy (spec 16, item 1)
+// ---------------------------------------------------------------------------
+
+describe("notifBody", () => {
+  const TYPES: TaskType[] = [
+    "feeding",
+    "water",
+    "meds",
+    "play",
+    "grooming",
+    "vet",
+    "other",
+  ];
+
+  test("every task type has a distinct, pet-named body", () => {
+    const { notifBody } = require("../lib/taskNotifications");
+    const bodies = TYPES.map((type) => notifBody(type, "Rex"));
+
+    for (const [i, type] of TYPES.entries()) {
+      expect(bodies[i]).toBe(
+        i18n.t(`tasks.notif.body.${type}`, { pet: "Rex" }),
+      );
+      expect(bodies[i]).toContain("Rex");
+    }
+    expect(new Set(bodies).size).toBe(TYPES.length);
+  });
+
+  test("falls back to the generic line when the pet has no name", () => {
+    const { notifBody } = require("../lib/taskNotifications");
+    for (const type of TYPES) {
+      expect(notifBody(type, "")).toBe(i18n.t("tasks.notif.body_generic"));
+    }
+  });
+
+  test("no body string carries an exclamation mark (ADR-0020 tone)", () => {
+    const { notifBody } = require("../lib/taskNotifications");
+    const all = [
+      ...TYPES.map((type) => notifBody(type, "Rex")),
+      notifBody("other", ""),
+    ];
+    for (const body of all) {
+      expect(body).not.toMatch(/[!！]/);
+    }
+  });
+});
+
+describe("initTaskNotifications – channel", () => {
+  test("creates channel id 'tasks' with the localized Persian name", async () => {
+    const { initTaskNotifications } = require("../lib/taskNotifications");
+    mockListTasks.mockReturnValue([]);
+    await initTaskNotifications({ isReady: () => false, navigate: jest.fn() });
+
+    expect(mockCreateChannel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "tasks",
+        name: i18n.t("tasks.notif.channel_name"),
+      }),
+    );
+    expect(i18n.t("tasks.notif.channel_name")).not.toBe(
+      "tasks.notif.channel_name",
+    );
   });
 });

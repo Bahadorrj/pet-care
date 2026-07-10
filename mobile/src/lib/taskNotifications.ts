@@ -22,6 +22,7 @@ import { getPet } from "../db/pets";
 import { expandOccurrences } from "./taskSchedule";
 import { setTasksSyncNotifications } from "../store/tasksStore";
 import type { RootTabParamList } from "../navigation/RootNavigator";
+import type { TaskType } from "../db/types";
 
 // ponytail: fixed constants, no config object needed
 const CHANNEL_ID = "tasks";
@@ -33,22 +34,28 @@ const SNOOZE_MS = 15 * 60 * 1000;
 // edit's notifications noticeably.
 const SYNC_DEBOUNCE_MS = 800;
 
+// Pet-first, task-aware body. Without a pet name there is nothing to personalise,
+// so every type collapses onto the generic line.
+export function notifBody(type: TaskType, petName: string): string {
+  if (!petName) return t("tasks.notif.body_generic");
+  return t(`tasks.notif.body.${type}`, { pet: petName });
+}
+
 // ponytail: one notification shape, reused by initial schedule + snooze reschedule.
-// `label` (resolved task title) + `petName` are carried in `data` so the snooze
-// reschedule can rebuild the same content without a db/i18n lookup in the
+// `label` (resolved task title), `petName` + `type` are carried in `data` so the
+// snooze reschedule can rebuild the same content without a db/i18n lookup in the
 // headless background context.
 function buildTaskNotification(args: {
   taskId: string;
   dueAt: string;
   label: string;
   petName: string;
+  type: TaskType;
 }) {
-  const { taskId, dueAt, label, petName } = args;
+  const { taskId, dueAt, label, petName, type } = args;
   return {
     title: label,
-    body: petName
-      ? t("tasks.notif.body", { pet: petName })
-      : t("tasks.notif.body_generic"),
+    body: notifBody(type, petName),
     android: {
       channelId: CHANNEL_ID,
       pressAction: { id: "default" },
@@ -58,7 +65,7 @@ function buildTaskNotification(args: {
         { title: t("tasks.action.snooze"), pressAction: { id: "snooze" } },
       ],
     },
-    data: { taskId, dueAt, label, petName },
+    data: { taskId, dueAt, label, petName, type },
   };
 }
 
@@ -79,6 +86,7 @@ export async function syncNotifications(): Promise<void> {
     dueAt: string;
     label: string;
     petName: string;
+    type: TaskType;
   };
   const entries: Entry[] = [];
 
@@ -87,7 +95,7 @@ export async function syncNotifications(): Promise<void> {
     const petName = getPet(task.petId)?.name ?? "";
     const occurrences = expandOccurrences(task, from, to);
     for (const dueAt of occurrences) {
-      entries.push({ taskId: task.id, dueAt, label, petName });
+      entries.push({ taskId: task.id, dueAt, label, petName, type: task.type });
     }
   }
 
@@ -155,6 +163,7 @@ export async function handleNotificationEvent(event: {
         dueAt?: string;
         label?: string;
         petName?: string;
+        type?: TaskType;
       };
     };
   };
@@ -185,6 +194,7 @@ export async function handleNotificationEvent(event: {
         dueAt,
         label: data?.label ?? "",
         petName: data?.petName ?? "",
+        type: data?.type ?? "other",
       }),
       {
         type: TriggerType.TIMESTAMP,
@@ -204,7 +214,7 @@ export async function initTaskNotifications(
   // Create Android channel (idempotent)
   await notifee.createChannel({
     id: CHANNEL_ID,
-    name: "Task Reminders",
+    name: t("tasks.notif.channel_name"),
     importance: AndroidImportance.HIGH,
   });
 
