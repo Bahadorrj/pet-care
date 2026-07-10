@@ -186,6 +186,7 @@
   "pets.task_row.tomorrow": "فردا",
   "pets.task_row.date_day": "{{date}}، {{day}}",
   "tab.assistant": "دستیار",
+  "chat.thinking": "در حال نوشتن پاسخ",
   "chat.starter.water": "{{name}} چقدر باید آب بخوره؟",
   "chat.starter.food": "چه غذایی برای {{name}} مناسبه؟",
   "chat.starter.vet": "هر چند وقت باید {{name}} رو پیش دامپزشک ببرم؟",

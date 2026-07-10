@@ -97,6 +97,8 @@ describe("ChatScreen", () => {
     await waitFor(() =>
       expect(screen.getByTestId("chat-thinking")).toBeTruthy(),
     );
+    // A progressbar with no name announces nothing to a screen reader.
+    expect(screen.getByLabelText(i18n.t("chat.thinking"))).toBeTruthy();
   });
 
   it("removes the thinking indicator once the first token arrives", async () => {

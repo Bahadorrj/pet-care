@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
@@ -119,12 +119,21 @@ export default function ConversationListScreen() {
     if (token) void load();
   }, [token, load]);
 
+  // Synchronous in-flight guard (repo convention): four starter chips plus the
+  // FAB all land here, and `startNewConversation` is a network round-trip — a
+  // second press before it resolves would create an orphan conversation.
+  const creatingRef = useRef(false);
+
   const handleNew = async (draft?: string) => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     try {
       const id = await startNewConversation();
       navigation.navigate("Chat", { conversationId: id, draft });
     } catch {
       Toast.show({ type: "hint", text1: t("chat.error.network") });
+    } finally {
+      creatingRef.current = false;
     }
   };
 

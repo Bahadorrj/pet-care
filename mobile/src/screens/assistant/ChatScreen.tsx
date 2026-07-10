@@ -38,6 +38,7 @@ const DISCLAIMER_KEY = "chat_disclaimer_dismissed";
 const PULSE_MS = 700;
 
 function ThinkingDots() {
+  const { t } = useTranslation();
   const opacity = useRef(new Animated.Value(0.35)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
 
@@ -76,6 +77,7 @@ function ThinkingDots() {
       testID="chat-thinking"
       style={[styles.thinking, reduceMotion ? undefined : { opacity }]}
       accessibilityRole="progressbar"
+      accessibilityLabel={t("chat.thinking")}
     >
       {[0, 1, 2].map((i) => (
         <View key={i} style={styles.thinkingDot} />
