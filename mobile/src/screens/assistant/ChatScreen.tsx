@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
+  Animated,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -30,6 +32,57 @@ import { colors, fonts, radius, spacing, typography } from "../../theme/theme";
 import type { AssistantStackParamList } from "../../navigation/AssistantStack";
 
 const DISCLAIMER_KEY = "chat_disclaimer_dismissed";
+
+// ADR-0022: opacity-only pulse, Ink Muted, static under reduced motion.
+// No translation, no scale, no spring — and scoped to this indicator alone.
+const PULSE_MS = 700;
+
+function ThinkingDots() {
+  const opacity = useRef(new Animated.Value(0.35)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (!cancelled) setReduceMotion(enabled);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: PULSE_MS,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.35,
+          duration: PULSE_MS,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [reduceMotion, opacity]);
+
+  return (
+    <Animated.View
+      testID="chat-thinking"
+      style={[styles.thinking, reduceMotion ? undefined : { opacity }]}
+      accessibilityRole="progressbar"
+    >
+      {[0, 1, 2].map((i) => (
+        <View key={i} style={styles.thinkingDot} />
+      ))}
+    </Animated.View>
+  );
+}
 
 export default function ChatScreen() {
   const { t } = useTranslation();
@@ -104,6 +157,11 @@ export default function ChatScreen() {
     buildPetContext(pets, tasks, getLogsForTask, selectedPetIds);
 
   const inverted = useMemo(() => [...messages].reverse(), [messages]);
+  // The store appends an empty assistant message before the first delta lands —
+  // that empty bubble is the gap the indicator fills (ADR-0022).
+  const last = messages.at(-1);
+  const thinking =
+    streaming && last?.role === "assistant" && last.content === "";
   const lastFailed = messages.at(-1)?.failed === true;
   const lastInterrupted =
     messages.at(-1)?.role === "assistant" &&
@@ -195,6 +253,8 @@ export default function ChatScreen() {
           renderItem={renderBubble}
           contentContainerStyle={styles.listContent}
         />
+
+        {thinking ? <ThinkingDots /> : null}
 
         {(lastFailed || lastInterrupted) && !streaming ? (
           <Pressable
@@ -322,6 +382,20 @@ const styles = StyleSheet.create({
     fontSize: typography.caption.fontSize,
     fontFamily: fonts.semibold,
     color: colors.primary,
+  },
+  thinking: {
+    flexDirection: "row",
+    alignSelf: "flex-start",
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  thinkingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.inkMuted,
   },
   retryBtn: { alignSelf: "center", padding: spacing.sm },
   retryText: {

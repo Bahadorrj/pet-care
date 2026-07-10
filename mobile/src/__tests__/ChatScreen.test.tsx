@@ -84,6 +84,44 @@ describe("ChatScreen", () => {
     expect(screen.queryByText(/جایگزین دامپزشک نیست/)).toBeNull();
   });
 
+  // ADR-0022 — behaviour only; the pulse's timing is verified by eye on a device.
+  it("shows the thinking indicator while streaming before the first token", async () => {
+    useChatStore.setState({
+      streaming: true,
+      messages: [
+        { id: "m1", role: "user", content: "سوال من" },
+        { id: "m2", role: "assistant", content: "" },
+      ],
+    });
+    renderScreen();
+    await waitFor(() =>
+      expect(screen.getByTestId("chat-thinking")).toBeTruthy(),
+    );
+  });
+
+  it("removes the thinking indicator once the first token arrives", async () => {
+    useChatStore.setState({
+      streaming: true,
+      messages: [
+        { id: "m1", role: "user", content: "سوال من" },
+        { id: "m2", role: "assistant", content: "پ" },
+      ],
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("پ")).toBeTruthy());
+    expect(screen.queryByTestId("chat-thinking")).toBeNull();
+  });
+
+  it("shows no thinking indicator when not streaming", async () => {
+    useChatStore.setState({
+      streaming: false,
+      messages: [{ id: "m1", role: "user", content: "سوال من" }],
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText("سوال من")).toBeTruthy());
+    expect(screen.queryByTestId("chat-thinking")).toBeNull();
+  });
+
   it("renders messages and an interrupted marker with retry", async () => {
     useChatStore.setState({
       messages: [
