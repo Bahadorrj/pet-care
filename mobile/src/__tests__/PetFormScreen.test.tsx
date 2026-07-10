@@ -58,6 +58,7 @@ jest.mock("@react-navigation/native", () => ({
 // ── Initialise i18n (real Farsi strings) ─────────────────────────────────────
 import i18n from "../i18n";
 import PetFormScreen from "../screens/pets/PetFormScreen";
+import { toPersianDigits } from "../lib/jalali";
 import type { Pet } from "../db/types";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -369,6 +370,47 @@ describe("PetFormScreen – Add mode – happy path", () => {
       );
     });
   });
+
+  test("weight displays Persian digits while still submitting a Latin number", async () => {
+    mockAdd.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<PetFormScreen />);
+
+    await fireEvent.changeText(getByTestId("petform-name"), "مکس");
+    await fireEvent.press(getByTestId("petform-species-dog"));
+
+    // A decimal-pad keystroke arrives as a Latin digit…
+    await fireEvent.changeText(getByTestId("petform-weight"), "4.2");
+    // …but nothing Latin is ever rendered.
+    expect(getByTestId("petform-weight").props.value).toBe(
+      toPersianDigits("4.2"),
+    );
+
+    await fireEvent.press(getByTestId("petform-submit"));
+    await waitFor(() => {
+      expect(mockAdd).toHaveBeenCalledWith(
+        expect.objectContaining({ weightValue: 4.2, weightUnit: "kg" }),
+      );
+    });
+  });
+
+  test("weight typed as Persian digits parses back to a number", async () => {
+    mockAdd.mockResolvedValue(undefined);
+    const { getByTestId } = await render(<PetFormScreen />);
+
+    await fireEvent.changeText(getByTestId("petform-name"), "مکس");
+    await fireEvent.press(getByTestId("petform-species-dog"));
+    await fireEvent.changeText(
+      getByTestId("petform-weight"),
+      toPersianDigits("4.2"),
+    );
+    await fireEvent.press(getByTestId("petform-submit"));
+
+    await waitFor(() => {
+      expect(mockAdd).toHaveBeenCalledWith(
+        expect.objectContaining({ weightValue: 4.2 }),
+      );
+    });
+  });
 });
 
 // ── Edit mode ─────────────────────────────────────────────────────────────────
@@ -401,7 +443,9 @@ describe("PetFormScreen – Edit mode", () => {
   test("pre-fills breed and weight from existing pet", async () => {
     const { getByTestId } = await render(<PetFormScreen />);
     expect(getByTestId("petform-breed").props.value).toBe("گلدن رتریور");
-    expect(getByTestId("petform-weight").props.value).toBe("4.5");
+    expect(getByTestId("petform-weight").props.value).toBe(
+      toPersianDigits("4.5"),
+    );
     expect(
       getByTestId("petform-weight-unit-kg").props.accessibilityState.selected,
     ).toBe(true);

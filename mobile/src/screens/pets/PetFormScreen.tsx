@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import type { TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   useNavigation,
@@ -23,6 +24,7 @@ import TextField from "../../components/ui/TextField";
 import { usePetsStore } from "../../store/petsStore";
 import { getPet } from "../../db/pets";
 import { pickPhoto } from "../../lib/petPhoto";
+import { toLatinDigits, toPersianDigits } from "../../lib/jalali";
 import {
   colors,
   fonts,
@@ -119,6 +121,7 @@ export default function PetFormScreen() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const inFlightRef = useRef(false);
+  const weightRef = useRef<TextInput>(null);
 
   const add = usePetsStore((s) => s.add);
   const update = usePetsStore((s) => s.update);
@@ -404,11 +407,19 @@ export default function PetFormScreen() {
               <View style={styles.weightRow}>
                 <View style={styles.weightInput}>
                   <TextField
+                    ref={weightRef}
                     testID="petform-weight"
                     placeholder={t("pets.field.weight_placeholder")}
-                    value={weightValue}
+                    value={toPersianDigits(weightValue)}
                     onChangeText={(v) => {
-                      setWeightValue(v);
+                      const latin = toLatinDigits(v);
+                      // Push the Persian display back into the native view in
+                      // this same tick, so the just-typed Latin digit never
+                      // paints before React's re-render replaces it.
+                      weightRef.current?.setNativeProps({
+                        text: toPersianDigits(latin),
+                      });
+                      setWeightValue(latin);
                       if (weightError) setWeightError("");
                     }}
                     keyboardType="decimal-pad"
