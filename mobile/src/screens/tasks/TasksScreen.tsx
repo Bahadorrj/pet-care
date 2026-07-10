@@ -605,10 +605,12 @@ export default function TasksScreen() {
             ))}
           </View>
           <Text style={styles.progressText}>
-            {t("tasks.progress", {
-              done: progress.done,
-              total: progress.total,
-            })}
+            {progress.done === progress.total
+              ? t("tasks.progress_all_done")
+              : t("tasks.progress", {
+                  done: progress.done,
+                  total: progress.total,
+                })}
           </Text>
         </View>
       )}

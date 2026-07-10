@@ -158,6 +158,7 @@
   "tasks.section.upcoming": "هفت روز آینده",
   "tasks.section.completed": "انجام‌شده",
   "tasks.progress": "{{done}} از {{total}} کار امروز انجام شد",
+  "tasks.progress_all_done": "همه کارهای امروز انجام شد",
   "tasks.undo.done": "انجام شد",
   "tasks.undo.action": "لغو",
   "tasks.done.confirm": "کار {{name}} انجام شد",

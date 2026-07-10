@@ -675,6 +675,38 @@ describe("TasksScreen – progress indicator", () => {
     const { queryByTestId } = await render(<TasksScreen />);
     expect(queryByTestId("tasks-progress")).toBeNull();
   });
+
+  test("partial progress renders the N-of-M line", async () => {
+    mockWindowOccurrences = [
+      makeOcc("t-done", DUE_TODAY, "done"),
+      makeOcc("t-pend", DUE_TODAY_LATE, "pending"),
+    ];
+    const { getByText, queryByText } = await render(<TasksScreen />);
+    expect(
+      getByText(i18n.t("tasks.progress", { done: 1, total: 2 })),
+    ).toBeTruthy();
+    expect(queryByText(i18n.t("tasks.progress_all_done"))).toBeNull();
+  });
+
+  test("done === total renders the day-complete line instead of N-of-M", async () => {
+    mockWindowOccurrences = [
+      makeOcc("t-done1", DUE_TODAY, "done"),
+      makeOcc("t-done2", DUE_TODAY_LATE, "done"),
+    ];
+    const { getByText, queryByText, getAllByTestId } = await render(
+      <TasksScreen />,
+    );
+    expect(getByText(i18n.t("tasks.progress_all_done"))).toBeTruthy();
+    expect(
+      queryByText(i18n.t("tasks.progress", { done: 2, total: 2 })),
+    ).toBeNull();
+    // Dots row is unchanged by the copy variant
+    expect(getAllByTestId("progress-dot")).toHaveLength(2);
+  });
+
+  test("the day-complete line is declarative — no exclamation (ADR-0020)", () => {
+    expect(i18n.t("tasks.progress_all_done")).not.toMatch(/[!！]/);
+  });
 });
 
 // ── 9. Pet filter ─────────────────────────────────────────────────────────────
