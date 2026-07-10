@@ -23,7 +23,14 @@ import TextField from "../../components/ui/TextField";
 import { usePetsStore } from "../../store/petsStore";
 import { getPet } from "../../db/pets";
 import { pickPhoto } from "../../lib/petPhoto";
-import { colors, fonts, radius, spacing, typography } from "../../theme/theme";
+import {
+  colors,
+  fonts,
+  radius,
+  shadow,
+  spacing,
+  typography,
+} from "../../theme/theme";
 import type {
   PetsStackParamList,
   PetsNavigationProp,
@@ -244,177 +251,183 @@ export default function PetFormScreen() {
           contentContainerStyle={styles.form}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Name */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.name")}</Text>
-            <TextField
-              testID="petform-name"
-              placeholder={t("pets.field.name_placeholder")}
-              value={name}
-              onChangeText={(v) => {
-                setName(v);
-                if (nameError) setNameError("");
-              }}
-              invalid={nameError !== ""}
-              accessibilityLabel={t("pets.field.name")}
-            />
-            {nameError !== "" && (
-              <Text style={styles.errorText}>{nameError}</Text>
-            )}
-          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardHeading}>
+              {t("pets.form.section_basic")}
+            </Text>
 
-          {/* Species */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.species")}</Text>
-            <View style={styles.chipRow}>
-              {SPECIES.map((s) => (
-                <Pressable
-                  key={s}
-                  testID={`petform-species-${s}`}
-                  onPress={() => {
-                    setSpecies(s);
-                    if (speciesError) setSpeciesError("");
-                    if (!weightUnitManual)
-                      setWeightUnit(DEFAULT_WEIGHT_UNIT[s]);
-                  }}
-                  style={[styles.chip, species === s && styles.chipSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: species === s }}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      species === s && styles.chipTextSelected,
-                    ]}
-                  >
-                    {t(`pets.species.${s}`)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-            {speciesError !== "" && (
-              <Text style={styles.errorText}>{speciesError}</Text>
-            )}
-            {species === "other" && (
+            {/* Name */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t("pets.field.name")}</Text>
               <TextField
-                testID="petform-species-other-input"
-                placeholder={t("pets.field.species_other_placeholder")}
-                value={speciesOther}
+                testID="petform-name"
+                placeholder={t("pets.field.name_placeholder")}
+                value={name}
                 onChangeText={(v) => {
-                  setSpeciesOther(v);
-                  if (speciesOtherError) setSpeciesOtherError("");
+                  setName(v);
+                  if (nameError) setNameError("");
                 }}
-                invalid={speciesOtherError !== ""}
-                accessibilityLabel={t("pets.field.species_other")}
+                invalid={nameError !== ""}
+                accessibilityLabel={t("pets.field.name")}
               />
-            )}
-            {speciesOtherError !== "" && (
-              <Text style={styles.errorText}>{speciesOtherError}</Text>
-            )}
-          </View>
-
-          {/* Breed */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.breed")}</Text>
-            <TextField
-              testID="petform-breed"
-              placeholder={t("pets.field.breed_placeholder")}
-              value={breed}
-              onChangeText={setBreed}
-              accessibilityLabel={t("pets.field.breed")}
-            />
-          </View>
-
-          {/* Gender */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.gender")}</Text>
-            <View style={styles.chipRow}>
-              {GENDERS.map((g) => (
-                <Pressable
-                  key={g}
-                  testID={`petform-gender-${g}`}
-                  onPress={() => setGender(gender === g ? null : g)}
-                  style={[styles.chip, gender === g && styles.chipSelected]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: gender === g }}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      gender === g && styles.chipTextSelected,
-                    ]}
-                  >
-                    {t(`pets.gender.${g}`)}
-                  </Text>
-                </Pressable>
-              ))}
+              {nameError !== "" && (
+                <Text style={styles.errorText}>{nameError}</Text>
+              )}
             </View>
-          </View>
 
-          {/* Weight */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.weight")}</Text>
-            <View style={styles.weightRow}>
-              <View style={styles.weightInput}>
-                <TextField
-                  testID="petform-weight"
-                  placeholder={t("pets.field.weight_placeholder")}
-                  value={weightValue}
-                  onChangeText={(v) => {
-                    setWeightValue(v);
-                    if (weightError) setWeightError("");
-                  }}
-                  keyboardType="decimal-pad"
-                  invalid={weightError !== ""}
-                  accessibilityLabel={t("pets.field.weight")}
-                />
-              </View>
+            {/* Species */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t("pets.field.species")}</Text>
               <View style={styles.chipRow}>
-                {WEIGHT_UNITS.map((u) => (
+                {SPECIES.map((s) => (
                   <Pressable
-                    key={u}
-                    testID={`petform-weight-unit-${u}`}
+                    key={s}
+                    testID={`petform-species-${s}`}
                     onPress={() => {
-                      setWeightUnit(u);
-                      setWeightUnitManual(true);
+                      setSpecies(s);
+                      if (speciesError) setSpeciesError("");
+                      if (!weightUnitManual)
+                        setWeightUnit(DEFAULT_WEIGHT_UNIT[s]);
                     }}
-                    style={[
-                      styles.chip,
-                      weightUnit === u && styles.chipSelected,
-                    ]}
+                    style={[styles.chip, species === s && styles.chipSelected]}
                     accessibilityRole="button"
-                    accessibilityState={{ selected: weightUnit === u }}
+                    accessibilityState={{ selected: species === s }}
                   >
                     <Text
                       style={[
                         styles.chipText,
-                        weightUnit === u && styles.chipTextSelected,
+                        species === s && styles.chipTextSelected,
                       ]}
                     >
-                      {t(`pets.unit.${u}`)}
+                      {t(`pets.species.${s}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {speciesError !== "" && (
+                <Text style={styles.errorText}>{speciesError}</Text>
+              )}
+              {species === "other" && (
+                <TextField
+                  testID="petform-species-other-input"
+                  placeholder={t("pets.field.species_other_placeholder")}
+                  value={speciesOther}
+                  onChangeText={(v) => {
+                    setSpeciesOther(v);
+                    if (speciesOtherError) setSpeciesOtherError("");
+                  }}
+                  invalid={speciesOtherError !== ""}
+                  accessibilityLabel={t("pets.field.species_other")}
+                />
+              )}
+              {speciesOtherError !== "" && (
+                <Text style={styles.errorText}>{speciesOtherError}</Text>
+              )}
+            </View>
+
+            {/* Breed */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t("pets.field.breed")}</Text>
+              <TextField
+                testID="petform-breed"
+                placeholder={t("pets.field.breed_placeholder")}
+                value={breed}
+                onChangeText={setBreed}
+                accessibilityLabel={t("pets.field.breed")}
+              />
+            </View>
+
+            {/* Gender */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t("pets.field.gender")}</Text>
+              <View style={styles.chipRow}>
+                {GENDERS.map((g) => (
+                  <Pressable
+                    key={g}
+                    testID={`petform-gender-${g}`}
+                    onPress={() => setGender(gender === g ? null : g)}
+                    style={[styles.chip, gender === g && styles.chipSelected]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: gender === g }}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        gender === g && styles.chipTextSelected,
+                      ]}
+                    >
+                      {t(`pets.gender.${g}`)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
             </View>
-            {weightError !== "" && (
-              <Text style={styles.errorText}>{weightError}</Text>
-            )}
-          </View>
 
-          {/* Notes */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.notes")}</Text>
-            <TextField
-              testID="petform-notes"
-              placeholder={t("pets.field.notes_placeholder")}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
-              numberOfLines={4}
-              accessibilityLabel={t("pets.field.notes")}
-              style={styles.notesInput}
-            />
+            {/* Weight */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t("pets.field.weight")}</Text>
+              <View style={styles.weightRow}>
+                <View style={styles.weightInput}>
+                  <TextField
+                    testID="petform-weight"
+                    placeholder={t("pets.field.weight_placeholder")}
+                    value={weightValue}
+                    onChangeText={(v) => {
+                      setWeightValue(v);
+                      if (weightError) setWeightError("");
+                    }}
+                    keyboardType="decimal-pad"
+                    invalid={weightError !== ""}
+                    accessibilityLabel={t("pets.field.weight")}
+                  />
+                </View>
+                <View style={styles.chipRow}>
+                  {WEIGHT_UNITS.map((u) => (
+                    <Pressable
+                      key={u}
+                      testID={`petform-weight-unit-${u}`}
+                      onPress={() => {
+                        setWeightUnit(u);
+                        setWeightUnitManual(true);
+                      }}
+                      style={[
+                        styles.chip,
+                        weightUnit === u && styles.chipSelected,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: weightUnit === u }}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          weightUnit === u && styles.chipTextSelected,
+                        ]}
+                      >
+                        {t(`pets.unit.${u}`)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+              {weightError !== "" && (
+                <Text style={styles.errorText}>{weightError}</Text>
+              )}
+            </View>
+
+            {/* Notes */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.label}>{t("pets.field.notes")}</Text>
+              <TextField
+                testID="petform-notes"
+                placeholder={t("pets.field.notes_placeholder")}
+                value={notes}
+                onChangeText={setNotes}
+                multiline
+                numberOfLines={4}
+                accessibilityLabel={t("pets.field.notes")}
+                style={styles.notesInput}
+              />
+            </View>
           </View>
 
           <Button
@@ -462,6 +475,20 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderCurve: "continuous",
+    padding: spacing.xl,
+    gap: spacing.lg,
+    ...shadow.card,
+  },
+  cardHeading: {
+    fontSize: typography.bodyLg.fontSize,
+    lineHeight: typography.bodyLg.lineHeight,
+    fontFamily: fonts.semibold,
+    color: colors.ink,
   },
   fieldGroup: {
     gap: spacing.sm,

@@ -117,6 +117,15 @@ describe("PetFormScreen – top app bar", () => {
   });
 });
 
+// ── Basic-information card ────────────────────────────────────────────────────
+
+describe("PetFormScreen – basic-information card", () => {
+  test("renders the card heading", async () => {
+    const { getByText } = await render(<PetFormScreen />);
+    expect(getByText(i18n.t("pets.form.section_basic"))).toBeTruthy();
+  });
+});
+
 // ── Avatar section ────────────────────────────────────────────────────────────
 
 describe("PetFormScreen – avatar section", () => {
