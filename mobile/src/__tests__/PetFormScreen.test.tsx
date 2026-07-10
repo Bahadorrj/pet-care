@@ -126,6 +126,54 @@ describe("PetFormScreen – basic-information card", () => {
   });
 });
 
+// ── Required-field markers ────────────────────────────────────────────────────
+
+describe("PetFormScreen – required-field asterisks", () => {
+  test("name and species labels are marked required", async () => {
+    const { getByTestId } = await render(<PetFormScreen />);
+
+    for (const field of ["name", "species"]) {
+      const label = getByTestId(`petform-label-${field}`);
+      expect(label.props.children).toEqual([
+        i18n.t(`pets.field.${field}`),
+        expect.anything(),
+      ]);
+    }
+  });
+
+  test("optional labels carry no marker", async () => {
+    const { getByTestId } = await render(<PetFormScreen />);
+
+    for (const field of ["breed", "gender", "weight", "notes"]) {
+      const label = getByTestId(`petform-label-${field}`);
+      expect(label.props.children).toEqual([
+        i18n.t(`pets.field.${field}`),
+        false,
+      ]);
+    }
+  });
+
+  test("the species-other label is marked required, and only appears for «other»", async () => {
+    const { getByTestId, queryByTestId } = await render(<PetFormScreen />);
+
+    expect(queryByTestId("petform-label-species_other")).toBeNull();
+
+    await fireEvent.press(getByTestId("petform-species-other"));
+
+    expect(getByTestId("petform-label-species_other").props.children).toEqual([
+      i18n.t("pets.field.species_other"),
+      expect.anything(),
+    ]);
+  });
+
+  test("the marker is not announced to screen readers as part of the field name", async () => {
+    const { getByTestId } = await render(<PetFormScreen />);
+    expect(getByTestId("petform-label-name").props.accessibilityLabel).toBe(
+      i18n.t("pets.field.name"),
+    );
+  });
+});
+
 // ── Avatar section ────────────────────────────────────────────────────────────
 
 describe("PetFormScreen – avatar section", () => {

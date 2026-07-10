@@ -52,6 +52,32 @@ const DEFAULT_WEIGHT_UNIT: Record<Species, WeightUnit> = {
   other: "kg",
 };
 
+/**
+ * Field label with an optional required marker. The `*` is a nested Text so it
+ * can carry the danger colour on its own; `accessibilityLabel` keeps it out of
+ * the screen-reader announcement, which says «اسم», not «اسم ستاره».
+ */
+function Label({
+  field,
+  text,
+  required = false,
+}: {
+  field: string;
+  text: string;
+  required?: boolean;
+}) {
+  return (
+    <Text
+      testID={`petform-label-${field}`}
+      style={styles.label}
+      accessibilityLabel={text}
+    >
+      {text}
+      {required && <Text style={styles.requiredMark}> *</Text>}
+    </Text>
+  );
+}
+
 export default function PetFormScreen() {
   const { t } = useTranslation();
   const navigation = useNavigation<PetsNavigationProp>();
@@ -258,7 +284,7 @@ export default function PetFormScreen() {
 
             {/* Name */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("pets.field.name")}</Text>
+              <Label field="name" text={t("pets.field.name")} required />
               <TextField
                 testID="petform-name"
                 placeholder={t("pets.field.name_placeholder")}
@@ -269,6 +295,7 @@ export default function PetFormScreen() {
                 }}
                 invalid={nameError !== ""}
                 accessibilityLabel={t("pets.field.name")}
+                aria-required
               />
               {nameError !== "" && (
                 <Text style={styles.errorText}>{nameError}</Text>
@@ -277,7 +304,7 @@ export default function PetFormScreen() {
 
             {/* Species */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("pets.field.species")}</Text>
+              <Label field="species" text={t("pets.field.species")} required />
               <View style={styles.chipRow}>
                 {SPECIES.map((s) => (
                   <Pressable
@@ -308,17 +335,25 @@ export default function PetFormScreen() {
                 <Text style={styles.errorText}>{speciesError}</Text>
               )}
               {species === "other" && (
-                <TextField
-                  testID="petform-species-other-input"
-                  placeholder={t("pets.field.species_other_placeholder")}
-                  value={speciesOther}
-                  onChangeText={(v) => {
-                    setSpeciesOther(v);
-                    if (speciesOtherError) setSpeciesOtherError("");
-                  }}
-                  invalid={speciesOtherError !== ""}
-                  accessibilityLabel={t("pets.field.species_other")}
-                />
+                <>
+                  <Label
+                    field="species_other"
+                    text={t("pets.field.species_other")}
+                    required
+                  />
+                  <TextField
+                    testID="petform-species-other-input"
+                    placeholder={t("pets.field.species_other_placeholder")}
+                    value={speciesOther}
+                    onChangeText={(v) => {
+                      setSpeciesOther(v);
+                      if (speciesOtherError) setSpeciesOtherError("");
+                    }}
+                    invalid={speciesOtherError !== ""}
+                    accessibilityLabel={t("pets.field.species_other")}
+                    aria-required
+                  />
+                </>
               )}
               {speciesOtherError !== "" && (
                 <Text style={styles.errorText}>{speciesOtherError}</Text>
@@ -327,7 +362,7 @@ export default function PetFormScreen() {
 
             {/* Breed */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("pets.field.breed")}</Text>
+              <Label field="breed" text={t("pets.field.breed")} />
               <TextField
                 testID="petform-breed"
                 placeholder={t("pets.field.breed_placeholder")}
@@ -339,7 +374,7 @@ export default function PetFormScreen() {
 
             {/* Gender */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("pets.field.gender")}</Text>
+              <Label field="gender" text={t("pets.field.gender")} />
               <View style={styles.chipRow}>
                 {GENDERS.map((g) => (
                   <Pressable
@@ -365,7 +400,7 @@ export default function PetFormScreen() {
 
             {/* Weight */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("pets.field.weight")}</Text>
+              <Label field="weight" text={t("pets.field.weight")} />
               <View style={styles.weightRow}>
                 <View style={styles.weightInput}>
                   <TextField
@@ -416,7 +451,7 @@ export default function PetFormScreen() {
 
             {/* Notes */}
             <View style={styles.fieldGroup}>
-              <Text style={styles.label}>{t("pets.field.notes")}</Text>
+              <Label field="notes" text={t("pets.field.notes")} />
               <TextField
                 testID="petform-notes"
                 placeholder={t("pets.field.notes_placeholder")}
@@ -536,6 +571,9 @@ const styles = StyleSheet.create({
   chipTextSelected: {
     fontFamily: fonts.medium,
     color: colors.primary,
+  },
+  requiredMark: {
+    color: colors.danger,
   },
   errorText: {
     fontSize: typography.caption.fontSize,
