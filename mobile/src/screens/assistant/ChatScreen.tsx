@@ -42,13 +42,20 @@ function ThinkingDots() {
   const opacity = useRef(new Animated.Value(0.35)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
 
+  // Snapshot at mount, then track it — reduced motion always wins (ADR-0022),
+  // including when the user flips the OS setting mid-conversation.
   useEffect(() => {
     let cancelled = false;
     AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
       if (!cancelled) setReduceMotion(enabled);
     });
+    const sub = AccessibilityInfo.addEventListener(
+      "reduceMotionChanged",
+      setReduceMotion,
+    );
     return () => {
       cancelled = true;
+      sub.remove();
     };
   }, []);
 

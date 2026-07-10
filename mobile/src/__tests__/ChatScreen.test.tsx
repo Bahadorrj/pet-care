@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, waitFor } from "@testing-library/react-native";
+import { AccessibilityInfo, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import i18n from "../i18n";
@@ -99,6 +100,43 @@ describe("ChatScreen", () => {
     );
     // A progressbar with no name announces nothing to a screen reader.
     expect(screen.getByLabelText(i18n.t("chat.thinking"))).toBeTruthy();
+  });
+
+  it("renders the indicator static under reduced motion, and tracks later toggles", async () => {
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(true);
+    const remove = jest.fn();
+    const addListener = jest
+      .spyOn(AccessibilityInfo, "addEventListener")
+      .mockReturnValue({ remove } as never);
+
+    useChatStore.setState({
+      streaming: true,
+      messages: [
+        { id: "m1", role: "user", content: "سوال من" },
+        { id: "m2", role: "assistant", content: "" },
+      ],
+    });
+    renderScreen();
+
+    // Static = the animated opacity is never applied to the style.
+    await waitFor(() => {
+      const style = StyleSheet.flatten(
+        screen.getByTestId("chat-thinking").props.style,
+      );
+      expect(style.opacity).toBeUndefined();
+    });
+
+    // The OS setting can change mid-conversation, so it must be subscribed.
+    expect(addListener).toHaveBeenCalledWith(
+      "reduceMotionChanged",
+      expect.any(Function),
+    );
+    screen.unmount();
+    await waitFor(() => expect(remove).toHaveBeenCalled());
+
+    jest.restoreAllMocks();
   });
 
   it("removes the thinking indicator once the first token arrives", async () => {
