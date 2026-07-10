@@ -117,6 +117,58 @@ describe("PetFormScreen – top app bar", () => {
   });
 });
 
+// ── Avatar section ────────────────────────────────────────────────────────────
+
+describe("PetFormScreen – avatar section", () => {
+  test("with no photo, shows the camera placeholder and no preview image", async () => {
+    const { getByTestId, queryByTestId } = await render(<PetFormScreen />);
+
+    expect(getByTestId("petform-avatar-placeholder")).toBeTruthy();
+    expect(queryByTestId("petform-avatar-image")).toBeNull();
+  });
+
+  test("pressing the floating edit button picks a photo and renders it", async () => {
+    mockPickPhoto.mockResolvedValue("file:///picked.jpg");
+    const { getByTestId, queryByTestId } = await render(<PetFormScreen />);
+
+    await fireEvent.press(getByTestId("petform-photo"));
+
+    await waitFor(() => {
+      expect(mockPickPhoto).toHaveBeenCalledTimes(1);
+      expect(getByTestId("petform-avatar-image").props.source).toEqual({
+        uri: "file:///picked.jpg",
+      });
+      expect(queryByTestId("petform-avatar-placeholder")).toBeNull();
+    });
+  });
+
+  test("pressing the circle itself also picks a photo", async () => {
+    mockPickPhoto.mockResolvedValue(null);
+    const { getByTestId } = await render(<PetFormScreen />);
+
+    await fireEvent.press(getByTestId("petform-avatar"));
+
+    expect(mockPickPhoto).toHaveBeenCalledTimes(1);
+  });
+
+  test("Edit mode with an existing photo renders it in the circle", async () => {
+    mockRouteParams = { petId: EXISTING_PET.id };
+    mockGetPet.mockReturnValue({
+      ...EXISTING_PET,
+      photoUri: "file:///existing.jpg",
+    });
+
+    const { getByTestId, queryByTestId } = await render(<PetFormScreen />);
+
+    expect(getByTestId("petform-avatar-image").props.source).toEqual({
+      uri: "file:///existing.jpg",
+    });
+    expect(queryByTestId("petform-avatar-placeholder")).toBeNull();
+    // The old standalone «عکس» preview must not survive alongside the avatar.
+    expect(queryByTestId("petform-photo-preview")).toBeNull();
+  });
+});
+
 // ── Add mode ──────────────────────────────────────────────────────────────────
 
 describe("PetFormScreen – Add mode – validation", () => {

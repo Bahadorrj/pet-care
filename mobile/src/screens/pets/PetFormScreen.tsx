@@ -32,6 +32,8 @@ import type { Species, Gender, WeightUnit } from "../../db/types";
 
 type PetFormRouteProp = RouteProp<PetsStackParamList, "PetForm">;
 
+const AVATAR_SIZE = 96;
+
 const SPECIES: Species[] = ["dog", "cat", "bird", "rabbit", "other"];
 const GENDERS: Gender[] = ["male", "female"];
 const WEIGHT_UNITS: WeightUnit[] = ["kg", "g"];
@@ -191,6 +193,47 @@ export default function PetFormScreen() {
         <Text testID="petform-title" style={styles.appBarTitle}>
           {isEdit ? t("pets.form.title_edit") : t("pets.form.title_add")}
         </Text>
+      </View>
+
+      <View style={styles.avatarSection}>
+        <View style={styles.avatarWrap}>
+          <Pressable
+            testID="petform-avatar"
+            onPress={handlePickPhoto}
+            style={styles.avatar}
+            accessibilityRole="button"
+            accessibilityLabel={t("pets.form.photo_edit")}
+          >
+            {photoUri != null ? (
+              <Image
+                testID="petform-avatar-image"
+                source={{ uri: photoUri }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                testID="petform-avatar-placeholder"
+                name="camera-outline"
+                size={32}
+                color={colors.inkFaint}
+              />
+            )}
+          </Pressable>
+          <Pressable
+            testID="petform-photo"
+            onPress={handlePickPhoto}
+            style={styles.avatarEditButton}
+            accessibilityRole="button"
+            accessibilityLabel={t("pets.form.photo_edit")}
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons
+              name="pencil"
+              size={16}
+              color={colors.onPrimary}
+            />
+          </Pressable>
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -359,25 +402,6 @@ export default function PetFormScreen() {
             )}
           </View>
 
-          {/* Photo */}
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>{t("pets.field.photo")}</Text>
-            <Button
-              testID="petform-photo"
-              variant="secondary"
-              label={t("pets.field.photo")}
-              onPress={handlePickPhoto}
-            />
-            {photoUri != null && (
-              <Image
-                testID="petform-photo-preview"
-                source={{ uri: photoUri }}
-                style={styles.photoPreview}
-                accessibilityLabel={t("pets.field.photo")}
-              />
-            )}
-          </View>
-
           {/* Notes */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>{t("pets.field.notes")}</Text>
@@ -493,11 +517,39 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginStart: spacing.xs,
   },
-  photoPreview: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.md,
-    marginTop: spacing.sm,
+  avatarSection: {
+    alignItems: "center",
+    paddingBottom: spacing.lg,
+  },
+  avatar: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceSunken,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  avatarWrap: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+  },
+  avatarEditButton: {
+    position: "absolute",
+    bottom: 0,
+    end: 0,
+    width: 28,
+    height: 28,
+    borderRadius: radius.pill,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: colors.bg,
+    alignItems: "center",
+    justifyContent: "center",
   },
   notesInput: {
     height: 96,
