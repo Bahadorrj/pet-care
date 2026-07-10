@@ -160,10 +160,12 @@ describe("PetDetailScreen – add-task button removed", () => {
     expect(getByTestId("petdetail-task-task-1")).toBeTruthy();
   });
 
-  test("empty state renders when pet has no tasks", async () => {
+  test("empty state names the pet when it has no tasks", async () => {
     mockTasks = [];
     const { getByText } = await render(<PetDetailScreen />);
-    expect(getByText(i18n.t("tasks.empty"))).toBeTruthy();
+    expect(
+      getByText(i18n.t("pets.tasks_empty", { name: PET.name })),
+    ).toBeTruthy();
   });
 });
 
@@ -186,8 +188,11 @@ describe("PetDetailScreen – tasks section (useShallow selector stability)", ()
   test("shows empty state when no tasks belong to this pet", async () => {
     mockTasks = []; // default — already set in beforeEach but explicit for clarity
     const { getByText } = await render(<PetDetailScreen />);
-    // tasks.empty key
-    expect(getByText(i18n.t("tasks.empty"))).toBeTruthy();
+    // pets.tasks_empty key — the per-pet line, not the Tasks-tab global one
+    expect(
+      getByText(i18n.t("pets.tasks_empty", { name: PET.name })),
+    ).toBeTruthy();
+    expect(() => getByText(i18n.t("tasks.empty"))).toThrow();
   });
 
   test("tapping a task row navigates to TaskForm with petId + taskId", async () => {

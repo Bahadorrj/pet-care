@@ -225,7 +225,9 @@ export default function PetDetailScreen() {
           )}
 
           {petTasks.length === 0 ? (
-            <Text style={styles.tasksEmpty}>{t("tasks.empty")}</Text>
+            <Text style={styles.tasksEmpty}>
+              {t("pets.tasks_empty", { name: pet.name })}
+            </Text>
           ) : (
             petTasks.map((task, idx) => {
               const rowDate = taskRowDate(t, task, now);

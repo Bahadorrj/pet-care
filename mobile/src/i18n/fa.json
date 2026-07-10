@@ -35,6 +35,7 @@
   "pets.add": "افزودن پت",
   "pets.edit": "ویرایش",
   "pets.delete": "حذف",
+  "pets.tasks_empty": "امروز کاری برای {{name}} نیست",
   "pets.delete_confirm": "آیا مطمئنی که می‌خواهی این پت را حذف کنی؟",
   "pets.delete_confirm_many": "آیا مطمئنی که می‌خواهی {{count}} پت را حذف کنی؟",
   "pets.select_mode.selected_count": "{{count}} مورد انتخاب شده",
