@@ -1,6 +1,6 @@
 # 17 — Pet Form layout: app bar, avatar section, basic-information card
 
-**Status:** Draft for review · 2026-07-10
+**Status:** Implemented (pending on-device verification) · 2026-07-10
 **Scope:** `mobile/src/screens/pets/PetFormScreen.tsx` (+ `PetsStack.tsx`, `fa.json`)
 **Amends:** nothing. No ADR required — this is a screen-local layout change, not an
 architectural decision. ADR-0018 (swipeable bottom tabs) is untouched; PetForm
