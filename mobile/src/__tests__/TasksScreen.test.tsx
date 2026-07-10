@@ -23,15 +23,6 @@ import { useActionSheet } from "@expo/react-native-action-sheet";
 import Toast from "react-native-toast-message";
 import * as Haptics from "expo-haptics";
 
-// Haptics are fire-and-forget promises in the screen; the automock returns
-// undefined, so give every call a real resolved promise to `.catch()` on.
-jest.mock("expo-haptics", () => ({
-  impactAsync: jest.fn().mockResolvedValue(undefined),
-  notificationAsync: jest.fn().mockResolvedValue(undefined),
-  ImpactFeedbackStyle: { Light: "light" },
-  NotificationFeedbackType: { Success: "success" },
-}));
-
 // ── Store mock ────────────────────────────────────────────────────────────────
 const mockLoad = jest.fn().mockResolvedValue(undefined);
 const mockMarkOccurrence = jest.fn().mockResolvedValue(undefined);
